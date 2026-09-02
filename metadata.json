@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Gestor Aula ATECA v0.3",
+  "description": "Gestor de reservas, actividades e innovación pedagógica para el Aula ATECA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
