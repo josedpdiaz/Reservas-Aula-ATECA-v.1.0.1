@@ -290,29 +290,47 @@ export const initializeStorage = (force: boolean = false) => {
   }
 };
 
+// Helper for safe JSON parsing
+const safeParse = <T>(value: string | null, fallback: T): T => {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+// Helper for modern unique ID generation without deprecated substr
+const generateUniqueId = (prefix: string): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+  }
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 // Getter functions
 export const getUsuarios = (): Usuario[] => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+  return safeParse(localStorage.getItem(STORAGE_KEYS.USERS), []);
 };
 
 export const getReservas = (): Reserva[] => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.RESERVAS) || '[]');
+  return safeParse(localStorage.getItem(STORAGE_KEYS.RESERVAS), []);
 };
 
 export const getValoraciones = (): Valoracion[] => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.VALORACIONES) || '[]');
+  return safeParse(localStorage.getItem(STORAGE_KEYS.VALORACIONES), []);
 };
 
 export const getBloqueos = (): Bloqueo[] => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.BLOQUEOS) || '[]');
+  return safeParse(localStorage.getItem(STORAGE_KEYS.BLOQUEOS), []);
 };
 
 export const getConfig = (): Record<string, string> => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.CONFIG) || '{}');
+  return safeParse(localStorage.getItem(STORAGE_KEYS.CONFIG), {});
 };
 
 export const getCurrentUser = (): Usuario | null => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || 'null');
+  return safeParse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER), null);
 };
 
 // Setter & Modifier functions
@@ -349,7 +367,7 @@ export const loginByEmail = (email: string): { success: boolean; user?: Usuario;
   if (!user) {
     // Default fallback: create an active PROFESOR if email is entered
     const defaultUser: Usuario = {
-      id_usuario: 'u-' + Math.random().toString(36).substr(2, 9),
+      id_usuario: generateUniqueId('u'),
       nombre: emailSplitName(email),
       email: email.trim(),
       rol: 'PROFESOR',
@@ -378,7 +396,7 @@ const emailSplitName = (email: string): string => {
 
 // Add reservation
 export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion' | 'estado' | 'observaciones_coordinador'>): { success: boolean; reserva?: Reserva; conflict?: boolean; message?: string } => {
-  const id_reserva = 'res-' + Math.random().toString(36).substr(2, 9);
+  const id_reserva = generateUniqueId('res');
   const fecha_creacion = new Date().toISOString().split('T')[0];
   
   // Check conflicts
@@ -399,7 +417,13 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
     };
   }
 
-  // All new reservations start as PENDIENTE according to Sprint 1
+  // 2. Check if there is an approved reservation on that same date and time range
+  const hasApprovedOverlap = reservasArr.some(r => {
+    if (r.estado !== 'APROBADA' && r.estado !== 'REALIZADA') return false;
+    if (r.fecha_actividad !== reserva.fecha_actividad) return false;
+    return checkTimeOverlap(r.hora_inicio, r.hora_fin, reserva.hora_inicio, reserva.hora_fin);
+  });
+
   const nuevoEstado = 'PENDIENTE';
 
   const finalReserva: Reserva = {
@@ -407,7 +431,9 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
     id_reserva,
     fecha_creacion,
     estado: nuevoEstado,
-    observaciones_coordinador: 'Reserva pendiente de revisión por el Coordinador.',
+    observaciones_coordinador: hasApprovedOverlap 
+      ? 'Aviso: Solapamiento potencial con reserva aprobada preexistente. Pendiente de resolución por Coordinación.'
+      : 'Reserva pendiente de revisión por el Coordinador.',
   };
 
   reservasArr.unshift(finalReserva); // put on top
@@ -416,8 +442,10 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
   return {
     success: true,
     reserva: finalReserva,
-    conflict: false,
-    message: "Reserva creada de forma PENDIENTE. Un coordinador revisará la solicitud."
+    conflict: hasApprovedOverlap,
+    message: hasApprovedOverlap
+      ? "Solicitud registrada como PENDIENTE con aviso de solapamiento para revisión de Coordinación."
+      : "Reserva creada de forma PENDIENTE. Un coordinador revisará la solicitud."
   };
 };
 
@@ -456,7 +484,7 @@ export const saveValoracion = (val: Omit<Valoracion, 'id_valoracion' | 'fecha_va
 
     return updated;
   } else {
-    const newId = 'val-' + Math.random().toString(36).substr(2, 9);
+    const newId = generateUniqueId('val');
     const newVal: Valoracion = {
       ...val,
       id_valoracion: newId,
@@ -497,7 +525,7 @@ export const modifyUsuario = (userId: string, updates: Partial<Usuario>) => {
 // Add user
 export const addUsuario = (user: Omit<Usuario, 'id_usuario'>): Usuario => {
   const users = getUsuarios();
-  const id_usuario = 'u-' + Math.random().toString(36).substr(2, 9);
+  const id_usuario = generateUniqueId('u');
   const newUsr: Usuario = { ...user, id_usuario };
   users.push(newUsr);
   setUsuarios(users);
@@ -507,7 +535,7 @@ export const addUsuario = (user: Omit<Usuario, 'id_usuario'>): Usuario => {
 // Add block
 export const addBloqueo = (bloq: Omit<Bloqueo, 'id_bloqueo'>): Bloqueo => {
   const bloqs = getBloqueos();
-  const id_bloqueo = 'bloq-' + Math.random().toString(36).substr(2, 9);
+  const id_bloqueo = generateUniqueId('bloq');
   const newB: Bloqueo = { ...bloq, id_bloqueo };
   bloqs.unshift(newB);
   setBloqueos(bloqs);

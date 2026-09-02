@@ -6,13 +6,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Calendar as CalendarIcon, ShieldAlert, CheckCircle, 
-  Settings, Users, Award, FileText, UserPlus, LogIn, LogOut, 
-  Grid, PlusCircle, HelpCircle, Activity, BookmarkCheck, ArrowRight, ShieldCheck, Mail
+  Settings, Award, FileText, LogIn, LogOut, 
+  PlusCircle, Activity, BookmarkCheck, ShieldCheck, Mail
 } from 'lucide-react';
 
-import { Usuario, Reserva, Valoracion } from './types';
+import { Usuario, Reserva } from './types';
 import { 
-  initializeStorage, getUsuarios, getReservas, getValoraciones, 
+  initializeStorage, getReservas, getValoraciones, 
   getCurrentUser, setCurrentUser, loginByEmail, getConfig 
 } from './lib/storage';
 
@@ -129,9 +129,9 @@ export default function App() {
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans">
       
       {/* NO-PRINT ALERT AND QUICK SIMULATED LOGIN SELECTOR PANEL */}
-      <div className="bg-slate-900 border-b border-slate-850 px-4 py-2 text-white no-print text-xs flex flex-col md:flex-row justify-between items-center gap-2">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 text-white no-print text-xs flex flex-col md:flex-row justify-between items-center gap-2">
         <div className="flex items-center gap-2">
-          <span className="bg-slate-8 w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span className="font-mono text-[10px] text-slate-300">
             <strong>DEMO INTERACTIVA:</strong> Haz clic para cambiar de rol al instante:
           </span>
@@ -140,7 +140,7 @@ export default function App() {
           <button
             onClick={() => handleProfileSwitch('josedpdiaz@gmail.com')}
             className={`px-2.5 py-1 rounded font-bold cursor-pointer transition-colors text-[10px] ${
-              user?.email === 'josedpdiaz@gmail.com' ? 'bg-indigo-650 text-white border border-indigo-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              user?.email === 'josedpdiaz@gmail.com' ? 'bg-indigo-600 text-white border border-indigo-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
             }`}
           >
             José Díaz (ADMIN)
@@ -148,7 +148,7 @@ export default function App() {
           <button
             onClick={() => handleProfileSwitch('m.gonzalez@centro.edu')}
             className={`px-2.5 py-1 rounded font-bold cursor-pointer transition-colors text-[10px] ${
-              user?.email === 'm.gonzalez@centro.edu' ? 'bg-amber-600 text-white' : 'bg-slate-800 hover:bg-slate-705 text-slate-300'
+              user?.email === 'm.gonzalez@centro.edu' ? 'bg-amber-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
             }`}
           >
             María González (COORDINADOR)
@@ -156,14 +156,14 @@ export default function App() {
           <button
             onClick={() => handleProfileSwitch('j.santana@centro.edu')}
             className={`px-2.5 py-1 rounded font-bold cursor-pointer transition-colors text-[10px] ${
-              user?.email === 'j.santana@centro.edu' ? 'bg-blue-600 text-white' : 'bg-slate-800 hover:bg-slate-705 text-slate-300'
+              user?.email === 'j.santana@centro.edu' ? 'bg-blue-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
             }`}
           >
             Juan Santana (PROFESOR - Activo)
           </button>
           <button
             onClick={() => handleProfileSwitch('profe.inactivo@centro.edu')}
-            className="px-2.5 py-1 rounded font-semibold bg-slate-850 hover:bg-slate-800 text-slate-400 cursor-pointer text-[10px]"
+            className="px-2.5 py-1 rounded font-semibold bg-slate-800 hover:bg-slate-700 text-slate-400 cursor-pointer text-[10px]"
           >
             Profe inactivo (Bloqueará entrada)
           </button>
@@ -185,17 +185,17 @@ export default function App() {
         </div>
 
         {user && (
-          <div className="flex items-center gap-3 bg-slate-50 border border-slate-150 p-2 rounded-xl text-xs">
+          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-2 rounded-xl text-xs">
             <div className="text-right">
               <p className="font-bold text-slate-800 text-xs">{user.nombre}</p>
-              <p className="text-[10px] text-slate-450 font-semibold">{user.email} • <span className="text-indigo-600 tracking-wider uppercase">{user.rol}</span></p>
+              <p className="text-[10px] text-slate-500 font-semibold">{user.email} • <span className="text-indigo-600 tracking-wider uppercase">{user.rol}</span></p>
             </div>
             <div className="w-px h-8 bg-slate-200"></div>
             <button
               onClick={handleLogout}
               id="btn_brand_logout"
               title="Cerrar sesión"
-              className="p-1 px-2.5 bg-white border border-slate-200 hover:bg-red-50 text-slate-500 hover:text-red-650 rounded-lg cursor-pointer font-bold font-mono transition-colors text-[10px] flex items-center gap-1"
+              className="p-1 px-2.5 bg-white border border-slate-200 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-lg cursor-pointer font-bold font-mono transition-colors text-[10px] flex items-center gap-1"
             >
               <LogOut className="w-3 h-3" /> Cerrar
             </button>
@@ -292,7 +292,7 @@ export default function App() {
                 <button
                   onClick={() => { setActiveTab('calendar'); setCurrentAction('view'); }}
                   className={`px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
-                    activeTab === 'calendar' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-650'
+                    activeTab === 'calendar' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
                   }`}
                 >
                   <CalendarIcon className="w-4 h-4" /> Calendario / Reservas
@@ -302,7 +302,7 @@ export default function App() {
                 <button
                   onClick={() => { setActiveTab('my-bookings'); setCurrentAction('view'); }}
                   className={`px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer relative transition-colors ${
-                    activeTab === 'my-bookings' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-655'
+                    activeTab === 'my-bookings' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
                   }`}
                 >
                   <BookmarkCheck className="w-4 h-4" /> Mis Actividades ({myBookingsCount})
@@ -316,7 +316,7 @@ export default function App() {
                   <button
                     onClick={() => { setActiveTab('coordinator'); setCurrentAction('view'); }}
                     className={`px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
-                      activeTab === 'coordinator' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-655'
+                      activeTab === 'coordinator' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
                     }`}
                   >
                     <Activity className="w-4 h-4 text-emerald-500" /> Panel Coordinador
@@ -328,7 +328,7 @@ export default function App() {
                   <button
                     onClick={() => { setActiveTab('admin'); setCurrentAction('view'); }}
                     className={`px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
-                      activeTab === 'admin' && currentAction === 'view' ? 'bg-slate-00 text-white bg-slate-900' : 'hover:bg-slate-100 text-slate-655'
+                      activeTab === 'admin' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
                     }`}
                   >
                     <Settings className="w-4 h-4 text-indigo-500" /> Administración
@@ -392,7 +392,7 @@ export default function App() {
                     <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
                       selectedBooking.estado === 'APROBADA' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                       selectedBooking.estado === 'PENDIENTE' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                      selectedBooking.estado === 'REALIZADA' ? 'bg-sky-50 text-sky-700 border-sky-00' :
+                      selectedBooking.estado === 'REALIZADA' ? 'bg-sky-50 text-sky-700 border-sky-100' :
                       selectedBooking.estado === 'RECHAZADA' ? 'bg-red-50 text-red-700 border-red-100' :
                       'bg-slate-50 text-slate-700'
                     }`}>
@@ -404,22 +404,22 @@ export default function App() {
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Docente responsable</p>
-                      <p className="font-bold text-slate-850 text-sm leading-tight">{selectedBooking.profesor}</p>
+                      <p className="font-bold text-slate-800 text-sm leading-tight">{selectedBooking.profesor}</p>
                       <p className="text-slate-500 mt-0.5">{selectedBooking.email} ({selectedBooking.departamento})</p>
                     </div>
                     <div>
                       <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Fecha y rango</p>
-                      <p className="font-bold text-slate-850 text-sm leading-tight">{selectedBooking.fecha_actividad.split('-').reverse().join('/')}</p>
+                      <p className="font-bold text-slate-800 text-sm leading-tight">{selectedBooking.fecha_actividad.split('-').reverse().join('/')}</p>
                       <p className="text-slate-500 mt-0.5">{selectedBooking.hora_inicio} a {selectedBooking.hora_fin}</p>
                     </div>
                     <div>
                       <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Área curricular y grupo</p>
-                      <p className="font-bold text-slate-850Leading-tight">{selectedBooking.modulo_materia_area}</p>
+                      <p className="font-bold text-slate-800 leading-tight">{selectedBooking.modulo_materia_area}</p>
                       <p className="text-slate-500 mt-0.5">{selectedBooking.grupo} ({selectedBooking.nivel})</p>
                     </div>
                     <div>
                       <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Zona del aula</p>
-                      <p className="font-bold text-slate-850">{selectedBooking.zona_principal}</p>
+                      <p className="font-bold text-slate-800">{selectedBooking.zona_principal}</p>
                       <p className="text-slate-500 mt-0.5">{selectedBooking.numero_alumnos} alumnos asistiendo</p>
                     </div>
                   </div>
@@ -427,12 +427,12 @@ export default function App() {
                   {/* Didactic block */}
                   <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl space-y-3 text-xs leading-relaxed">
                     <p>🎯 <strong>Objetivo didáctico:</strong><br /><span className="text-slate-600 block mt-1">"{selectedBooking.objetivo_didactico}"</span></p>
-                    <p>💡 <strong>Descripción de actividad:</strong><br /><span className="text-slate-650 block mt-1">{selectedBooking.descripcion_actividad}</span></p>
-                    <p>🛠️ <strong>Recursos y material:</strong><br /><span className="text-slate-650 block mt-1">{selectedBooking.recursos_necesarios || "Ninguno especificado"}</span></p>
+                    <p>💡 <strong>Descripción de actividad:</strong><br /><span className="text-slate-600 block mt-1">{selectedBooking.descripcion_actividad}</span></p>
+                    <p>🛠️ <strong>Recursos y material:</strong><br /><span className="text-slate-600 block mt-1">{selectedBooking.recursos_necesarios || "Ninguno especificado"}</span></p>
                   </div>
 
                   {selectedBooking.observaciones_coordinador && (
-                    <div className="p-3 bg-indigo-50 border border-indigo-150 text-indigo-850 rounded-lg text-xs leading-normal">
+                    <div className="p-3 bg-indigo-50 border border-indigo-100 text-indigo-900 rounded-lg text-xs leading-normal">
                       💬 <strong>Indicación de Coordinación:</strong><br />
                       <span className="text-indigo-900 block mt-0.5">{selectedBooking.observaciones_coordinador}</span>
                     </div>
@@ -451,7 +451,7 @@ export default function App() {
                         onClick={() => setCurrentAction('view-report')}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg cursor-pointer flex items-center gap-1"
                       >
-                        <FileText className="w-4 h-4 text-emerald-250 animate-pulse" /> Generar Informe Evidencia
+                        <FileText className="w-4 h-4 text-emerald-300 animate-pulse" /> Generar Informe Evidencia
                       </button>
                     )}
                     {selectedBooking.email === user.email && selectedBooking.estado === 'APROBADA' && (
@@ -486,16 +486,16 @@ export default function App() {
                       <div className="bg-white p-5 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                           <h2 className="text-lg font-black tracking-tight text-slate-800">Mi Agenda y Memorias Docentes</h2>
-                          <p className="text-xs text-slate-450 mt-0.5">Control de tus actividades didácticas correspondientes en el Aula ATECA</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Control de tus actividades didácticas correspondientes en el Aula ATECA</p>
                         </div>
                         <div className="flex gap-4 font-mono text-xs font-bold leading-none">
                           <div className="bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-lg text-center">
                             <span className="text-slate-400 block text-[10px]">TUS RESERVAS</span>
-                            <span className="text-lg text-slate-850 mt-1 block font-black">{myBookingsCount}</span>
+                            <span className="text-lg text-slate-800 mt-1 block font-black">{myBookingsCount}</span>
                           </div>
                           <div className="bg-rose-50 border border-rose-100 px-4 py-2.5 rounded-lg text-center text-rose-700">
-                            <span className="text-rose-455 block text-[10px]">SIN VALORAR</span>
-                            <span className="text-lg text-rose-750 mt-1 block font-black">{myPendingValuationsCount}</span>
+                            <span className="text-rose-600 block text-[10px]">SIN VALORAR</span>
+                            <span className="text-lg text-rose-700 mt-1 block font-black">{myPendingValuationsCount}</span>
                           </div>
                         </div>
                       </div>
@@ -506,7 +506,7 @@ export default function App() {
                           <p>Todavía no has registrado ninguna reserva didáctica.</p>
                           <button
                             onClick={() => setCurrentAction('new-booking')}
-                            className="bg-slate-800 text-white font-bold px-4 py-2 text-xs rounded-lg hover:bg-slate-705 transition-colors cursor-pointer"
+                            className="bg-slate-800 text-white font-bold px-4 py-2 text-xs rounded-lg hover:bg-slate-700 transition-colors cursor-pointer"
                           >
                             Crear tu primera solicitud ahora
                           </button>
@@ -528,7 +528,7 @@ export default function App() {
                                       res.estado === 'PENDIENTE' ? 'bg-amber-50 text-amber-700 border-amber-100' :
                                       res.estado === 'REALIZADA' ? 'bg-sky-50 text-sky-700 border-sky-100' :
                                       res.estado === 'RECHAZADA' ? 'bg-red-50 text-red-700 border-red-100' :
-                                      'bg-slate-50 text-slate-650 shadow-none border-slate-200'
+                                      'bg-slate-50 text-slate-600 shadow-none border-slate-200'
                                     }`}>
                                       {res.estado}
                                     </span>
@@ -536,7 +536,7 @@ export default function App() {
 
                                   <div>
                                     <h3 className="font-extrabold text-slate-800 text-sm">{res.modulo_materia_area}</h3>
-                                    <p className="text-[11px] text-slate-450 font-bold mt-0.5">Grupo: {res.grupo} ({res.nivel})</p>
+                                    <p className="text-[11px] text-slate-500 font-bold mt-0.5">Grupo: {res.grupo} ({res.nivel})</p>
                                     <p className="text-[11px] text-slate-500 font-medium mt-1">Horario: {res.hora_inicio} a {res.hora_fin} • Zona: {res.zona_principal}</p>
                                   </div>
 
@@ -547,7 +547,7 @@ export default function App() {
                                   {val && (
                                     <div className="p-2.5 bg-emerald-50/30 border border-emerald-100/30 rounded-lg text-[11px] text-slate-600 flex items-center justify-between">
                                       <span className="font-medium text-emerald-800 flex items-center gap-1">🎖️ Actividad valorada ({val.valoracion_general}★)</span>
-                                      {val.actividad_innovacion && <span className="bg-indigo-650 text-white font-mono text-[9px] px-1.5 py-0.5 rounded font-black font-sans">INNOVACIÓN</span>}
+                                      {val.actividad_innovacion && <span className="bg-indigo-600 text-white font-mono text-[9px] px-1.5 py-0.5 rounded font-black font-sans">INNOVACIÓN</span>}
                                     </div>
                                   )}
                                 </div>
@@ -556,7 +556,7 @@ export default function App() {
                                 <div className="border-t border-slate-100 pt-3 mt-4 flex justify-between items-center text-xs">
                                   <button
                                     onClick={() => { setSelectedBooking(res); setCurrentAction('view-booking-detail'); }}
-                                    className="text-slate-450 hover:text-slate-700 font-bold cursor-pointer transition-colors"
+                                    className="text-slate-500 hover:text-slate-700 font-bold cursor-pointer transition-colors"
                                   >
                                     Detalles completos
                                   </button>

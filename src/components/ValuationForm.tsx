@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Star, Check, AlertTriangle, Sparkles, BookOpen, Clock, ArrowLeft } from 'lucide-react';
+import { Star, Check, AlertTriangle, Sparkles, ArrowLeft } from 'lucide-react';
 import { Reserva, Valoracion } from '../types';
 import { saveValoracion } from '../lib/storage';
 
@@ -212,7 +212,7 @@ export default function ValuationForm({ reserva, existingValuation, onSuccess, o
               <input
                 type="checkbox"
                 id="act_innovacion_inp"
-                checked={actact_innovacion_inp()}
+                checked={actividadInnovacion}
                 onChange={(e) => setActividadInnovacion(e.target.checked)}
                 className="h-4 w-4 rounded-sm text-slate-800 border-slate-300 focus:ring-slate-400 cursor-pointer"
               />
@@ -249,7 +249,7 @@ export default function ValuationForm({ reserva, existingValuation, onSuccess, o
           <button
             type="submit"
             id="btn_submit_valuation"
-            className="px-5 py-2 bg-slate-850 hover:bg-slate-750 active:bg-slate-650 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
           >
             <Check className="h-4 w-4" /> Guardar valoración didáctica
           </button>
@@ -257,8 +257,4 @@ export default function ValuationForm({ reserva, existingValuation, onSuccess, o
       </form>
     </div>
   );
-
-  function actact_innovacion_inp() {
-    return actividadInnovacion;
-  }
 }

@@ -430,7 +430,7 @@ export default function BookingForm({ currentUser, onSuccess, onCancel }: Bookin
             type="submit"
             disabled={conflictType === 'BLOQUEO'}
             id="btn_submit_booking"
-            className="px-5 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:bg-slate-250 disabled:text-slate-400 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
           >
             <CheckCircle2 className="h-4 w-4" /> Enviar solicitud de Reserva
           </button>

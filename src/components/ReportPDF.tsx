@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Printer, ArrowLeft, ShieldAlert, FileText, Calendar, BookOpen, Layers } from 'lucide-react';
+import { Printer, ArrowLeft, ShieldAlert, FileText } from 'lucide-react';
 import { Reserva } from '../types';
 import { getValoraciones, getConfig } from '../lib/storage';
 
@@ -31,7 +31,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
       {/* Top action bar buttons (hidden when printing) */}
       <div className="bg-slate-900 text-white rounded-xl p-4 flex justify-between items-center no-print shadow-sm">
         <div className="flex items-center space-x-3 text-xs md:text-sm">
-          <FileText className="w-5 h-5 text-emerald-450" />
+          <FileText className="w-5 h-5 text-emerald-400" />
           <div>
             <p className="font-bold">Generador de Informes de Evidencia</p>
             <p className="text-[11px] text-slate-300">Formatos oficiales de innovación Aula ATECA Canarias</p>
@@ -41,7 +41,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
           <button
             onClick={onCancel}
             id="btn_back_report"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-650 rounded-lg text-xs font-semibold cursor-pointer text-white"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-xs font-semibold cursor-pointer text-white"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Volver a paneles
           </button>
@@ -56,7 +56,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
       </div>
 
       {/* Main Print Container Sheet */}
-      <div className="print-area bg-white border border-slate-350 p-8 md:p-12 shadow-md rounded-xl max-w-4xl mx-auto text-slate-800 font-sans leading-relaxed relative">
+      <div className="print-area bg-white border border-slate-300 p-8 md:p-12 shadow-md rounded-xl max-w-4xl mx-auto text-slate-800 font-sans leading-relaxed relative">
         
         {/* Header - Mimicking official Canary Islands Educational Department Layout */}
         <div className="border-b-4 border-slate-900 pb-5 pl-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -65,7 +65,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
             <h1 className="text-xl font-black text-slate-900 uppercase mt-0.5 tracking-tight font-serif">
               {config.nombre_centro || "CENTRO EDUCATIVO DE CANARIAS"}
             </h1>
-            <p className="text-xs text-slate-450 font-bold mt-0.5">{config.nombre_aula || "Aula ATECA de Innovación"}</p>
+            <p className="text-xs text-slate-500 font-bold mt-0.5">{config.nombre_aula || "Aula ATECA de Innovación"}</p>
           </div>
           <div className="bg-slate-100 border border-slate-200 px-4 py-2.5 rounded-lg text-center font-mono select-none self-end sm:self-auto">
             <span className="text-[10px] text-slate-400 block font-bold leading-none">CÓDIGO INFORME</span>
@@ -134,7 +134,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
           {/* SECTION 3: ZONA ATECA UTILIZADA */}
           <div>
             <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-800 pb-1 mb-2">3. Detalle de Zona Tecnológica</h3>
-            <p className="text-xs text-slate-705 leading-relaxed">
+            <p className="text-xs text-slate-700 leading-relaxed">
               La actividad se ha coordinado en el aula completa focalizando en la zona técnica: <strong>{booking.zona_principal}</strong>. Esta zona incorpora recursos y hardware especializados idóneos para simular contextos de productividad real en la empresa educativa actual.
             </p>
           </div>
@@ -142,7 +142,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
           {/* SECTION 4: OBJETIVO DIDÁCTICO */}
           <div>
             <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-800 pb-1 mb-2">4. Objetivo Didáctico Principal</h3>
-            <p className="text-xs text-slate-750 italic leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-150">
+            <p className="text-xs text-slate-700 italic leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
               "{booking.objetivo_didactico}"
             </p>
           </div>
@@ -179,7 +179,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
                 {/* 7. DEVELOPMENT & EVIDENCES */}
                 <div>
                   <h4 className="font-bold text-[11px] text-slate-500 uppercase mb-1">Evidencias Tecnológicas y Educativas Generadas</h4>
-                  <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-150">
+                  <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
                     {valuation.evidencias_generadas}
                   </p>
                 </div>
@@ -200,10 +200,10 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
                   <div>
                     <h4 className="font-bold text-[11px] text-slate-500 uppercase mb-1">11. Consideración como Actividad de Innovación</h4>
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs flex items-center justify-between">
-                      <span className="font-bold text-slate-850">¿Innovación Pedagógica?</span>
+                      <span className="font-bold text-slate-800">¿Innovación Pedagógica?</span>
                       <span className={`px-2.5 py-0.5 rounded-full font-black text-[10px] ${
                         valuation.actividad_innovacion 
-                          ? 'bg-slate-850 text-white' 
+                          ? 'bg-slate-900 text-white' 
                           : 'bg-slate-200 text-slate-700'
                       }`}>
                         {valuation.actividad_innovacion ? 'SÍ, INNOVACIÓN' : 'SÍ, METODOLOGÍA ACTIVA'}
@@ -216,7 +216,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
                   {/* 9. DIFICULTADES ENCONTRADAS */}
                   <div>
                     <h4 className="font-bold text-[11px] text-slate-500 uppercase mb-1">9. Dificultades o Contingencias encontradas</h4>
-                    <p className="text-slate-650 bg-slate-50/50 p-3 rounded-lg border border-slate-100 leading-relaxed min-h-16">
+                    <p className="text-slate-600 bg-slate-50/50 p-3 rounded-lg border border-slate-100 leading-relaxed min-h-16">
                       {valuation.dificultades || "Ninguna reseñable por el docente responsable."}
                     </p>
                   </div>
@@ -224,7 +224,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
                   {/* 10. MEJORAS FUTURAS */}
                   <div>
                     <h4 className="font-bold text-[11px] text-slate-500 uppercase mb-1">10. Propuestas de Mejora sugeridas</h4>
-                    <p className="text-slate-650 bg-slate-50/50 p-3 rounded-lg border border-slate-100 leading-relaxed min-h-16">
+                    <p className="text-slate-600 bg-slate-50/50 p-3 rounded-lg border border-slate-100 leading-relaxed min-h-16">
                       {valuation.mejoras_futuras || "Mantener la misma dinámica docente de cara al futuro."}
                     </p>
                   </div>
@@ -233,7 +233,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
                 {/* 12. OBSERVACIONES FINALES */}
                 <div>
                   <h4 className="font-bold text-[11px] text-slate-500 uppercase mb-1">12. Observaciones Generales Finales</h4>
-                  <p className="text-xs text-slate-750 italic leading-relaxed">
+                  <p className="text-xs text-slate-700 italic leading-relaxed">
                     {valuation.observaciones_finales || "Ficha didáctica y evidencia pedagógica completada conforme a la normativa de evaluación formativa de FP canaria."}
                   </p>
                 </div>
@@ -268,7 +268,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
           </div>
         </div>
 
-        <div className="mt-12 text-center text-[9px] text-slate-400 font-bold border-t border-slate-105 pt-3 select-none">
+        <div className="mt-12 text-center text-[9px] text-slate-400 font-bold border-t border-slate-200 pt-3 select-none">
           Documento descriptivo elaborado y persistido mediante Gestor Web ATECA. 
           Generado del estado oficial actual en {new Date().toLocaleDateString('es-ES')}.
         </div>

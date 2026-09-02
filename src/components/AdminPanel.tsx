@@ -4,9 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { UserPlus, Power, Key, Settings, Trash, AlertTriangle, FileSpreadsheet, Play, CheckCircle2, CloudLightning } from 'lucide-react';
+import { UserPlus, Power, Settings, Trash, AlertTriangle, FileSpreadsheet, Play, CheckCircle2, CloudLightning } from 'lucide-react';
 import { Usuario, Bloqueo } from '../types';
-import { getUsuarios, getBloqueos, getConfig, modifyUsuario, addUsuario, addBloqueo, removeBloqueo, setConfig } from '../lib/storage';
+import { getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig, modifyUsuario, addUsuario, addBloqueo, removeBloqueo, setConfig } from '../lib/storage';
 import SheetsGuide from './SheetsGuide';
 
 interface AdminPanelProps {
@@ -121,8 +121,8 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
         action: "bulk_sync",
         data: {
           usuarios: getUsuarios(),
-          reservas: JSON.parse(localStorage.getItem('ateca_reservas') || '[]'),
-          valoraciones: JSON.parse(localStorage.getItem('ateca_valoraciones') || '[]'),
+          reservas: getReservas(),
+          valoraciones: getValoraciones(),
           configuracion: Object.entries(getConfig()).map(([clave, valor]) => ({ clave, valor })),
           bloqueos: getBloqueos()
         }
@@ -167,7 +167,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-505">
+      <div className="flex bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500">
         <button
           onClick={() => setActiveTab('users')}
           className={`flex-1 py-3 border-r border-slate-200 text-center cursor-pointer transition-colors ${
@@ -207,7 +207,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
         {activeTab === 'users' && (
           <div className="space-y-6">
             {/* Create user */}
-            <form onSubmit={handleAddUserSubmit} className="bg-slate-50/50 p-4 border border-slate-150 rounded-xl space-y-4">
+            <form onSubmit={handleAddUserSubmit} className="bg-slate-50/50 p-4 border border-slate-200 rounded-xl space-y-4">
               <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider"><UserPlus className="w-4 h-4 text-slate-500" /> Registrar nuevo docente</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
                 <div>
@@ -283,7 +283,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                     <tr key={usr.id_usuario} className="hover:bg-slate-50/20">
                       <td className="p-3 font-semibold text-slate-800">{usr.nombre}</td>
                       <td className="p-3 font-mono text-slate-500">{usr.email}</td>
-                      <td className="p-3 font-medium text-slate-650">{usr.departamento}</td>
+                      <td className="p-3 font-medium text-slate-600">{usr.departamento}</td>
                       <td className="p-3 text-center">
                         <select
                           value={usr.rol}
@@ -322,13 +322,13 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
         {activeTab === 'blocks' && (
           <div className="space-y-6">
             {/* Create Lockout */}
-            <form onSubmit={handleBlockSubmit} className="bg-slate-50/50 p-4 border border-slate-150 rounded-xl space-y-4">
+            <form onSubmit={handleBlockSubmit} className="bg-slate-50/50 p-4 border border-slate-200 rounded-xl space-y-4">
               <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider"><AlertTriangle className="w-4 h-4 text-rose-500" /> Crear Bloqueo de aula</h3>
               <p className="text-xs text-slate-400 leading-tight">Las franjas bloqueadas impedirán que los profesores puedan solicitar reservas ese día y rango. Úsalo para limpiezas, mantenimiento o reuniones especiales.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
                 <div>
-                  <label className="block text-slate-405 font-bold mb-1">Fecha</label>
+                  <label className="block text-slate-500 font-bold mb-1">Fecha</label>
                   <input
                     type="date"
                     required
@@ -338,7 +338,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-405 font-bold mb-1">Hora inicio</label>
+                  <label className="block text-slate-500 font-bold mb-1">Hora inicio</label>
                   <input
                     type="time"
                     required
@@ -348,7 +348,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-405 font-bold mb-1">Hora fin</label>
+                  <label className="block text-slate-500 font-bold mb-1">Hora fin</label>
                   <input
                     type="time"
                     required
@@ -358,7 +358,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-405 font-bold mb-1">Motivo del Bloqueo técnico</label>
+                  <label className="block text-slate-500 font-bold mb-1">Motivo del Bloqueo técnico</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -383,7 +383,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
             <div className="border border-slate-200 rounded-xl overflow-hidden">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-550 font-bold uppercase tracking-wider">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                     <th className="p-3">Fecha del bloqueo</th>
                     <th className="p-3">Horario</th>
                     <th className="p-3">Motivo / Causa</th>
@@ -399,7 +399,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   ) : (
                     bloqueos.map(b => (
                       <tr key={b.id_bloqueo} className="hover:bg-slate-50/20">
-                        <td className="p-3 font-semibold text-slate-850">{b.fecha.split('-').reverse().join('/')}</td>
+                        <td className="p-3 font-semibold text-slate-800">{b.fecha.split('-').reverse().join('/')}</td>
                         <td className="p-3 font-mono font-bold text-slate-600">{b.hora_inicio} - {b.hora_fin}</td>
                         <td className="p-3 text-slate-600">{b.motivo}</td>
                         <td className="p-3 text-slate-400 italic">{b.creado_por}</td>
@@ -431,7 +431,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   required
                   value={nombreCentro}
                   onChange={(e) => setNombreCentro(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-205 focus:border-slate-450 rounded-lg text-xs outline-none font-medium"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none font-medium"
                 />
               </div>
 
@@ -442,7 +442,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   required
                   value={nombreAula}
                   onChange={(e) => setNombreAula(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-205 focus:border-slate-450 rounded-lg text-xs outline-none font-medium"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none font-medium"
                 />
               </div>
 
@@ -453,7 +453,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   required
                   value={horarioInicio}
                   onChange={(e) => setHorarioInicio(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-205 focus:border-slate-450 rounded-lg text-xs outline-none font-mono font-medium"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none font-mono font-medium"
                 />
               </div>
 
@@ -464,7 +464,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   required
                   value={horarioFin}
                   onChange={(e) => setHorarioFin(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-205 focus:border-slate-450 rounded-lg text-xs outline-none font-mono font-medium"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none font-mono font-medium"
                 />
               </div>
 
@@ -475,7 +475,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   required
                   value={emailCoordinador}
                   onChange={(e) => setEmailCoordinador(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-205 focus:border-slate-450 rounded-lg text-xs outline-none font-medium"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none font-medium"
                 />
               </div>
             </div>

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Calendar as CalendarIcon, Filter, Layers, CheckCircle2, AlertCircle, RefreshCw, Plus, Clock, Search, ListFilter, User } from 'lucide-react';
+import { Calendar as CalendarIcon, Layers, CheckCircle2, Plus, Clock, Search, ListFilter, User } from 'lucide-react';
 import { Reserva } from '../types';
 import { getReservas } from '../lib/storage';
 
@@ -143,7 +143,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
       case 'RECHAZADA': return 'bg-red-100 text-red-800 border-red-200';
       case 'CANCELADA': return 'bg-slate-100 text-slate-800 border-slate-200';
       case 'REALIZADA': return 'bg-sky-100 text-sky-800 border-sky-200';
-      default: return 'bg-slate-100 text-slate-800 border-slate-250';
+      default: return 'bg-slate-100 text-slate-800 border-slate-300';
     }
   };
 
@@ -348,7 +348,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                             res.estado === 'PENDIENTE' ? 'bg-amber-400' :
                             res.estado === 'APROBADA' ? 'bg-emerald-400' :
                             res.estado === 'REALIZADA' ? 'bg-sky-400' :
-                            'bg-slate-350'
+                            'bg-slate-400'
                           }`}></span>
                           <span className="font-medium max-w-[85%] truncate uppercase font-sans text-slate-700">
                             {res.profesor.split(' ')[0]}
@@ -402,7 +402,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                   <div
                     key={res.id_reserva}
                     onClick={() => onSelectBooking && onSelectBooking(res)}
-                    className="p-3 bg-white hover:bg-slate-100/70 cursor-pointer active:scale-[0.99] border border-slate-150 rounded-lg transition-all space-y-2 text-xs"
+                    className="p-3 bg-white hover:bg-slate-100/70 cursor-pointer active:scale-[0.99] border border-slate-200 rounded-lg transition-all space-y-2 text-xs"
                   >
                     <div className="flex justify-between items-start gap-2">
                       <span className="font-bold text-slate-800 flex items-center gap-1">

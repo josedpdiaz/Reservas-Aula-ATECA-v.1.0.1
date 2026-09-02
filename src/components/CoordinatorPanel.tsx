@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, HelpCircle, FileCheck, CheckCircle2, RefreshCw, Layers } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, FileCheck, CheckCircle2, Layers } from 'lucide-react';
 import { Reserva, Usuario } from '../types';
 import { getReservas, getValoraciones, updateReservaEstado } from '../lib/storage';
 
@@ -99,7 +99,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
       case 'APROBADA': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       case 'PENDIENTE': return 'bg-amber-50 text-amber-700 border-amber-100';
       case 'RECHAZADA': return 'bg-red-50 text-red-700 border-red-100';
-      case 'CANCELADA': return 'bg-slate-50 text-slate-750 border-slate-100';
+      case 'CANCELADA': return 'bg-slate-50 text-slate-700 border-slate-100';
       case 'REALIZADA': return 'bg-sky-50 text-sky-700 border-sky-100';
       default: return 'bg-slate-50 text-slate-700 border-slate-100';
     }
@@ -175,7 +175,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
           
           <div className="space-y-4">
             <div>
-              <div className="flex justify-between text-xs font-bold text-slate-650 mb-1">
+              <div className="flex justify-between text-xs font-bold text-slate-600 mb-1">
                 <span>Formación Profesional (Prioritaria)</span>
                 <span>{stats.fpPercentage}%</span>
               </div>
@@ -185,7 +185,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
             </div>
 
             <div>
-              <div className="flex justify-between text-xs font-bold text-slate-650 mb-1">
+              <div className="flex justify-between text-xs font-bold text-slate-600 mb-1">
                 <span>Otros (ESO, Bachillerato, Proyectos)</span>
                 <span>{stats.otherPercentage}%</span>
               </div>
@@ -195,7 +195,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
             </div>
           </div>
 
-          <div className="bg-slate-50 border border-slate-150 p-3 rounded-lg text-[11px] leading-relaxed text-slate-500">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg text-[11px] leading-relaxed text-slate-500">
             <strong>Mensaje de prioridades Aula ATECA:</strong><br />
             “El espacio de innovación canario está destinado a la capacitación del alumnado de FP, priorizándose sus módulos específicos, sin excluir al resto de etapas si existieran huecos libres confirmados.”
           </div>
@@ -307,7 +307,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
                     </div>
 
                     {/* Resources & coordinator aid */}
-                    <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-150 text-[11px] text-slate-600 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-600 grid grid-cols-1 md:grid-cols-2 gap-2">
                       <p>🛠️ <strong>Recursos requeridos:</strong> {res.recursos_necesarios || "Ninguno especificado"}</p>
                       <p>👥 <strong>¿Apoyo presencial?</strong> {res.necesita_apoyo ? "🚨 Sí, requiere soporte del coordinador" : "No requiere presencia física"}</p>
                     </div>
@@ -320,7 +320,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
                           value={observacionesInput[res.id_reserva] || ''}
                           onChange={(e) => setObservacionesInput(p => ({ ...p, [res.id_reserva]: e.target.value }))}
                           placeholder="Observaciones de autorización (enviadas al profesor, ej: Recordar recoger filamentos)"
-                          className="w-full px-3 py-2 bg-white border border-slate-205 focus:border-slate-400 rounded-lg text-xs outline-none"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none"
                         />
                       </div>
                       <div className="flex gap-2 self-end md:self-auto flex-wrap">
@@ -353,7 +353,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
           {activeTab === 'unvalued' && (
             <div className="space-y-4">
               {unvaluedReservas.length === 0 ? (
-                <div className="text-center py-8 text-slate-405 text-xs">
+                <div className="text-center py-8 text-slate-400 text-xs">
                   No hay clases realizadas pendientes de memoria didáctica. ¡Buen trabajo!
                 </div>
               ) : (
@@ -419,15 +419,15 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
                           <p className="text-[10px] text-slate-500">{res.departamento}</p>
                         </td>
                         <td className="p-3">
-                          <p className="font-semibold text-slate-650">{res.fecha_actividad.split('-').reverse().join('/')}</p>
+                          <p className="font-semibold text-slate-600">{res.fecha_actividad.split('-').reverse().join('/')}</p>
                           <p className="text-[10px] text-slate-400">{res.grupo} • {res.modulo_materia_area}</p>
                         </td>
                         <td className="p-3 font-semibold text-slate-700">{res.zona_principal}</td>
-                        <td className="p-3 text-center font-bold text-slate-550">{res.necesita_apoyo ? 'SÍ' : 'NO'}</td>
+                        <td className="p-3 text-center font-bold text-slate-500">{res.necesita_apoyo ? 'SÍ' : 'NO'}</td>
                         <td className="p-3 text-center">
                           <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                            res.prioridad === 'ALTA' ? 'bg-red-50 text-red-650' :
-                            res.prioridad === 'MEDIA' ? 'bg-amber-50 text-amber-655' : 'bg-blue-50 text-blue-650'
+                            res.prioridad === 'ALTA' ? 'bg-red-50 text-red-700' :
+                            res.prioridad === 'MEDIA' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
                           }`}>
                             {res.prioridad}
                           </span>
