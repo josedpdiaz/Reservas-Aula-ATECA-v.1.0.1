@@ -65,11 +65,19 @@ const DEFAULT_USERS: Usuario[] = [
   }
 ];
 
+// Robust local date formatting to YYYY-MM-DD avoiding UTC/timezone shift bugs
+export const formatDateToYMD = (date: Date = new Date()): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 // Helper to get dates relative to today
 const getRelativeDateStr = (offsetDays: number): string => {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().split('T')[0];
+  return formatDateToYMD(d);
 };
 
 // Pre-seeded reservations
@@ -397,7 +405,7 @@ const emailSplitName = (email: string): string => {
 // Add reservation
 export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion' | 'estado' | 'observaciones_coordinador'>): { success: boolean; reserva?: Reserva; conflict?: boolean; message?: string } => {
   const id_reserva = generateUniqueId('res');
-  const fecha_creacion = new Date().toISOString().split('T')[0];
+  const fecha_creacion = formatDateToYMD();
   
   // Check conflicts
   const reservasArr = getReservas();
@@ -468,7 +476,7 @@ export const saveValoracion = (val: Omit<Valoracion, 'id_valoracion' | 'fecha_va
   const vals = getValoraciones();
   const existingIdx = vals.findIndex(v => v.id_reserva === val.id_reserva);
 
-  const fecha_valoracion = new Date().toISOString().split('T')[0];
+  const fecha_valoracion = formatDateToYMD();
 
   if (existingIdx >= 0) {
     const updated = {

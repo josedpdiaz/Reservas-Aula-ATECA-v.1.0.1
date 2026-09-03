@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { UserPlus, Power, Settings, Trash, AlertTriangle, FileSpreadsheet, Play, CheckCircle2, CloudLightning } from 'lucide-react';
 import { Usuario, Bloqueo } from '../types';
-import { getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig, modifyUsuario, addUsuario, addBloqueo, removeBloqueo, setConfig } from '../lib/storage';
+import { getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig, modifyUsuario, addUsuario, addBloqueo, removeBloqueo, setConfig, formatDateToYMD } from '../lib/storage';
 import SheetsGuide from './SheetsGuide';
 
 interface AdminPanelProps {
@@ -19,8 +19,8 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const rawConfig = getConfig();
   const [nombreCentro, setNombreCentro] = useState(rawConfig.nombre_centro || '');
   const [nombreAula, setNombreAula] = useState(rawConfig.nombre_aula || '');
-  const [horarioInicio, setHorarioInicio] = useState(rawConfig.horario_inicio || '08:00');
-  const [horarioFin, setHorarioFin] = useState(rawConfig.horario_fin || '21:00');
+  const [horarioInicio, setHorarioInicio] = useState(rawConfig.horario_apertura || '08:00');
+  const [horarioFin, setHorarioFin] = useState(rawConfig.horario_cierre || '14:30');
   const [emailCoordinador, setEmailCoordinador] = useState(rawConfig.email_coordinador || '');
   const [gsheetUrl, setGsheetUrl] = useState(rawConfig.google_sheets_url || '');
 
@@ -31,7 +31,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [newUsrDept, setNewUsrDept] = useState('');
 
   // Lockout form
-  const [blockFecha, setBlockFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [blockFecha, setBlockFecha] = useState(() => formatDateToYMD());
   const [blockInicio, setBlockInicio] = useState('08:00');
   const [blockFin, setBlockFin] = useState('14:00');
   const [blockMotivo, setBlockMotivo] = useState('');

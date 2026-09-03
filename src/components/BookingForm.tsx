@@ -6,15 +6,16 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Reserva, Usuario } from '../types';
-import { addReserva, checkTimeOverlap, getReservas, getBloqueos, getConfig } from '../lib/storage';
+import { getReservas, getBloqueos, addReserva, checkTimeOverlap, formatDateToYMD, getConfig } from '../lib/storage';
 
 interface BookingFormProps {
   currentUser: Usuario;
   onSuccess: (msg: string) => void;
   onCancel: () => void;
+  initialDate?: string;
 }
 
-export default function BookingForm({ currentUser, onSuccess, onCancel }: BookingFormProps) {
+export default function BookingForm({ currentUser, onSuccess, onCancel, initialDate }: BookingFormProps) {
   const config = getConfig();
   
   // Form fields
@@ -24,7 +25,7 @@ export default function BookingForm({ currentUser, onSuccess, onCancel }: Bookin
   const [nivel, setNivel] = useState('Grado Superior FP');
   const [grupo, setGrupo] = useState('');
   const [moduloMateria, setModuloMateria] = useState('');
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState(() => initialDate || formatDateToYMD());
   const [horaInicio, setHoraInicio] = useState('09:00');
   const [horaFin, setHoraFin] = useState('11:00');
   const [zonaPrincipal, setZonaPrincipal] = useState('Multimedia');

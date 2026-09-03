@@ -6,12 +6,12 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar as CalendarIcon, Layers, CheckCircle2, Plus, Clock, Search, ListFilter, User } from 'lucide-react';
 import { Reserva } from '../types';
-import { getReservas } from '../lib/storage';
+import { getReservas, formatDateToYMD } from '../lib/storage';
 
 interface CalendarViewProps {
   onSelectBooking?: (booking: Reserva) => void;
-  onRequestNewBookingWithDate?: (date: string) => void;
-  canCreateBookings: boolean;
+  onRequestNewBookingWithDate?: (dateStr: string) => void;
+  canCreateBookings?: boolean;
 }
 
 export default function CalendarView({ onSelectBooking, onRequestNewBookingWithDate, canCreateBookings }: CalendarViewProps) {
@@ -26,7 +26,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
 
   // Selected calendar day for detail
   const [selectedDayStr, setSelectedDayStr] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
+    return formatDateToYMD();
   });
 
   const rawReservas = getReservas();
@@ -82,7 +82,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
         date: prevDate,
         isCurrentMonth: false,
         dayNum: prevMonthDays - i,
-        dateStr: prevDate.toISOString().split('T')[0]
+        dateStr: formatDateToYMD(prevDate)
       });
     }
 
@@ -93,7 +93,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
         date: currDate,
         isCurrentMonth: true,
         dayNum: i,
-        dateStr: currDate.toISOString().split('T')[0]
+        dateStr: formatDateToYMD(currDate)
       });
     }
 
@@ -105,7 +105,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
         date: nextDate,
         isCurrentMonth: false,
         dayNum: i,
-        dateStr: nextDate.toISOString().split('T')[0]
+        dateStr: formatDateToYMD(nextDate)
       });
     }
 
@@ -123,7 +123,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   const handleToday = () => {
     const today = new Date();
     setCurrentDate(today);
-    setSelectedDayStr(today.toISOString().split('T')[0]);
+    setSelectedDayStr(formatDateToYMD(today));
   };
 
   // Group reservations of the selected day
@@ -309,7 +309,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                 const isSelected = cell.dateStr === selectedDayStr;
                 const dailyReservations = getDayReservas(cell.dateStr);
                 const hasResState = activeDayHasIndicator(cell.dateStr);
-                const isToday = new Date().toISOString().split('T')[0] === cell.dateStr;
+                const isToday = formatDateToYMD() === cell.dateStr;
 
                 return (
                   <div
