@@ -47,8 +47,10 @@ export default function App() {
   const [currentAction, setCurrentAction] = useState<'view' | 'new-booking' | 'new-valuation' | 'view-report' | 'view-booking-detail'>('view');
   const [selectedBooking, setSelectedBooking] = useState<Reserva | null>(null);
   
-  // Custom Date pre-selected from visual calendar grid clicks
+  // Custom Date and hours pre-selected from visual calendar grid clicks
   const [initialBookingDate, setInitialBookingDate] = useState<string | undefined>(undefined);
+  const [initialStartTime, setInitialStartTime] = useState<string | undefined>(undefined);
+  const [initialEndTime, setInitialEndTime] = useState<string | undefined>(undefined);
 
   // Privacy & RGPD modal state
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -356,6 +358,8 @@ export default function App() {
                 <button
                   onClick={() => {
                     setInitialBookingDate(undefined);
+                    setInitialStartTime(undefined);
+                    setInitialEndTime(undefined);
                     setCurrentAction('new-booking');
                   }}
                   id="btn_request_booking_header"
@@ -371,6 +375,9 @@ export default function App() {
               {currentAction === 'new-booking' ? (
                 <BookingForm
                   currentUser={user}
+                  initialDate={initialBookingDate}
+                  initialStartTime={initialStartTime}
+                  initialEndTime={initialEndTime}
                   onCancel={() => setCurrentAction('view')}
                   onSuccess={(msg) => {
                     triggerToast(msg);
@@ -485,8 +492,10 @@ export default function App() {
                   {activeTab === 'calendar' && (
                     <CalendarView
                       canCreateBookings={user.activo}
-                      onRequestNewBookingWithDate={(date) => {
+                      onRequestNewBookingWithDate={(date, start, end) => {
                         setInitialBookingDate(date);
+                        setInitialStartTime(start);
+                        setInitialEndTime(end);
                         setCurrentAction('new-booking');
                       }}
                       onSelectBooking={(booking) => {

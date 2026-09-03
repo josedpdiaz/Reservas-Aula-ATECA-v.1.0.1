@@ -13,9 +13,18 @@ interface BookingFormProps {
   onSuccess: (msg: string) => void;
   onCancel: () => void;
   initialDate?: string;
+  initialStartTime?: string;
+  initialEndTime?: string;
 }
 
-export default function BookingForm({ currentUser, onSuccess, onCancel, initialDate }: BookingFormProps) {
+export default function BookingForm({ 
+  currentUser, 
+  onSuccess, 
+  onCancel, 
+  initialDate,
+  initialStartTime,
+  initialEndTime
+}: BookingFormProps) {
   const config = getConfig();
   
   // Form fields
@@ -26,8 +35,8 @@ export default function BookingForm({ currentUser, onSuccess, onCancel, initialD
   const [grupo, setGrupo] = useState('');
   const [moduloMateria, setModuloMateria] = useState('');
   const [fecha, setFecha] = useState(() => initialDate || formatDateToYMD());
-  const [horaInicio, setHoraInicio] = useState('09:00');
-  const [horaFin, setHoraFin] = useState('11:00');
+  const [horaInicio, setHoraInicio] = useState(() => initialStartTime || '09:00');
+  const [horaFin, setHoraFin] = useState(() => initialEndTime || '11:00');
   const [zonaPrincipal, setZonaPrincipal] = useState('Multimedia');
   const [numAlumnos, setNumAlumnos] = useState(15);
   const [objetivoDidactico, setObjetivoDidactico] = useState('');

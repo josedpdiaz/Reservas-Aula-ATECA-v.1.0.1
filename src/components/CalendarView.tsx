@@ -7,14 +7,15 @@ import React, { useState, useMemo } from 'react';
 import { 
   Calendar as CalendarIcon, Layers, CheckCircle2, Plus, Clock, Search, 
   User, ChevronLeft, ChevronRight, Sparkles, Filter, ChevronDown, ChevronUp,
-  PanelRight, PanelTop, CalendarDays
+  PanelRight, PanelTop, CalendarDays, Eye
 } from 'lucide-react';
 import { Reserva } from '../types';
 import { getReservas, formatDateToYMD } from '../lib/storage';
+import DayScheduleSheet from './DayScheduleSheet';
 
 interface CalendarViewProps {
   onSelectBooking?: (booking: Reserva) => void;
-  onRequestNewBookingWithDate?: (dateStr: string) => void;
+  onRequestNewBookingWithDate?: (dateStr: string, startHour?: string, endHour?: string) => void;
   canCreateBookings?: boolean;
 }
 
@@ -26,7 +27,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   const [filterEstado, setFilterEstado] = useState('Todas');
   const [filterProfesor, setFilterProfesor] = useState('');
   const [filterNivel, setFilterNivel] = useState('Todas');
-  const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'day-sheet' | 'list'>('month');
 
   // Collapse / Expand & Layout States
   const [isMonthExpanded, setIsMonthExpanded] = useState(true);
@@ -274,6 +275,13 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                   <Plus className="w-4 h-4" /> Solicitar otra reserva en este día
                 </button>
               )}
+
+              <button
+                onClick={() => setViewMode('day-sheet')}
+                className="w-full text-center py-2.5 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-indigo-200/60 shadow-2xs mt-2"
+              >
+                <Clock className="w-3.5 h-3.5" /> Abrir Hoja Completa de Horarios (Mañana y Tarde)
+              </button>
             </div>
           )
         )}
@@ -301,18 +309,26 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
             </div>
           </div>
 
-          <div className="flex bg-slate-100/80 p-1 rounded-xl text-xs font-bold self-start md:self-center border border-slate-200/60">
+          <div className="flex flex-wrap bg-slate-100/80 p-1 rounded-xl text-xs font-bold self-start md:self-center border border-slate-200/60 gap-1">
             <button
               onClick={() => setViewMode('month')}
-              className={`px-4 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'month' ? 'bg-white text-slate-900 shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <CalendarIcon className="w-3.5 h-3.5 text-slate-500" /> Vista Mensual
             </button>
             <button
+              onClick={() => setViewMode('day-sheet')}
+              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'day-sheet' ? 'bg-white text-slate-900 shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 text-indigo-500" /> Horario del Día ({selectedDayStr.split('-').reverse().join('/')})
+            </button>
+            <button
               onClick={() => setViewMode('list')}
-              className={`px-4 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'list' ? 'bg-white text-slate-900 shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -394,7 +410,21 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
         </div>
       </div>
 
-      {viewMode === 'month' ? (
+      {viewMode === 'day-sheet' ? (
+        <DayScheduleSheet
+          dateStr={selectedDayStr}
+          reservas={rawReservas}
+          onBackToMonth={() => setViewMode('month')}
+          onSelectDate={(newDate) => setSelectedDayStr(newDate)}
+          onSelectBooking={(booking) => onSelectBooking && onSelectBooking(booking)}
+          onRequestBookingWithSlot={(date, start, end) => {
+            if (onRequestNewBookingWithDate) {
+              onRequestNewBookingWithDate(date, start, end);
+            }
+          }}
+          canCreateBookings={canCreateBookings}
+        />
+      ) : viewMode === 'month' ? (
         <div className="space-y-6">
           
           {/* Top position for day detail if selected by user */}
@@ -478,13 +508,17 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                       return (
                         <div
                           key={idx}
-                          onClick={() => setSelectedDayStr(cell.dateStr)}
+                          onClick={() => {
+                            setSelectedDayStr(cell.dateStr);
+                            setViewMode('day-sheet');
+                          }}
+                          title={`Ver horario y reservas del ${cell.dateStr}`}
                           className={`min-h-20 md:min-h-22 p-2 rounded-xl cursor-pointer transition-all flex flex-col justify-between relative group border ${
                             cell.isCurrentMonth ? 'bg-white' : 'bg-slate-50/60 text-slate-400'
                           } ${
                             isSelected 
                               ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30 shadow-xs' 
-                              : 'border-slate-150 hover:border-slate-300 hover:bg-slate-50/50 hover:shadow-xs'
+                              : 'border-slate-150 hover:border-indigo-300 hover:bg-indigo-50/20 hover:shadow-xs'
                           }`}
                         >
                           <div className="flex justify-between items-start">
