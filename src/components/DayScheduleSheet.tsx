@@ -23,16 +23,16 @@ interface DayScheduleSheetProps {
 }
 
 // Horarios lectivos según normativa:
-// Mañana: 08:00 a 14:00 (6 sesiones de 50 min + recreo)
+// Mañana: 08:00 a 14:00 (6 sesiones de 50 min con descanso de 11:00 a 11:30)
 const MORNING_SLOTS = [
   { start: '08:00', end: '08:50', label: '1ª Sesión (50m)' },
   { start: '08:50', end: '09:40', label: '2ª Sesión (50m)' },
   { start: '09:40', end: '10:30', label: '3ª Sesión (50m)' },
-  { start: '10:30', end: '11:00', label: 'Recreo / Descanso Mañana (30m)', isBreak: true },
-  { start: '11:00', end: '11:50', label: '4ª Sesión (50m)' },
-  { start: '11:50', end: '12:40', label: '5ª Sesión (50m)' },
-  { start: '12:40', end: '13:30', label: '6ª Sesión (50m)' },
-  { start: '13:30', end: '14:00', label: 'Franja Flexible / Cierre (30m)' },
+  { start: '10:30', end: '11:00', label: 'Franja Flexible / Tutoría (30m)' },
+  { start: '11:00', end: '11:30', label: 'Recreo / Descanso Mañana (30m)', isBreak: true },
+  { start: '11:30', end: '12:20', label: '4ª Sesión (50m)' },
+  { start: '12:20', end: '13:10', label: '5ª Sesión (50m)' },
+  { start: '13:10', end: '14:00', label: '6ª Sesión (50m)' },
 ];
 
 // Tarde-Noche: 6 sesiones de 50 min con descanso de 20 min tras la 3ª sesión
