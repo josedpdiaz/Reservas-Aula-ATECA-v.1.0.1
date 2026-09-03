@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Reserva, Usuario } from '../types';
 import { getReservas, getBloqueos, addReserva, checkTimeOverlap, formatDateToYMD, getConfig } from '../lib/storage';
 
@@ -417,8 +417,16 @@ export default function BookingForm({ currentUser, onSuccess, onCancel, initialD
           </div>
         </div>
 
+        {/* RGPD Educational Compliance Notice */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-500 flex items-center gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>
+            <strong>Protección de datos:</strong> Tratamiento exclusivo con fines pedagógicos y organizativos del Aula ATECA (Art. 6.1.e RGPD). <strong>No se recogen datos identificativos de alumnos.</strong>
+          </span>
+        </div>
+
         {/* FOOTER ACTIONS */}
-        <div className="flex justify-end items-center gap-3 border-t border-slate-100 pt-5">
+        <div className="flex justify-end items-center gap-3 border-t border-slate-100 pt-4">
           <button
             type="button"
             onClick={onCancel}

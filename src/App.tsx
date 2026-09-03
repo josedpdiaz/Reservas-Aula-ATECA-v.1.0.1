@@ -22,6 +22,7 @@ import ValuationForm from './components/ValuationForm';
 import CoordinatorPanel from './components/CoordinatorPanel';
 import AdminPanel from './components/AdminPanel';
 import ReportPDF from './components/ReportPDF';
+import PrivacyModal from './components/PrivacyModal';
 
 export default function App() {
   // Initialize App Databases inside localStorage
@@ -47,6 +48,9 @@ export default function App() {
   
   // Custom Date pre-selected from visual calendar grid clicks
   const [initialBookingDate, setInitialBookingDate] = useState<string | undefined>(undefined);
+
+  // Privacy & RGPD modal state
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // Success notify toast state
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -617,10 +621,21 @@ export default function App() {
       {/* LOWER FOOTER BRAND (Hidden when printing reports) */}
       <footer className="mt-12 py-6 bg-slate-900 border-t border-slate-800 text-slate-400 text-center text-[10px] md:text-xs font-medium no-print space-y-2">
         <p>© 2026 Gestor Aula ATECA. Diseñado para simplificar la planificación de innovación educativa y currículo en Formación Profesional canaria.</p>
-        <p className="text-slate-500 font-bold font-mono uppercase text-[9px] tracking-widest">
+        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 font-semibold pt-1">
+          <button
+            onClick={() => setShowPrivacyModal(true)}
+            className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 underline underline-offset-4 transition-colors cursor-pointer"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" /> Cláusula de Privacidad y Protección de Datos (RGPD)
+          </button>
+        </div>
+        <p className="text-slate-500 font-bold font-mono uppercase text-[9px] tracking-widest pt-1">
           Consola optimizada para dispositivos Móviles, Tablets e iFrame. Sincronización Google Sheets Soportada.
         </p>
       </footer>
+
+      {/* RGPD Privacy Modal */}
+      <PrivacyModal isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
     </div>
   );
 }
