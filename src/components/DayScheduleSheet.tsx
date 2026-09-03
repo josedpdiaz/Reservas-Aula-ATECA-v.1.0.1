@@ -22,25 +22,27 @@ interface DayScheduleSheetProps {
   canCreateBookings?: boolean;
 }
 
-// Canonical educational standard slots for Vocational Training in the Canary Islands
+// Horarios lectivos según normativa:
+// Mañana: 08:00 a 14:00 (6 sesiones de 50 min + recreo)
 const MORNING_SLOTS = [
-  { start: '08:00', end: '09:00', label: '1ª Hora' },
-  { start: '09:00', end: '10:00', label: '2ª Hora' },
-  { start: '10:00', end: '11:00', label: '3ª Hora' },
-  { start: '11:00', end: '11:30', label: 'Recreo / Descanso', isBreak: true },
-  { start: '11:30', end: '12:30', label: '4ª Hora' },
-  { start: '12:30', end: '13:30', label: '5ª Hora' },
-  { start: '13:30', end: '14:30', label: '6ª Hora' },
+  { start: '08:00', end: '08:50', label: '1ª Sesión (50m)' },
+  { start: '08:50', end: '09:40', label: '2ª Sesión (50m)' },
+  { start: '09:40', end: '10:30', label: '3ª Sesión (50m)' },
+  { start: '10:30', end: '11:00', label: 'Recreo / Descanso Mañana (30m)', isBreak: true },
+  { start: '11:00', end: '11:50', label: '4ª Sesión (50m)' },
+  { start: '11:50', end: '12:40', label: '5ª Sesión (50m)' },
+  { start: '12:40', end: '13:30', label: '6ª Sesión (50m)' },
+  { start: '13:30', end: '14:00', label: 'Franja Flexible / Cierre (30m)' },
 ];
 
+// Tarde: 17:00 a 21:00 (sesiones de 50 min + descanso de 20 min)
 const AFTERNOON_SLOTS = [
-  { start: '15:00', end: '16:00', label: '1ª Tarde' },
-  { start: '16:00', end: '17:00', label: '2ª Tarde' },
-  { start: '17:00', end: '18:00', label: '3ª Tarde' },
-  { start: '18:00', end: '18:30', label: 'Descanso Tarde', isBreak: true },
-  { start: '18:30', end: '19:30', label: '4ª Tarde' },
-  { start: '19:30', end: '20:30', label: '5ª Tarde' },
-  { start: '20:30', end: '21:00', label: '6ª Tarde' },
+  { start: '17:00', end: '17:50', label: '1ª Sesión Tarde (50m)' },
+  { start: '17:50', end: '18:40', label: '2ª Sesión Tarde (50m)' },
+  { start: '18:40', end: '19:00', label: 'Descanso Tarde (20m)', isBreak: true },
+  { start: '19:00', end: '19:50', label: '3ª Sesión Tarde (50m)' },
+  { start: '19:50', end: '20:40', label: '4ª Sesión Tarde (50m)' },
+  { start: '20:40', end: '21:00', label: 'Franja Flexible / Cierre (20m)' },
 ];
 
 export default function DayScheduleSheet({
