@@ -146,19 +146,21 @@ export default function BookingForm({ currentUser, onSuccess, onCancel, initialD
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden max-w-4xl mx-auto">
-      <div className="bg-slate-900 px-6 py-4 flex items-center justify-between no-print text-white">
-        <div className="flex items-center space-x-3">
-          <BookOpen className="h-6 w-6 text-emerald-400" />
+    <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden max-w-4xl mx-auto">
+      <div className="bg-slate-900 px-6 py-4 flex items-center justify-between no-print text-white border-b border-slate-800">
+        <div className="flex items-center space-x-3.5">
+          <div className="p-2 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-xl border border-emerald-500/30">
+            <BookOpen className="h-5 w-5 text-emerald-400" />
+          </div>
           <div>
-            <h2 className="text-xl font-bold">Nueva Ficha de Reserva didáctica</h2>
-            <p className="text-xs text-slate-300">Planificación curricular Aula ATECA</p>
+            <h2 className="text-lg font-black tracking-tight">Nueva Ficha de Reserva didáctica</h2>
+            <p className="text-xs text-slate-400">Planificación curricular Aula ATECA</p>
           </div>
         </div>
         <button
           onClick={onCancel}
           id="btn_back_form"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-xs font-semibold cursor-pointer transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-xs font-semibold cursor-pointer transition-all border border-slate-700 text-slate-200 hover:text-white"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Volver
         </button>
@@ -439,7 +441,7 @@ export default function BookingForm({ currentUser, onSuccess, onCancel, initialD
             type="submit"
             disabled={conflictType === 'BLOQUEO'}
             id="btn_submit_booking"
-            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+            className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] disabled:from-slate-300 disabled:to-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-xs hover:shadow-md"
           >
             <CheckCircle2 className="h-4 w-4" /> Enviar solicitud de Reserva
           </button>

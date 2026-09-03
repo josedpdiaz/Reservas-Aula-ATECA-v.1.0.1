@@ -130,54 +130,54 @@ export default function App() {
   const myPendingValuationsCount = bookings.filter(b => b.email === user?.email && b.estado === 'REALIZADA' && !valoraciones.some(v => v.id_reserva === b.id_reserva)).length;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-indigo-50/20 text-slate-800 flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
       
       {/* NO-PRINT ALERT AND QUICK SIMULATED LOGIN SELECTOR PANEL */}
-      <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 text-white no-print text-xs flex flex-col md:flex-row justify-between items-center gap-2">
+      <div className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-2 text-white no-print text-xs flex flex-col md:flex-row justify-between items-center gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span className="font-mono text-[10px] text-slate-300">
-            <strong>DEMO INTERACTIVA:</strong> Haz clic para cambiar de rol al instante:
+            <strong>DEMO INTERACTIVA:</strong> Cambia de perfil al instante para probar permisos:
           </span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => handleProfileSwitch('josedpdiaz@gmail.com')}
-            className={`px-2.5 py-1 rounded font-bold cursor-pointer transition-colors text-[10px] ${
-              user?.email === 'josedpdiaz@gmail.com' ? 'bg-indigo-600 text-white border border-indigo-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+            className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
+              user?.email === 'josedpdiaz@gmail.com' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
             }`}
           >
             José Díaz (ADMIN)
           </button>
           <button
             onClick={() => handleProfileSwitch('m.gonzalez@centro.edu')}
-            className={`px-2.5 py-1 rounded font-bold cursor-pointer transition-colors text-[10px] ${
-              user?.email === 'm.gonzalez@centro.edu' ? 'bg-amber-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+            className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
+              user?.email === 'm.gonzalez@centro.edu' ? 'bg-amber-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
             }`}
           >
             María González (COORDINADOR)
           </button>
           <button
             onClick={() => handleProfileSwitch('j.santana@centro.edu')}
-            className={`px-2.5 py-1 rounded font-bold cursor-pointer transition-colors text-[10px] ${
-              user?.email === 'j.santana@centro.edu' ? 'bg-blue-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+            className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
+              user?.email === 'j.santana@centro.edu' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
             }`}
           >
-            Juan Santana (PROFESOR - Activo)
+            Juan Santana (PROFESOR)
           </button>
           <button
             onClick={() => handleProfileSwitch('profe.inactivo@centro.edu')}
-            className="px-2.5 py-1 rounded font-semibold bg-slate-800 hover:bg-slate-700 text-slate-400 cursor-pointer text-[10px]"
+            className="px-2.5 py-1 rounded-lg font-semibold bg-slate-800/60 hover:bg-slate-800 text-slate-400 cursor-pointer text-[10px] transition-colors"
           >
-            Profe inactivo (Bloqueará entrada)
+            Profe inactivo
           </button>
         </div>
       </div>
 
       {/* PRIMARY APPLICATION HEADER BRAND */}
-      <header className="bg-white border-b border-slate-200 py-4 px-6 flex flex-col sm:flex-row justify-between items-center gap-4 no-print shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="bg-slate-900 text-white p-2.5 rounded-xl flex items-center justify-center shadow-xs">
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/70 py-3.5 px-6 flex flex-col sm:flex-row justify-between items-center gap-4 no-print shadow-2xs sticky top-0 z-30">
+        <div className="flex items-center gap-3.5">
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-2.5 rounded-xl flex items-center justify-center shadow-xs border border-indigo-500/20">
             <BookOpen className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
@@ -189,19 +189,21 @@ export default function App() {
         </div>
 
         {user && (
-          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-2 rounded-xl text-xs">
+          <div className="flex items-center gap-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 p-1.5 pl-3 rounded-2xl text-xs transition-colors shadow-2xs">
             <div className="text-right">
-              <p className="font-bold text-slate-800 text-xs">{user.nombre}</p>
-              <p className="text-[10px] text-slate-500 font-semibold">{user.email} • <span className="text-indigo-600 tracking-wider uppercase">{user.rol}</span></p>
+              <p className="font-bold text-slate-900 text-xs">{user.nombre}</p>
+              <p className="text-[10px] text-slate-500 font-medium">
+                {user.email} • <span className="font-bold text-indigo-600 uppercase tracking-wider">{user.rol}</span>
+              </p>
             </div>
-            <div className="w-px h-8 bg-slate-200"></div>
+            <div className="w-px h-7 bg-slate-200"></div>
             <button
               onClick={handleLogout}
               id="btn_brand_logout"
               title="Cerrar sesión"
-              className="p-1 px-2.5 bg-white border border-slate-200 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-lg cursor-pointer font-bold font-mono transition-colors text-[10px] flex items-center gap-1"
+              className="p-1.5 px-2.5 bg-white border border-slate-200/80 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-xl cursor-pointer font-bold transition-all text-[10px] flex items-center gap-1 shadow-2xs"
             >
-              <LogOut className="w-3 h-3" /> Cerrar
+              <LogOut className="w-3 h-3" /> Salir
             </button>
           </div>
         )}
@@ -291,12 +293,14 @@ export default function App() {
           <div className="space-y-6">
 
             {/* TAB-NAVIGATION CONTROLS FOR USER ACTION (Hidden when printing reports) */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3 border border-slate-200 rounded-xl no-print shadow-xs">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/90 backdrop-blur-md p-2 border border-slate-200/80 rounded-2xl no-print shadow-xs">
               <div className="flex flex-wrap gap-1.5 text-xs font-bold text-slate-600">
                 <button
                   onClick={() => { setActiveTab('calendar'); setCurrentAction('view'); }}
-                  className={`px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
-                    activeTab === 'calendar' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
+                  className={`px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
+                    activeTab === 'calendar' && currentAction === 'view' 
+                      ? 'bg-slate-900 text-white shadow-xs font-extrabold' 
+                      : 'hover:bg-slate-100/80 text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <CalendarIcon className="w-4 h-4" /> Calendario / Reservas
@@ -305,8 +309,10 @@ export default function App() {
                 {/* Professor direct bookings panel tabs */}
                 <button
                   onClick={() => { setActiveTab('my-bookings'); setCurrentAction('view'); }}
-                  className={`px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer relative transition-colors ${
-                    activeTab === 'my-bookings' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
+                  className={`px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer relative transition-all ${
+                    activeTab === 'my-bookings' && currentAction === 'view' 
+                      ? 'bg-slate-900 text-white shadow-xs font-extrabold' 
+                      : 'hover:bg-slate-100/80 text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <BookmarkCheck className="w-4 h-4" /> Mis Actividades ({myBookingsCount})
@@ -319,8 +325,10 @@ export default function App() {
                 {(user.rol === 'COORDINADOR' || user.rol === 'ADMIN') && (
                   <button
                     onClick={() => { setActiveTab('coordinator'); setCurrentAction('view'); }}
-                    className={`px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
-                      activeTab === 'coordinator' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
+                    className={`px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
+                      activeTab === 'coordinator' && currentAction === 'view' 
+                        ? 'bg-slate-900 text-white shadow-xs font-extrabold' 
+                        : 'hover:bg-slate-100/80 text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <Activity className="w-4 h-4 text-emerald-500" /> Panel Coordinador
@@ -331,8 +339,10 @@ export default function App() {
                 {user.rol === 'ADMIN' && (
                   <button
                     onClick={() => { setActiveTab('admin'); setCurrentAction('view'); }}
-                    className={`px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
-                      activeTab === 'admin' && currentAction === 'view' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-600'
+                    className={`px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
+                      activeTab === 'admin' && currentAction === 'view' 
+                        ? 'bg-slate-900 text-white shadow-xs font-extrabold' 
+                        : 'hover:bg-slate-100/80 text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <Settings className="w-4 h-4 text-indigo-500" /> Administración
@@ -348,9 +358,9 @@ export default function App() {
                     setCurrentAction('new-booking');
                   }}
                   id="btn_request_booking_header"
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-2 active:scale-[0.98]"
                 >
-                  <PlusCircle className="w-4 h-4 text-emerald-400" /> Solicitar Reserva
+                  <PlusCircle className="w-4 h-4" /> Solicitar Reserva
                 </button>
               </div>
             </div>
