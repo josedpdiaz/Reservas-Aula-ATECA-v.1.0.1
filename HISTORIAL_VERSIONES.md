@@ -1,0 +1,129 @@
+# 📚 Historial de Versiones y Mejoras (Changelog)
+### Sistema de Gestión de Reservas y Memorias Didácticas - Aula ATECA
+
+Este documento recopila de forma cronológica, concisa y estructurada todos los upgrades, updates y mejoras implementadas en la rama principal (`main`) del proyecto, asociadas a sus respectivas *Releases* en GitHub.
+
+---
+
+## [v1.1.1] - 2026-09-03
+### 🧹 Limpieza y Consolidación de Botones en la Hoja del Día
+* **Objetivo**: Evitar redundancia visual en la interfaz de usuario.
+* **Mejoras clave**:
+  * Eliminado el botón duplicado `+ Nueva Reserva` del navegador de días en la cabecera de la hoja diaria.
+  * Se consolida como acción principal el botón con degradado esmeralda `Solicitar Reserva` de la barra superior.
+  * Se mantienen los botones contextuales `+ Reservar` en cada franja horaria disponible para precargar el horario con 1 clic.
+* **Archivos afectados**: `src/components/DayScheduleSheet.tsx`.
+
+---
+
+## [v1.1.0] - 2026-09-03
+### ⏱️ Simetría Exacta en Turno de Mañana (6 Sesiones de 50m y Recreo 10:30-11:00)
+* **Objetivo**: Cuadrar la jornada lectiva matinal en 6 sesiones idénticas de 50 minutos con el recreo centralizado.
+* **Mejoras clave**:
+  * **1ª a 3ª sesión**: `08:00 - 08:50`, `08:50 - 09:40`, `09:40 - 10:30` (50 min cada una).
+  * **Recreo de mañana**: `10:30 - 11:00` (30 min de descanso oficial).
+  * **4ª a 6ª sesión**: `11:00 - 11:50`, `11:50 - 12:40`, `12:40 - 13:30` (50 min cada una).
+  * Eliminadas franjas intermedias artificiales para total pulcritud horaria.
+* **Archivos afectados**: `src/components/DayScheduleSheet.tsx`.
+
+---
+
+## [v1.0.9] - 2026-09-03
+### ☕ Ajuste de Recreo Matutino
+* **Objetivo**: Reubicación y pruebas de la pausa matinal de descanso escolar.
+* **Mejoras clave**:
+  * Sincronización temporal del recreo en la franja matutina y reajuste de sesiones posteriores.
+* **Archivos afectados**: `src/components/DayScheduleSheet.tsx`.
+
+---
+
+## [v1.0.8] - 2026-09-03
+### 🌙 Estandarización de Nomenclatura a «Turno de Tarde-Noche»
+* **Objetivo**: Adaptar la terminología oficial al horario extendido que finaliza a las 22:20.
+* **Mejoras clave**:
+  * Sustituida la palabra `Tarde` por `Tarde-Noche` en toda la aplicación.
+  * Renombradas las 6 sesiones vespertinas a `1ª a 6ª Sesión Tarde-Noche (50m)`.
+  * Actualizado el descanso a `Descanso Tarde-Noche (20m)`.
+  * Modelo de usuarios (`types.ts` y `storage.ts`) adaptado con soporte para el turno `Tarde-Noche`.
+* **Archivos afectados**: `src/components/DayScheduleSheet.tsx`, `src/components/CalendarView.tsx`, `src/types.ts`, `src/lib/storage.ts`.
+
+---
+
+## [v1.0.7] - 2026-09-03
+### 🎚️ Panel Redimensionable Móvil y Controles Estilo Ventanas de Windows
+* **Objetivo**: Proporcionar ergonomía y control de espacio en el calendario y detalle del día.
+* **Mejoras clave**:
+  * **3 Posiciones para el Detalle del Día**: Selección rápida entre **Izquierda** (`PanelLeft`), **Arriba** (`PanelTop`) o **Derecha** (`PanelRight`).
+  * **Agarradera Central Móvil (Split Resizer)**: Divisor interactivo con cursor `col-resize` que permite arrastrar con ratón o táctil para ajustar el ancho relativo entre calendario y detalle (con límites saludables de 25% a 75% y doble clic para restablecer al 60/40).
+  * **Controles estilo Windows**:
+    * **Minimizar (`—`)**: Pliega el contenido dejando solo la cabecera.
+    * **Maximizar / Restaurar (`□` / `⧉`)**: Expande el panel a pantalla completa (o restaura el split).
+    * **Cerrar (`X`)**: Oculta el detalle del día, haciendo que el calendario se abra automáticamente al 100% del ancho (`w-full`), con botón para reabrirlo cuando se desee.
+* **Archivos afectados**: `src/components/CalendarView.tsx`.
+
+---
+
+## [v1.0.6] - 2026-09-03
+### 🌙 6 Sesiones de Tarde y Desahogo Visual de Cabecera al 100% de Zoom
+* **Objetivo**: Alinear la tarde a 6 periodos y eliminar la sensación de sobrecarga/apelotonamiento visual.
+* **Mejoras clave**:
+  * **Estructura de Tarde**: 6 sesiones de 50 min de `17:00 a 22:20` con descanso de 20 min tras la 3ª sesión (`19:30 - 19:50`).
+  * Ampliado el límite de cierre del centro en configuración a las `22:30` para permitir reservas válidas de noche.
+  * **Rediseño de Cabecera**: Selector de vistas compacto (`Mes`, `Horario del Día` y `Lista`).
+  * **Bandeja de Filtros Plegable**: Los 4 selectores densos se agrupan en un panel desplegable bajo el botón `Filtros` con contador de filtros activos y enlace de limpieza rápida.
+* **Archivos afectados**: `src/components/DayScheduleSheet.tsx`, `src/components/CalendarView.tsx`, `src/lib/storage.ts`.
+
+---
+
+## [v1.0.5] - 2026-09-03
+### 📅 Hoja de Horario del Día (Mañana y Tarde) con Acceso Directo por Celda
+* **Objetivo**: Facilitar la consulta horaria por turnos al pulsar sobre cualquier día del mes.
+* **Mejoras clave**:
+  * Creación del componente `DayScheduleSheet.tsx`.
+  * Al hacer clic en cualquier día del calendario mensual, la aplicación transiciona directamente a la hoja de horarios de ese día.
+  * Visualización dividida en dos columnas: Turno de Mañana y Turno de Tarde con estados de ocupación en tiempo real.
+  * Precarga automática de fecha y horas al pulsar `+ Reservar` en cualquier franja libre.
+  * Navegación entre días (`< Anterior`, `Hoy`, `Siguiente >`) y botón de retorno al mes.
+* **Archivos afectados**: `src/components/DayScheduleSheet.tsx`, `src/components/CalendarView.tsx`, `src/components/BookingForm.tsx`, `src/App.tsx`.
+
+---
+
+## [v1.0.4] - 2026-09-03
+### 🔖 Vistas en Tarjetas/Lista en «Mis Actividades» y Colapso de Mes
+* **Objetivo**: Permitir alternar modos de visualización y filtrado rápido en la agenda personal del docente.
+* **Mejoras clave**:
+  * Creación del componente dedicado `MyBookingsView.tsx`.
+  * Doble vista: Modo Tarjetas/Etiquetas visuales vs Modo Tabla/Lista compacta filtrable.
+  * Buscador en vivo por texto, selector por estado (Aprobada, Pendiente, Sin valorar, etc.) y orden cronológico.
+  * Controles de colapso/expansión para el mes y la agenda lateral en el calendario.
+* **Archivos afectados**: `src/components/MyBookingsView.tsx`, `src/components/CalendarView.tsx`, `src/App.tsx`.
+
+---
+
+## [v1.0.3] - 2026-09-03
+### 🔒 Cumplimiento Normativo RGPD / LOPDGDD para Centros Educativos
+* **Objetivo**: Garantizar el cumplimiento estricto de protección de datos en el entorno escolar de Canarias.
+* **Mejoras clave**:
+  * Creación del componente modal `PrivacyModal.tsx` con la base jurídica del tratamiento (Art. 6.1.e RGPD, cumplimiento de misión de interés público).
+  * Cláusula de exención y salvaguarda: constancia explícita de no almacenamiento de nombres, apellidos ni datos identificativos de alumnado (únicamente nivel, grupo y número de alumnos por aforo).
+  * Enlace permanente en el pie de página y distintivo informativo en el formulario de solicitud.
+* **Archivos afectados**: `src/components/PrivacyModal.tsx`, `src/components/BookingForm.tsx`, `src/App.tsx`.
+
+---
+
+## [v1.0.2] - 2026-09-03
+### 🛠️ Corrección de Zona Horaria Local y Estabilización de Build
+* **Objetivo**: Corregir el desfase en el que el día 3 de septiembre se marcaba erróneamente como viernes 4 por conversión UTC.
+* **Mejoras clave**:
+  * Creación de la función utilitaria `formatDateToYMD()` en `storage.ts` para gestionar fechas según la hora local del dispositivo docente.
+  * Generación y sincronización de `package-lock.json` tras verificación de compilación exitosa con Vite y TypeScript.
+* **Archivos afectados**: `src/lib/storage.ts`, `src/components/CalendarView.tsx`, `src/components/BookingForm.tsx`, `src/components/AdminPanel.tsx`.
+
+---
+
+## [v1.0.1] - 2026-09-02
+### 🚀 Exportación Inicial a Repositorio Público de GitHub
+* **Objetivo**: Configuración del repositorio Git inicial en GitHub (`josedpdiaz/Reservas-Aula-ATECA-v.1.0.1`).
+* **Mejoras clave**:
+  * Código base exportado desde Google AI Studio con React 18, Vite, TypeScript y Tailwind CSS.
+  * Estructura básica de base de datos local presembrada en `localStorage` con simulación de sincronización a Google Sheets.
