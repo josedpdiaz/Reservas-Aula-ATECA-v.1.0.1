@@ -15,7 +15,8 @@ import { Usuario, Reserva } from './types';
 import { 
   initializeStorage, getReservas, getValoraciones, 
   getCurrentUser, setCurrentUser, loginByEmail, getConfig,
-  getTheme, setTheme, deleteReserva, cancelReserva
+  getTheme, setTheme, deleteReserva, cancelReserva,
+  getFontSize, setFontSize
 } from './lib/storage';
 
 import CalendarView from './components/CalendarView';
@@ -42,17 +43,48 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // 3-Theme State (light, intermediate, dark)
-  const [theme, setThemeState] = useState<'light' | 'intermediate' | 'dark'>(() => getTheme());
+  // 2-Theme State (intermediate, dark) - Modo Claro Eliminado
+  const [theme, setThemeState] = useState<'intermediate' | 'dark'>(() => getTheme());
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  const handleThemeChange = (newTheme: 'light' | 'intermediate' | 'dark') => {
+  const handleThemeChange = (newTheme: 'intermediate' | 'dark') => {
     setThemeState(newTheme);
     setTheme(newTheme);
-    triggerToast(`Tema visual cambiado a: ${newTheme === 'dark' ? 'Modo Oscuro' : newTheme === 'intermediate' ? 'Modo Intermedio Suave' : 'Modo Claro'}`);
+    triggerToast(`Tema visual cambiado a: ${newTheme === 'dark' ? 'Modo Oscuro (Alto contraste)' : 'Modo Intermedio (Descanso visual)'}`);
+  };
+
+  // Font Size Zoom State (85% a 130%)
+  const [fontSize, setFontSizeState] = useState<number>(() => getFontSize());
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}%`;
+  }, [fontSize]);
+
+  const handleIncreaseFont = () => {
+    setFontSizeState(prev => {
+      const next = Math.min(130, prev + 10);
+      setFontSize(next);
+      triggerToast(`Tamaño de fuente: ${next}%`);
+      return next;
+    });
+  };
+
+  const handleDecreaseFont = () => {
+    setFontSizeState(prev => {
+      const next = Math.max(85, prev - 10);
+      setFontSize(next);
+      triggerToast(`Tamaño de fuente: ${next}%`);
+      return next;
+    });
+  };
+
+  const handleResetFont = () => {
+    setFontSizeState(100);
+    setFontSize(100);
+    triggerToast(`Tamaño de fuente restablecido al 100%`);
   };
 
   // Active Navigation Screen State
@@ -216,35 +248,59 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* 3-THEME SELECTOR: LIGHT / INTERMEDIATE / DARK */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* FONT SIZE CONTROLS (A- / A+) */}
           <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs">
             <button
-              onClick={() => handleThemeChange('light')}
-              title="Tema Claro (Blanco institucional)"
-              className={`p-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                theme === 'light' ? 'bg-white text-amber-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              onClick={handleDecreaseFont}
+              title="Reducir tamaño de fuente (A-)"
+              disabled={fontSize <= 85}
+              className={`p-1 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center ${
+                fontSize <= 85 ? 'opacity-30 cursor-not-allowed text-slate-400' : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
             >
-              <Sun className="w-3.5 h-3.5" /> <span className="hidden md:inline text-[11px]">Claro</span>
+              <span className="text-[10px] font-black">A-</span>
             </button>
+
+            <button
+              onClick={handleResetFont}
+              title="Restablecer tamaño de fuente (100%)"
+              className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-600 hover:text-indigo-600 hover:bg-white rounded-md cursor-pointer transition-all"
+            >
+              {fontSize}%
+            </button>
+
+            <button
+              onClick={handleIncreaseFont}
+              title="Ampliar tamaño de fuente (A+)"
+              disabled={fontSize >= 130}
+              className={`p-1 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center ${
+                fontSize >= 130 ? 'opacity-30 cursor-not-allowed text-slate-400' : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+              }`}
+            >
+              <span className="text-[12px] font-black">A+</span>
+            </button>
+          </div>
+
+          {/* 2-THEME SELECTOR: INTERMEDIATE / DARK (LIGHT MODE REMOVED) */}
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs">
             <button
               onClick={() => handleThemeChange('intermediate')}
-              title="Tema Intermedio (Descanso visual / Tono neutro)"
-              className={`p-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                theme === 'intermediate' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              title="Tema Intermedio (Descanso visual / Tono neutro suave)"
+              className={`p-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                theme === 'intermediate' ? 'bg-white text-indigo-700 shadow-xs font-black' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" /> <span className="hidden md:inline text-[11px]">Intermedio</span>
+              <Sparkles className="w-3.5 h-3.5" /> <span className="hidden sm:inline text-[11px]">Intermedio</span>
             </button>
             <button
               onClick={() => handleThemeChange('dark')}
               title="Tema Oscuro (Alto contraste / Modo noche)"
-              className={`p-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                theme === 'dark' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              className={`p-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                theme === 'dark' ? 'bg-white text-slate-900 shadow-xs font-black' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Moon className="w-3.5 h-3.5" /> <span className="hidden md:inline text-[11px]">Oscuro</span>
+              <Moon className="w-3.5 h-3.5" /> <span className="hidden sm:inline text-[11px]">Oscuro</span>
             </button>
           </div>
 

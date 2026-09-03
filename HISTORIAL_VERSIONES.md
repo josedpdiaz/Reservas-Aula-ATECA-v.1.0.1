@@ -5,6 +5,23 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.2.2] - 2026-09-03
+### 🔍 Control de Tamaño de Fuente (A- / A+) y Eliminación del Modo Claro
+* **Objetivo**: Proporcionar accesibilidad visual y descanso ocular directo mediante botones de ampliación/reducción de texto, y concentrar los temas en los dos modos más confortables y de alto contraste (Intermedio y Oscuro), retirando el modo claro.
+* **Mejoras clave**:
+  * **Botones de Escalado de Letra (`A-`, `100%`, `A+`)**:
+    * Ubicados en la cabecera principal junto al selector de tema.
+    * Permiten aumentar o disminuir el tamaño tipográfico de toda la aplicación entre el 85% y el 130% en pasos del 10%.
+    * Botón de porcentaje central para restablecer al tamaño estándar (100%) con un solo clic.
+    * Persistencia en `localStorage` (`ateca_font_size`) para recordar el tamaño entre sesiones.
+  * **Eliminación del Modo Claro**:
+    * Se retira la opción de tema claro por causar fatiga visual.
+    * Se conservan y perfeccionan el **Modo Intermedio** (tono neutro / sepia suave de descanso visual) y el **Modo Oscuro** (alto contraste / modo noche).
+    * Si un usuario tenía guardado el modo claro, se migra de manera transparente al Modo Intermedio.
+* **Archivos afectados**: `src/lib/storage.ts`, `src/App.tsx`.
+
+---
+
 ## [v1.2.1] - 2026-09-03
 ### 🧹 Purga Estricta y Automática de Tareas y Reservas en Fines de Semana
 * **Objetivo**: Garantizar que bajo ninguna circunstancia existan tareas, reservas, bloqueos o eventos en sábados o domingos en la base de datos o en la interfaz.

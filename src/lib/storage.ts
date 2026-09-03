@@ -354,6 +354,7 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'ateca_usuario_actual',
   DIAS_NO_HABILES: 'ateca_dias_no_habiles',
   THEME: 'ateca_theme',
+  FONT_SIZE: 'ateca_font_size',
 };
 
 // Main controller to boot the storage
@@ -376,8 +377,13 @@ export const initializeStorage = (force: boolean = false) => {
   if (force || !localStorage.getItem(STORAGE_KEYS.DIAS_NO_HABILES)) {
     localStorage.setItem(STORAGE_KEYS.DIAS_NO_HABILES, JSON.stringify(DEFAULT_DIAS_NO_HABILES));
   }
-  if (!localStorage.getItem(STORAGE_KEYS.THEME)) {
-    localStorage.setItem(STORAGE_KEYS.THEME, 'light');
+  // Remove light mode, default to intermediate (soft / rest mode)
+  const currentTheme = localStorage.getItem(STORAGE_KEYS.THEME);
+  if (!currentTheme || currentTheme === 'light') {
+    localStorage.setItem(STORAGE_KEYS.THEME, 'intermediate');
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.FONT_SIZE)) {
+    localStorage.setItem(STORAGE_KEYS.FONT_SIZE, '100');
   }
   if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
     // Auto login as user u-1 (José Díaz, ADMIN) because of the email in additional metadata!
@@ -510,12 +516,24 @@ export const removeDiaNoHabil = (id: string) => {
   setDiasNoHabiles(filtered);
 };
 
-export const getTheme = (): 'light' | 'intermediate' | 'dark' => {
-  return (localStorage.getItem(STORAGE_KEYS.THEME) as any) || 'light';
+export const getTheme = (): 'intermediate' | 'dark' => {
+  const val = localStorage.getItem(STORAGE_KEYS.THEME);
+  if (val === 'dark') return 'dark';
+  return 'intermediate';
 };
 
-export const setTheme = (theme: 'light' | 'intermediate' | 'dark') => {
+export const setTheme = (theme: 'intermediate' | 'dark') => {
   localStorage.setItem(STORAGE_KEYS.THEME, theme);
+};
+
+export const getFontSize = (): number => {
+  const saved = localStorage.getItem(STORAGE_KEYS.FONT_SIZE);
+  const num = saved ? Number(saved) : 100;
+  return isNaN(num) ? 100 : Math.min(130, Math.max(85, num));
+};
+
+export const setFontSize = (size: number) => {
+  localStorage.setItem(STORAGE_KEYS.FONT_SIZE, String(size));
 };
 
 // Check if a given YYYY-MM-DD date is a weekend or holiday/vacation
