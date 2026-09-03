@@ -27,6 +27,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   const [filterEstado, setFilterEstado] = useState('Todas');
   const [filterProfesor, setFilterProfesor] = useState('');
   const [filterNivel, setFilterNivel] = useState('Todas');
+  const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'month' | 'day-sheet' | 'list'>('month');
 
   // Collapse / Expand & Layout States
@@ -40,6 +41,23 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   });
 
   const rawReservas = getReservas();
+
+  // Active filters count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filterZona !== 'Todas') count++;
+    if (filterEstado !== 'Todas') count++;
+    if (filterNivel !== 'Todas') count++;
+    if (filterProfesor.trim() !== '') count++;
+    return count;
+  }, [filterZona, filterEstado, filterNivel, filterProfesor]);
+
+  const resetFilters = () => {
+    setFilterZona('Todas');
+    setFilterEstado('Todas');
+    setFilterNivel('Todas');
+    setFilterProfesor('');
+  };
 
   // Apply filters
   const filteredReservas = useMemo(() => {
@@ -292,122 +310,181 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   return (
     <div className="space-y-6">
       {/* Search and Filters Header */}
-      <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-xs border border-slate-200/80 p-5 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-xs border border-slate-200/80 p-4 sm:p-5 space-y-3.5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          
+          {/* Title & Brand Badge */}
           <div className="flex items-center space-x-3.5">
-            <div className="p-2.5 bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-xl shadow-xs">
+            <div className="p-2.5 bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-xl shadow-xs shrink-0">
               <CalendarIcon className="h-5 w-5 text-emerald-400" />
             </div>
             <div>
-              <h1 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                Calendario de Ocupación
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100">
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black text-slate-900 tracking-tight">
+                  Calendario de Ocupación
+                </h1>
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100/80">
                   <Sparkles className="w-3 h-3 text-indigo-500" /> Tiempo Real
                 </span>
-              </h1>
+              </div>
               <p className="text-xs text-slate-500 mt-0.5">Consulta de franjas horarias y actividades didácticas</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap bg-slate-100/80 p-1 rounded-xl text-xs font-bold self-start md:self-center border border-slate-200/60 gap-1">
-            <button
-              onClick={() => setViewMode('month')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'month' ? 'bg-white text-slate-900 shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <CalendarIcon className="w-3.5 h-3.5 text-slate-500" /> Vista Mensual
-            </button>
-            <button
-              onClick={() => setViewMode('day-sheet')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'day-sheet' ? 'bg-white text-slate-900 shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5 text-indigo-500" /> Horario del Día ({selectedDayStr.split('-').reverse().join('/')})
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'list' ? 'bg-white text-slate-900 shadow-xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Filter className="w-3.5 h-3.5 text-slate-500" /> Lista Completa ({filteredReservas.length})
-            </button>
-          </div>
-        </div>
+          {/* Clean View Switcher & Filter Toggle Button */}
+          <div className="flex flex-wrap items-center gap-2">
+            
+            {/* View Mode Segmented Control */}
+            <div className="inline-flex bg-slate-100/90 p-1 rounded-xl text-xs font-bold border border-slate-200/60 shadow-2xs">
+              <button
+                onClick={() => setViewMode('month')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === 'month' 
+                    ? 'bg-white text-slate-900 shadow-xs font-extrabold' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <CalendarIcon className="w-3.5 h-3.5 text-slate-500" /> 
+                <span>Mes</span>
+              </button>
 
-        {/* Quick Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          <div>
-            <label className="block text-slate-500 font-bold mb-1.5 flex items-center gap-1 text-[11px] uppercase tracking-wide">
-              <Layers className="h-3.5 w-3.5 text-slate-400" /> Zona ATECA
-            </label>
-            <select
-              value={filterZona}
-              onChange={(e) => setFilterZona(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl outline-none cursor-pointer transition-all font-medium text-slate-700"
-            >
-              <option value="Todas">Todas las zonas (Aula central)</option>
-              <option value="Multimedia">Multimedia</option>
-              <option value="Vídeo y audio">Vídeo y audio</option>
-              <option value="Impresión 3D">Impresión 3D</option>
-              <option value="Realidad virtual y simuladores">Realidad virtual y simuladores</option>
-            </select>
-          </div>
+              <button
+                onClick={() => setViewMode('day-sheet')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === 'day-sheet' 
+                    ? 'bg-white text-slate-900 shadow-xs font-extrabold' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5 text-indigo-500" /> 
+                <span>Horario del Día</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 font-bold ml-0.5 hidden sm:inline">
+                  {selectedDayStr.split('-').slice(1).reverse().join('/')}
+                </span>
+              </button>
 
-          <div>
-            <label className="block text-slate-500 font-bold mb-1.5 flex items-center gap-1 text-[11px] uppercase tracking-wide">
-              <CheckCircle2 className="h-3.5 w-3.5 text-slate-400" /> Estado de reserva
-            </label>
-            <select
-              value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl outline-none cursor-pointer transition-all font-medium text-slate-700"
-            >
-              <option value="Todas">Todos los estados</option>
-              <option value="PENDIENTE">PENDIENTE</option>
-              <option value="APROBADA">APROBADA</option>
-              <option value="REALIZADA">REALIZADA</option>
-              <option value="RECHAZADA">RECHAZADA</option>
-              <option value="CANCELADA">CANCELADA</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-slate-500 font-bold mb-1.5 flex items-center gap-1 text-[11px] uppercase tracking-wide">
-              <Layers className="h-3.5 w-3.5 text-slate-400" /> Etapa / Nivel
-            </label>
-            <select
-              value={filterNivel}
-              onChange={(e) => setFilterNivel(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl outline-none cursor-pointer transition-all font-medium text-slate-700"
-            >
-              <option value="Todas">Todos los niveles</option>
-              <option value="Grado Superior FP">Grado Superior FP</option>
-              <option value="Grado Medio FP">Grado Medio FP</option>
-              <option value="FP Básica / Programas">FP Básica</option>
-              <option value="Bachillerato">Bachillerato</option>
-              <option value="ESO">ESO</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-slate-500 font-bold mb-1.5 flex items-center gap-1 text-[11px] uppercase tracking-wide">
-              <Search className="h-3.5 w-3.5 text-slate-400" /> Buscador texto
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={filterProfesor}
-                onChange={(e) => setFilterProfesor(e.target.value)}
-                placeholder="Profesor, departamento..."
-                className="w-full pl-8 pr-3 py-2 bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl outline-none text-xs transition-all font-medium text-slate-700 placeholder:text-slate-400"
-              />
-              <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === 'list' 
+                    ? 'bg-white text-slate-900 shadow-xs font-extrabold' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Filter className="w-3.5 h-3.5 text-slate-500" /> 
+                <span>Lista</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-bold ml-0.5">
+                  {filteredReservas.length}
+                </span>
+              </button>
             </div>
+
+            {/* Quick Filter Toggle Button */}
+            <button
+              onClick={() => setShowFilters(prev => !prev)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
+                showFilters || activeFiltersCount > 0
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-600'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Filtros</span>
+              {activeFiltersCount > 0 && (
+                <span className="bg-indigo-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
           </div>
         </div>
+
+        {/* Collapsible Airy Filter Tray */}
+        {showFilters && (
+          <div className="pt-3 border-t border-slate-100 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div>
+                <label className="block text-slate-500 font-bold mb-1 text-[11px] uppercase tracking-wide">
+                  Zona ATECA
+                </label>
+                <select
+                  value={filterZona}
+                  onChange={(e) => setFilterZona(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl outline-none cursor-pointer text-slate-700 text-xs"
+                >
+                  <option value="Todas">Todas las zonas</option>
+                  <option value="Multimedia">Multimedia</option>
+                  <option value="Vídeo y audio">Vídeo y audio</option>
+                  <option value="Impresión 3D">Impresión 3D</option>
+                  <option value="Realidad virtual y simuladores">VR y simuladores</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 font-bold mb-1 text-[11px] uppercase tracking-wide">
+                  Estado
+                </label>
+                <select
+                  value={filterEstado}
+                  onChange={(e) => setFilterEstado(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl outline-none cursor-pointer text-slate-700 text-xs"
+                >
+                  <option value="Todas">Todos los estados</option>
+                  <option value="PENDIENTE">PENDIENTE</option>
+                  <option value="APROBADA">APROBADA</option>
+                  <option value="REALIZADA">REALIZADA</option>
+                  <option value="RECHAZADA">RECHAZADA</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 font-bold mb-1 text-[11px] uppercase tracking-wide">
+                  Nivel Educativo
+                </label>
+                <select
+                  value={filterNivel}
+                  onChange={(e) => setFilterNivel(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl outline-none cursor-pointer text-slate-700 text-xs"
+                >
+                  <option value="Todas">Todos los niveles</option>
+                  <option value="Grado Superior FP">Grado Superior FP</option>
+                  <option value="Grado Medio FP">Grado Medio FP</option>
+                  <option value="FP Básica / Programas">FP Básica</option>
+                  <option value="Bachillerato">Bachillerato</option>
+                  <option value="ESO">ESO</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 font-bold mb-1 text-[11px] uppercase tracking-wide">
+                  Buscar
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={filterProfesor}
+                    onChange={(e) => setFilterProfesor(e.target.value)}
+                    placeholder="Profesor, materia..."
+                    className="w-full pl-7 pr-2 py-1.5 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl outline-none text-xs text-slate-700 placeholder:text-slate-400"
+                  />
+                  <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2 top-2" />
+                </div>
+              </div>
+            </div>
+
+            {activeFiltersCount > 0 && (
+              <div className="flex justify-end">
+                <button
+                  onClick={resetFilters}
+                  className="text-[11px] text-rose-600 hover:text-rose-700 font-bold cursor-pointer underline"
+                >
+                  Limpiar filtros activos
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {viewMode === 'day-sheet' ? (

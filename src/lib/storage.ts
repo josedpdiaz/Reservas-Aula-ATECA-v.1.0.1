@@ -10,7 +10,7 @@ const DEFAULT_CONFIG: Record<string, string> = {
   nombre_centro: "IES Blas Cabrera Felipe",
   nombre_aula: "Aula ATECA Innovación",
   horario_inicio: "08:00",
-  horario_fin: "21:00",
+  horario_fin: "22:30",
   duracion_minima_reserva: "30",
   duracion_maxima_reserva: "360",
   email_coordinador: "coordinador.ateca@centro.edu",
