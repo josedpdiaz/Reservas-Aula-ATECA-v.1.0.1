@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Calendar as CalendarIcon, Layers, CheckCircle2, Plus, Clock, Search, 
   User, ChevronLeft, ChevronRight, Sparkles, Filter, ChevronDown, ChevronUp,
-  PanelRight, PanelTop, CalendarDays, Eye
+  PanelRight, PanelTop, PanelLeft, CalendarDays, Eye, Minus, Maximize2, Minimize2,
+  X, GripVertical
 } from 'lucide-react';
 import { Reserva } from '../types';
 import { getReservas, formatDateToYMD } from '../lib/storage';
@@ -33,7 +34,13 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   // Collapse / Expand & Layout States
   const [isMonthExpanded, setIsMonthExpanded] = useState(true);
   const [isDayDetailExpanded, setIsDayDetailExpanded] = useState(true);
-  const [dayDetailPosition, setDayDetailPosition] = useState<'side' | 'top'>('side');
+  const [dayDetailPosition, setDayDetailPosition] = useState<'left' | 'right' | 'top'>('right');
+  const [isDayDetailVisible, setIsDayDetailVisible] = useState(true);
+  const [isDayDetailMaximized, setIsDayDetailMaximized] = useState(false);
+  const [isCalendarMaximized, setIsCalendarMaximized] = useState(false);
+  const [calendarRatio, setCalendarRatio] = useState(62); // 62% calendar, 38% detail
+  const [isDragging, setIsDragging] = useState(false);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
 
   // Selected calendar day for detail
   const [selectedDayStr, setSelectedDayStr] = useState<string>(() => {
@@ -41,6 +48,67 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   });
 
   const rawReservas = getReservas();
+
+  // Resize Drag Listener for Central Handle
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!splitContainerRef.current) return;
+      const rect = splitContainerRef.current.getBoundingClientRect();
+      const offset = e.clientX - rect.left;
+      const totalWidth = rect.width;
+      if (totalWidth <= 0) return;
+
+      let newRatio = 0;
+      if (dayDetailPosition === 'right') {
+        newRatio = (offset / totalWidth) * 100;
+      } else if (dayDetailPosition === 'left') {
+        const detailRatio = (offset / totalWidth) * 100;
+        newRatio = 100 - detailRatio;
+      }
+      newRatio = Math.max(25, Math.min(75, newRatio));
+      setCalendarRatio(Math.round(newRatio));
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!splitContainerRef.current || e.touches.length === 0) return;
+      const rect = splitContainerRef.current.getBoundingClientRect();
+      const offset = e.touches[0].clientX - rect.left;
+      const totalWidth = rect.width;
+      if (totalWidth <= 0) return;
+
+      let newRatio = 0;
+      if (dayDetailPosition === 'right') {
+        newRatio = (offset / totalWidth) * 100;
+      } else if (dayDetailPosition === 'left') {
+        const detailRatio = (offset / totalWidth) * 100;
+        newRatio = 100 - detailRatio;
+      }
+      newRatio = Math.max(25, Math.min(75, newRatio));
+      setCalendarRatio(Math.round(newRatio));
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, dayDetailPosition]);
 
   // Active filters count
   const activeFiltersCount = useMemo(() => {
@@ -179,11 +247,16 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   const renderDayDetailCard = (isTopLayout: boolean) => {
     return (
       <div className={`bg-white rounded-2xl border border-slate-200/80 p-5 space-y-4 shadow-xs transition-all ${
-        isTopLayout ? 'w-full' : ''
+        isTopLayout || isDayDetailMaximized ? 'w-full' : ''
       }`}>
-        <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-3 gap-3">
           <div>
-            <span className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wider font-mono">Detalle del Día</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wider font-mono">Detalle del Día</span>
+              {isDayDetailMaximized && (
+                <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded font-mono">Maximizada</span>
+              )}
+            </div>
             <h3 className="font-black text-slate-900 text-base flex items-center gap-1.5 mt-0.5">
               <CalendarIcon className="w-4 h-4 text-slate-500" />
               {selectedDayStr.split('-').reverse().join('/')}
@@ -195,25 +268,70 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/60">
-            {/* Toggle Position: Top vs Side */}
-            <button
-              onClick={() => setDayDetailPosition(p => p === 'side' ? 'top' : 'side')}
-              title={dayDetailPosition === 'side' ? "Mover detalle encima del calendario" : "Mover detalle al lateral"}
-              className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs border border-slate-200/50"
-            >
-              {dayDetailPosition === 'side' ? <PanelTop className="w-3.5 h-3.5 text-indigo-600" /> : <PanelRight className="w-3.5 h-3.5 text-indigo-600" />}
-              <span className="text-[10px] hidden sm:inline">{dayDetailPosition === 'side' ? 'Poner Arriba' : 'Poner al Lado'}</span>
-            </button>
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            {/* 3-Position Selector: Left / Top / Right */}
+            <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/60 shadow-2xs">
+              <button
+                onClick={() => { setDayDetailPosition('left'); setIsDayDetailVisible(true); setIsDayDetailMaximized(false); }}
+                title="Colocar a la izquierda del calendario"
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                  dayDetailPosition === 'left' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <PanelLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => { setDayDetailPosition('top'); setIsDayDetailVisible(true); setIsDayDetailMaximized(false); }}
+                title="Colocar arriba del calendario"
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                  dayDetailPosition === 'top' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <PanelTop className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => { setDayDetailPosition('right'); setIsDayDetailVisible(true); setIsDayDetailMaximized(false); }}
+                title="Colocar a la derecha del calendario"
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                  dayDetailPosition === 'right' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <PanelRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-            {/* Toggle Collapse */}
-            <button
-              onClick={() => setIsDayDetailExpanded(p => !p)}
-              title={isDayDetailExpanded ? "Colapsar detalle del día" : "Expandir detalle del día"}
-              className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-lg transition-all cursor-pointer shadow-2xs border border-slate-200/50"
-            >
-              {isDayDetailExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
+            {/* Windows-Style Controls: Minimize, Maximize/Restore, Close */}
+            <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/60 shadow-2xs">
+              {/* Minimize / Expand */}
+              <button
+                onClick={() => setIsDayDetailExpanded(p => !p)}
+                title={isDayDetailExpanded ? "Minimizar detalle" : "Expandir detalle"}
+                className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-md transition-all cursor-pointer"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Maximize / Restore */}
+              <button
+                onClick={() => setIsDayDetailMaximized(p => !p)}
+                title={isDayDetailMaximized ? "Restaurar tamaño normal" : "Maximizar a pantalla completa"}
+                className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-md transition-all cursor-pointer"
+              >
+                {isDayDetailMaximized ? <Minimize2 className="w-3.5 h-3.5 text-indigo-600" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </button>
+
+              {/* Close (X) */}
+              <button
+                onClick={() => {
+                  setIsDayDetailVisible(false);
+                  setIsDayDetailMaximized(false);
+                }}
+                title="Cerrar detalle (el calendario ocupará todo el ancho)"
+                className="p-1.5 hover:bg-rose-500 hover:text-white text-slate-600 rounded-md transition-all cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -306,6 +424,209 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
       </div>
     );
   };
+
+  const renderDraggableHandle = () => (
+    <div
+      onMouseDown={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onTouchStart={() => setIsDragging(true)}
+      onDoubleClick={() => setCalendarRatio(62)}
+      title="Arrastra a izquierda o derecha para redimensionar (Doble clic para restablecer 60/40)"
+      className={`hidden md:flex flex-col items-center justify-center cursor-col-resize select-none shrink-0 transition-colors py-8 px-1 group rounded-xl my-auto ${
+        isDragging 
+          ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-300' 
+          : 'hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 border border-transparent hover:border-indigo-200'
+      }`}
+      style={{ width: '16px' }}
+    >
+      <div className={`w-1 h-10 rounded-full transition-colors ${isDragging ? 'bg-white' : 'bg-slate-300 group-hover:bg-indigo-500'}`} />
+      <GripVertical className="w-3.5 h-3.5 my-1.5 opacity-70 group-hover:opacity-100" />
+      <div className={`w-1 h-10 rounded-full transition-colors ${isDragging ? 'bg-white' : 'bg-slate-300 group-hover:bg-indigo-500'}`} />
+    </div>
+  );
+
+  const renderCalendarCard = (customStyle?: React.CSSProperties) => (
+    <div 
+      style={customStyle}
+      className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 space-y-4 transition-all w-full"
+    >
+      {/* Month & Year Navigation Header + Windows Controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">
+            {monthNames[month]} <span className="text-indigo-600 font-extrabold">{year}</span>
+          </h2>
+          {isCalendarMaximized && (
+            <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded font-mono">Maximizada</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+          {/* Button to reopen day detail if closed */}
+          {!isDayDetailVisible && (
+            <button
+              onClick={() => {
+                setIsDayDetailVisible(true);
+                setIsCalendarMaximized(false);
+              }}
+              title="Abrir panel de detalle del día"
+              className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 border border-indigo-200/60 shadow-2xs"
+            >
+              <PanelRight className="w-3.5 h-3.5" />
+              <span>Abrir Detalle</span>
+            </button>
+          )}
+
+          {/* Prev / Today / Next Controls */}
+          <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+            <button
+              onClick={handlePrevMonth}
+              aria-label="Mes anterior"
+              title="Mes anterior"
+              className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg transition-all cursor-pointer shadow-none hover:shadow-xs"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleToday}
+              className="px-3 py-1 bg-white text-slate-900 hover:bg-slate-50 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer border border-slate-200/50"
+            >
+              Hoy
+            </button>
+            <button
+              onClick={handleNextMonth}
+              aria-label="Mes siguiente"
+              title="Mes siguiente"
+              className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg transition-all cursor-pointer shadow-none hover:shadow-xs"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Windows-Style Controls: Minimize, Maximize/Restore */}
+          <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/60 shadow-2xs">
+            <button
+              onClick={() => setIsMonthExpanded(prev => !prev)}
+              title={isMonthExpanded ? "Minimizar mes" : "Expandir mes"}
+              className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-md transition-all cursor-pointer"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                setIsCalendarMaximized(prev => !prev);
+                setIsDayDetailMaximized(false);
+              }}
+              title={isCalendarMaximized ? "Restaurar tamaño normal" : "Maximizar calendario a pantalla completa"}
+              className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-md transition-all cursor-pointer"
+            >
+              {isCalendarMaximized ? <Minimize2 className="w-3.5 h-3.5 text-indigo-600" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Collapsible Month Body */}
+      {isMonthExpanded ? (
+        <>
+          {/* Days of week header */}
+          <div className="grid grid-cols-7 text-center font-bold text-[11px] text-slate-400 uppercase tracking-wider py-2 bg-slate-50/70 rounded-xl border border-slate-100">
+            <div>Lun</div>
+            <div>Mar</div>
+            <div>Mié</div>
+            <div>Jue</div>
+            <div>Vie</div>
+            <div className="text-amber-700/80">Sáb</div>
+            <div className="text-amber-700/85">Dom</div>
+          </div>
+
+          {/* Calendar grid cells */}
+          <div className="grid grid-cols-7 gap-1.5">
+            {daysArray.map((cell, idx) => {
+              const isSelected = cell.dateStr === selectedDayStr;
+              const dailyReservations = getDayReservas(cell.dateStr);
+              const isToday = formatDateToYMD() === cell.dateStr;
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setSelectedDayStr(cell.dateStr);
+                    setIsDayDetailVisible(true);
+                    setViewMode('day-sheet');
+                  }}
+                  title={`Ver horario y reservas del ${cell.dateStr}`}
+                  className={`min-h-20 md:min-h-22 p-2 rounded-xl cursor-pointer transition-all flex flex-col justify-between relative group border ${
+                    cell.isCurrentMonth ? 'bg-white' : 'bg-slate-50/60 text-slate-400'
+                  } ${
+                    isSelected 
+                      ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30 shadow-xs' 
+                      : 'border-slate-150 hover:border-indigo-300 hover:bg-indigo-50/20 hover:shadow-xs'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md transition-all ${
+                      isToday 
+                        ? 'bg-gradient-to-br from-slate-900 to-indigo-950 text-white font-black shadow-xs' 
+                        : isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'
+                    }`}>
+                      {cell.dayNum}
+                    </span>
+                    
+                    {dailyReservations.length > 0 && (
+                      <span className="text-[9px] bg-indigo-50 border border-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full font-extrabold font-mono">
+                        {dailyReservations.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Indicators micro-chips */}
+                  <div className="space-y-1 my-1 overflow-hidden pointer-events-none">
+                    {dailyReservations.slice(0, 2).map((res, rIdx) => (
+                      <div
+                        key={rIdx}
+                        className="text-[9px] px-1.5 py-0.5 rounded-md truncate border leading-tight flex items-center gap-1 font-medium shadow-2xs"
+                        style={{
+                          backgroundColor: res.estado === 'APROBADA' ? '#f0fdf4' : res.estado === 'PENDIENTE' ? '#fffbeb' : '#f8fafc',
+                          borderColor: res.estado === 'APROBADA' ? '#bbf7d0' : res.estado === 'PENDIENTE' ? '#fde68a' : '#e2e8f0',
+                          color: res.estado === 'APROBADA' ? '#166534' : res.estado === 'PENDIENTE' ? '#92400e' : '#475569',
+                        }}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          res.estado === 'PENDIENTE' ? 'bg-amber-400' :
+                          res.estado === 'APROBADA' ? 'bg-emerald-500' :
+                          res.estado === 'REALIZADA' ? 'bg-sky-500' : 'bg-slate-400'
+                        }`}></span>
+                        <span className="truncate font-sans">
+                          {res.profesor.split(' ')[0]}
+                        </span>
+                      </div>
+                    ))}
+                    {dailyReservations.length > 2 && (
+                      <div className="text-[8px] text-slate-400 font-bold text-center">
+                        +{dailyReservations.length - 2} más
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div 
+          onClick={() => setIsMonthExpanded(true)}
+          className="p-6 bg-slate-50/60 hover:bg-slate-100/70 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-500 font-semibold cursor-pointer transition-colors flex items-center justify-center gap-2"
+        >
+          <CalendarDays className="w-4 h-4 text-indigo-500" />
+          <span>Cuadrícula mensual colapsada. Haz clic aquí o en el botón de ventana para expandirla.</span>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -505,168 +826,74 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
         <div className="space-y-6">
           
           {/* Top position for day detail if selected by user */}
-          {dayDetailPosition === 'top' && renderDayDetailCard(true)}
+          {dayDetailPosition === 'top' && isDayDetailVisible && !isCalendarMaximized && (
+            <div className="transition-all">
+              {renderDayDetailCard(true)}
+            </div>
+          )}
 
-          {/* Grid Layout (either full width when top or 2/3 when side) */}
-          <div className={dayDetailPosition === 'side' ? 'grid grid-cols-1 lg:grid-cols-3 gap-6 items-start' : 'w-full'}>
-            
-            {/* Calendar Grid Card */}
-            <div className={`${dayDetailPosition === 'side' ? 'lg:col-span-2' : 'w-full'} bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 space-y-4`}>
-              
-              {/* Month & Year Navigation Header + Collapse Button */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                  <h2 className="text-lg font-black text-slate-900 tracking-tight">
-                    {monthNames[month]} <span className="text-indigo-600 font-extrabold">{year}</span>
-                  </h2>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Prev / Today / Next Controls */}
-                  <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
-                    <button
-                      onClick={handlePrevMonth}
-                      aria-label="Mes anterior"
-                      title="Mes anterior"
-                      className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg transition-all cursor-pointer shadow-none hover:shadow-xs"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={handleToday}
-                      className="px-3 py-1 bg-white text-slate-900 hover:bg-slate-50 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer border border-slate-200/50"
-                    >
-                      Hoy
-                    </button>
-                    <button
-                      onClick={handleNextMonth}
-                      aria-label="Mes siguiente"
-                      title="Mes siguiente"
-                      className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg transition-all cursor-pointer shadow-none hover:shadow-xs"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Month Expand / Collapse button */}
-                  <button
-                    onClick={() => setIsMonthExpanded(prev => !prev)}
-                    title={isMonthExpanded ? "Colapsar vista mensual" : "Expandir vista mensual"}
-                    className="p-2 bg-slate-100/80 hover:bg-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer border border-slate-200/60 flex items-center gap-1 text-xs font-bold"
-                  >
-                    {isMonthExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span className="text-[10px] hidden md:inline">{isMonthExpanded ? 'Colapsar Mes' : 'Expandir Mes'}</span>
-                  </button>
-                </div>
+          {/* Top Layout Single Calendar or Resizable Horizontal Split for Left / Right */}
+          {dayDetailPosition === 'top' ? (
+            !isDayDetailMaximized && (
+              <div className="w-full">
+                {renderCalendarCard({ width: '100%' })}
               </div>
-
-              {/* Collapsible Month Body */}
-              {isMonthExpanded ? (
-                <>
-                  {/* Days of week header */}
-                  <div className="grid grid-cols-7 text-center font-bold text-[11px] text-slate-400 uppercase tracking-wider py-2 bg-slate-50/70 rounded-xl border border-slate-100">
-                    <div>Lun</div>
-                    <div>Mar</div>
-                    <div>Mié</div>
-                    <div>Jue</div>
-                    <div>Vie</div>
-                    <div className="text-amber-700/80">Sáb</div>
-                    <div className="text-amber-700/85">Dom</div>
-                  </div>
-
-                  {/* Calendar grid cells */}
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {daysArray.map((cell, idx) => {
-                      const isSelected = cell.dateStr === selectedDayStr;
-                      const dailyReservations = getDayReservas(cell.dateStr);
-                      const isToday = formatDateToYMD() === cell.dateStr;
-
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => {
-                            setSelectedDayStr(cell.dateStr);
-                            setViewMode('day-sheet');
-                          }}
-                          title={`Ver horario y reservas del ${cell.dateStr}`}
-                          className={`min-h-20 md:min-h-22 p-2 rounded-xl cursor-pointer transition-all flex flex-col justify-between relative group border ${
-                            cell.isCurrentMonth ? 'bg-white' : 'bg-slate-50/60 text-slate-400'
-                          } ${
-                            isSelected 
-                              ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30 shadow-xs' 
-                              : 'border-slate-150 hover:border-indigo-300 hover:bg-indigo-50/20 hover:shadow-xs'
-                          }`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md transition-all ${
-                              isToday 
-                                ? 'bg-gradient-to-br from-slate-900 to-indigo-950 text-white font-black shadow-xs' 
-                                : isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'
-                            }`}>
-                              {cell.dayNum}
-                            </span>
-                            
-                            {dailyReservations.length > 0 && (
-                              <span className="text-[9px] bg-indigo-50 border border-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full font-extrabold font-mono">
-                                {dailyReservations.length}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Indicators micro-chips */}
-                          <div className="space-y-1 my-1 overflow-hidden pointer-events-none">
-                            {dailyReservations.slice(0, 2).map((res, rIdx) => (
-                              <div
-                                key={rIdx}
-                                className="text-[9px] px-1.5 py-0.5 rounded-md truncate border leading-tight flex items-center gap-1 font-medium shadow-2xs"
-                                style={{
-                                  backgroundColor: res.estado === 'APROBADA' ? '#f0fdf4' : res.estado === 'PENDIENTE' ? '#fffbeb' : '#f8fafc',
-                                  borderColor: res.estado === 'APROBADA' ? '#bbf7d0' : res.estado === 'PENDIENTE' ? '#fde68a' : '#e2e8f0',
-                                  color: res.estado === 'APROBADA' ? '#166534' : res.estado === 'PENDIENTE' ? '#92400e' : '#475569',
-                                }}
-                              >
-                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                  res.estado === 'PENDIENTE' ? 'bg-amber-400' :
-                                  res.estado === 'APROBADA' ? 'bg-emerald-500' :
-                                  res.estado === 'REALIZADA' ? 'bg-sky-500' : 'bg-slate-400'
-                                }`}></span>
-                                <span className="truncate font-sans">
-                                  {res.profesor.split(' ')[0]}
-                                </span>
-                              </div>
-                            ))}
-                            {dailyReservations.length > 2 && (
-                              <div className="text-[8px] text-slate-400 font-bold text-center">
-                                +{dailyReservations.length - 2} más
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
+            )
+          ) : (
+            <div 
+              ref={splitContainerRef}
+              className={`flex flex-col md:flex-row items-stretch gap-2 transition-all ${
+                isDragging ? 'select-none' : ''
+              }`}
+            >
+              {/* Left Position: Day Detail on the Left */}
+              {dayDetailPosition === 'left' && isDayDetailVisible && !isCalendarMaximized && (
                 <div 
-                  onClick={() => setIsMonthExpanded(true)}
-                  className="p-6 bg-slate-50/60 hover:bg-slate-100/70 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-500 font-semibold cursor-pointer transition-colors flex items-center justify-center gap-2"
+                  className="transition-all w-full md:w-auto shrink-0"
+                  style={{
+                    width: isDayDetailMaximized ? '100%' : `${100 - calendarRatio}%`,
+                  }}
                 >
-                  <CalendarDays className="w-4 h-4 text-indigo-500" />
-                  <span>Cuadrícula mensual colapsada. Haz clic aquí o en «Expandir Mes» para mostrarla.</span>
+                  {renderDayDetailCard(false)}
                 </div>
               )}
 
+              {/* Central Draggable Resizer Handle when Day Detail is on the Left */}
+              {dayDetailPosition === 'left' && isDayDetailVisible && !isCalendarMaximized && !isDayDetailMaximized && (
+                renderDraggableHandle()
+              )}
+
+              {/* Calendar Card (Center/Left/Right) */}
+              {!isDayDetailMaximized && (
+                <div 
+                  className="transition-all flex-1 min-w-0"
+                  style={{
+                    width: (!isDayDetailVisible || isCalendarMaximized) ? '100%' : `${calendarRatio}%`,
+                  }}
+                >
+                  {renderCalendarCard()}
+                </div>
+              )}
+
+              {/* Central Draggable Resizer Handle when Day Detail is on the Right */}
+              {dayDetailPosition === 'right' && isDayDetailVisible && !isCalendarMaximized && !isDayDetailMaximized && (
+                renderDraggableHandle()
+              )}
+
+              {/* Right Position: Day Detail on the Right */}
+              {dayDetailPosition === 'right' && isDayDetailVisible && !isCalendarMaximized && (
+                <div 
+                  className="transition-all w-full md:w-auto shrink-0"
+                  style={{
+                    width: isDayDetailMaximized ? '100%' : `${100 - calendarRatio}%`,
+                  }}
+                >
+                  {renderDayDetailCard(false)}
+                </div>
+              )}
             </div>
+          )}
 
-            {/* Side position for day detail if selected by user */}
-            {dayDetailPosition === 'side' && (
-              <div className="lg:col-span-1">
-                {renderDayDetailCard(false)}
-              </div>
-            )}
-
-          </div>
         </div>
       ) : (
         /* Full list view mode */
