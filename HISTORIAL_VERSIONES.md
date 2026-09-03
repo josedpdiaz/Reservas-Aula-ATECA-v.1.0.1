@@ -5,6 +5,17 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.2.1] - 2026-09-03
+### 🧹 Purga Estricta y Automática de Tareas y Reservas en Fines de Semana
+* **Objetivo**: Garantizar que bajo ninguna circunstancia existan tareas, reservas, bloqueos o eventos en sábados o domingos en la base de datos o en la interfaz.
+* **Mejoras clave**:
+  * **Purga automática proactiva (`purgeWeekendTasks`)**: Tanto al arrancar la aplicación como en cada consulta de datos (`getReservas()` y `getBloqueos()`), el sistema detecta y elimina de forma definitiva cualquier registro cuya fecha coincida con sábado o domingo.
+  * **Datos de prueba blindados (`getRelativeWeekdayStr`)**: Todas las reservas y bloqueos presembrados se calculan estrictamente sobre días lectivos hábiles (lunes a viernes), imposibilitando que caigan en fin de semana con el paso del tiempo.
+  * **Integridad del calendario**: Se garantiza un calendario 100% libre de actividades en sábados y domingos.
+* **Archivos afectados**: `src/lib/storage.ts`.
+
+---
+
 ## [v1.2.0] - 2026-09-03
 ### 🚀 Edición y Liberación de Reservas, Logotipo del Centro, 3 Modos de Tema y Calendario de Días No Hábiles
 * **Objetivo**: Proporcionar autonomía total al docente para modificar y liberar sus reservas fomentando el civismo colaborativo, personalizar la imagen institucional del centro, incorporar temas visuales descansados y de alto contraste, y blindar el calendario frente a reservas en fines de semana o vacaciones escolares.

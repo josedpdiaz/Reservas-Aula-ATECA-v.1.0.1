@@ -74,14 +74,46 @@ export const formatDateToYMD = (date: Date = new Date()): string => {
   return `${y}-${m}-${d}`;
 };
 
-// Helper to get dates relative to today
-const getRelativeDateStr = (offsetDays: number): string => {
+// Check if a YYYY-MM-DD date falls on a Saturday or Sunday
+export const isWeekend = (dateStr: string): boolean => {
+  if (!dateStr) return false;
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return false;
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
+    const d = Number(parts[2]);
+    const dateObj = new Date(y, m - 1, d);
+    const dayOfWeek = dateObj.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Domingo, 6 = Sábado
+  } catch {
+    return false;
+  }
+};
+
+// Helper to get dates relative to today GUARANTEEING they only fall on Monday-Friday (never Saturday or Sunday)
+export const getRelativeWeekdayStr = (targetOffset: number): string => {
   const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
+  let added = 0;
+  const step = targetOffset >= 0 ? 1 : -1;
+  const total = Math.abs(targetOffset);
+
+  // If today is weekend, advance to next or prev weekday first
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + step);
+  }
+
+  while (added < total) {
+    d.setDate(d.getDate() + step);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) { // 0: Sunday, 6: Saturday
+      added++;
+    }
+  }
   return formatDateToYMD(d);
 };
 
-// Pre-seeded reservations
+// Pre-seeded reservations (Garantizadas 100% en días lectivos de lunes a viernes)
 const DEFAULT_RESERVAS: Reserva[] = [
   {
     id_reserva: "res-1",
@@ -92,7 +124,7 @@ const DEFAULT_RESERVAS: Reserva[] = [
     nivel: "Grado Superior FP",
     grupo: "2º Sistemas Electrotécnicos",
     modulo_materia_area: "Sistemas Inteligentes",
-    fecha_actividad: getRelativeDateStr(-2), // 2 days ago
+    fecha_actividad: getRelativeWeekdayStr(-2), // 2 días lectivos atrás
     hora_inicio: "09:00",
     hora_fin: "11:30",
     zona_principal: "Realidad virtual y simuladores",
@@ -114,7 +146,7 @@ const DEFAULT_RESERVAS: Reserva[] = [
     nivel: "Grado Medio FP",
     grupo: "1º Gestión Administrativa",
     modulo_materia_area: "Comunicación Empresarial",
-    fecha_actividad: getRelativeDateStr(-1), // Yesterday
+    fecha_actividad: getRelativeWeekdayStr(-1), // Ayer (lectivo)
     hora_inicio: "15:00",
     hora_fin: "17:00",
     zona_principal: "Multimedia",
@@ -136,7 +168,7 @@ const DEFAULT_RESERVAS: Reserva[] = [
     nivel: "Grado Superior FP",
     grupo: "2º Sistemas Electrotécnicos",
     modulo_materia_area: "Automatización Industrial",
-    fecha_actividad: getRelativeDateStr(2), // 2 days is in the future
+    fecha_actividad: getRelativeWeekdayStr(1), // Próximo día lectivo
     hora_inicio: "11:30",
     hora_fin: "14:00",
     zona_principal: "Impresión 3D",
@@ -158,7 +190,7 @@ const DEFAULT_RESERVAS: Reserva[] = [
     nivel: "Grado Superior FP",
     grupo: "1º ASIR",
     modulo_materia_area: "Planificación de Redes",
-    fecha_actividad: getRelativeDateStr(4), // 4 days in future
+    fecha_actividad: getRelativeWeekdayStr(2), // 2 días lectivos en el futuro
     hora_inicio: "08:30",
     hora_fin: "11:00",
     zona_principal: "Vídeo y audio",
@@ -180,7 +212,7 @@ const DEFAULT_RESERVAS: Reserva[] = [
     nivel: "Bachillerato",
     grupo: "2º Bachillerato A",
     modulo_materia_area: "Tecnología Industrial II",
-    fecha_actividad: getRelativeDateStr(1), // Tomorrow
+    fecha_actividad: getRelativeWeekdayStr(3), // 3 días lectivos en el futuro
     hora_inicio: "11:30",
     hora_fin: "13:30",
     zona_principal: "Realidad virtual y simuladores",
@@ -202,7 +234,7 @@ const DEFAULT_RESERVAS: Reserva[] = [
     nivel: "ESO",
     grupo: "4º ESO B",
     modulo_materia_area: "Tecnología Creativa",
-    fecha_actividad: getRelativeDateStr(5), // 5 days in future
+    fecha_actividad: getRelativeWeekdayStr(4), // 4 días lectivos en el futuro
     hora_inicio: "12:00",
     hora_fin: "14:00",
     zona_principal: "Multimedia",
@@ -222,7 +254,7 @@ const DEFAULT_VALORACIONES: Valoracion[] = [
   {
     id_valoracion: "val-1",
     id_reserva: "res-1",
-    fecha_valoracion: getRelativeDateStr(-2),
+    fecha_valoracion: getRelativeWeekdayStr(-2),
     realizada_como_prevista: true,
     aspectos_positivos: "La inmersión de los alumnos fue elevadísima, entendiendo de forma práctica e hiperrealista los riesgos en subestaciones sin peligro real alguno.",
     dificultades: "Inicialmente dos gafas perdieron el tracking por falta de iluminación a primera hora.",
@@ -235,7 +267,7 @@ const DEFAULT_VALORACIONES: Valoracion[] = [
   {
     id_valoracion: "val-2",
     id_reserva: "res-2",
-    fecha_valoracion: getRelativeDateStr(-1),
+    fecha_valoracion: getRelativeWeekdayStr(-1),
     realizada_como_prevista: false,
     aspectos_positivos: "El croma funcionó a la perfección y motivó mucho al alumnado en su oratoria comercial.",
     dificultades: "Faltó tiempo para que los 22 alumnos grabaran su pitch de forma coordinada. Hicimos cola.",
@@ -251,7 +283,7 @@ const DEFAULT_VALORACIONES: Valoracion[] = [
 const DEFAULT_BLOQUEOS: Bloqueo[] = [
   {
     id_bloqueo: "bloq-1",
-    fecha: getRelativeDateStr(3), // 3 days in future
+    fecha: getRelativeWeekdayStr(3),
     hora_inicio: "08:00",
     hora_fin: "11:30",
     motivo: "Mantenimiento preventivo anual impresoras 3D y calibración de Realidad Virtual",
@@ -259,7 +291,7 @@ const DEFAULT_BLOQUEOS: Bloqueo[] = [
   },
   {
     id_bloqueo: "bloq-2",
-    fecha: getRelativeDateStr(10),
+    fecha: getRelativeWeekdayStr(5),
     hora_inicio: "10:00",
     hora_fin: "14:00",
     motivo: "Reunión de Coordinadores de Innovación del Norte de Tenerife",
@@ -351,6 +383,9 @@ export const initializeStorage = (force: boolean = false) => {
     // Auto login as user u-1 (José Díaz, ADMIN) because of the email in additional metadata!
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(DEFAULT_USERS[0]));
   }
+
+  // PURGA INMEDIATA: Elimina cualquier tarea, reserva o bloqueo que se encuentre en sábado o domingo
+  purgeWeekendTasks();
 };
 
 // Helper for safe JSON parsing
@@ -361,6 +396,25 @@ const safeParse = <T>(value: string | null, fallback: T): T => {
   } catch {
     return fallback;
   }
+};
+
+// Purge any reservation or lockout located on Saturday or Sunday
+export const purgeWeekendTasks = (): { deletedReservas: number; deletedBloqueos: number } => {
+  const allReservas = safeParse<Reserva[]>(localStorage.getItem(STORAGE_KEYS.RESERVAS), []);
+  const cleanReservas = allReservas.filter(r => !isWeekend(r.fecha_actividad));
+  const deletedReservas = allReservas.length - cleanReservas.length;
+  if (deletedReservas > 0) {
+    localStorage.setItem(STORAGE_KEYS.RESERVAS, JSON.stringify(cleanReservas));
+  }
+
+  const allBloqueos = safeParse<Bloqueo[]>(localStorage.getItem(STORAGE_KEYS.BLOQUEOS), []);
+  const cleanBloqueos = allBloqueos.filter(b => !isWeekend(b.fecha));
+  const deletedBloqueos = allBloqueos.length - cleanBloqueos.length;
+  if (deletedBloqueos > 0) {
+    localStorage.setItem(STORAGE_KEYS.BLOQUEOS, JSON.stringify(cleanBloqueos));
+  }
+
+  return { deletedReservas, deletedBloqueos };
 };
 
 // Helper for modern unique ID generation without deprecated substr
@@ -377,7 +431,12 @@ export const getUsuarios = (): Usuario[] => {
 };
 
 export const getReservas = (): Reserva[] => {
-  return safeParse(localStorage.getItem(STORAGE_KEYS.RESERVAS), []);
+  const all = safeParse<Reserva[]>(localStorage.getItem(STORAGE_KEYS.RESERVAS), []);
+  const valid = all.filter(r => !isWeekend(r.fecha_actividad));
+  if (valid.length !== all.length) {
+    localStorage.setItem(STORAGE_KEYS.RESERVAS, JSON.stringify(valid));
+  }
+  return valid;
 };
 
 export const getValoraciones = (): Valoracion[] => {
@@ -385,7 +444,12 @@ export const getValoraciones = (): Valoracion[] => {
 };
 
 export const getBloqueos = (): Bloqueo[] => {
-  return safeParse(localStorage.getItem(STORAGE_KEYS.BLOQUEOS), []);
+  const all = safeParse<Bloqueo[]>(localStorage.getItem(STORAGE_KEYS.BLOQUEOS), []);
+  const valid = all.filter(b => !isWeekend(b.fecha));
+  if (valid.length !== all.length) {
+    localStorage.setItem(STORAGE_KEYS.BLOQUEOS, JSON.stringify(valid));
+  }
+  return valid;
 };
 
 export const getConfig = (): Record<string, string> => {
