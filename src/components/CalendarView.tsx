@@ -6,7 +6,8 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Calendar as CalendarIcon, Layers, CheckCircle2, Plus, Clock, Search, 
-  User, ChevronLeft, ChevronRight, Sparkles, Filter
+  User, ChevronLeft, ChevronRight, Sparkles, Filter, ChevronDown, ChevronUp,
+  PanelRight, PanelTop, CalendarDays
 } from 'lucide-react';
 import { Reserva } from '../types';
 import { getReservas, formatDateToYMD } from '../lib/storage';
@@ -26,6 +27,11 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
   const [filterProfesor, setFilterProfesor] = useState('');
   const [filterNivel, setFilterNivel] = useState('Todas');
   const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
+
+  // Collapse / Expand & Layout States
+  const [isMonthExpanded, setIsMonthExpanded] = useState(true);
+  const [isDayDetailExpanded, setIsDayDetailExpanded] = useState(true);
+  const [dayDetailPosition, setDayDetailPosition] = useState<'side' | 'top'>('side');
 
   // Selected calendar day for detail
   const [selectedDayStr, setSelectedDayStr] = useState<string>(() => {
@@ -150,6 +156,131 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
     }
   };
 
+  // Helper to render Day Detail Card in either Top or Side position
+  const renderDayDetailCard = (isTopLayout: boolean) => {
+    return (
+      <div className={`bg-white rounded-2xl border border-slate-200/80 p-5 space-y-4 shadow-xs transition-all ${
+        isTopLayout ? 'w-full' : ''
+      }`}>
+        <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+          <div>
+            <span className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wider font-mono">Detalle del Día</span>
+            <h3 className="font-black text-slate-900 text-base flex items-center gap-1.5 mt-0.5">
+              <CalendarIcon className="w-4 h-4 text-slate-500" />
+              {selectedDayStr.split('-').reverse().join('/')}
+            </h3>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+              {selectedDayReservas.length === 0 
+                ? "Espacio totalmente libre para solicitar" 
+                : `${selectedDayReservas.length} actividad(es) programada(s)`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/60">
+            {/* Toggle Position: Top vs Side */}
+            <button
+              onClick={() => setDayDetailPosition(p => p === 'side' ? 'top' : 'side')}
+              title={dayDetailPosition === 'side' ? "Mover detalle encima del calendario" : "Mover detalle al lateral"}
+              className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs border border-slate-200/50"
+            >
+              {dayDetailPosition === 'side' ? <PanelTop className="w-3.5 h-3.5 text-indigo-600" /> : <PanelRight className="w-3.5 h-3.5 text-indigo-600" />}
+              <span className="text-[10px] hidden sm:inline">{dayDetailPosition === 'side' ? 'Poner Arriba' : 'Poner al Lado'}</span>
+            </button>
+
+            {/* Toggle Collapse */}
+            <button
+              onClick={() => setIsDayDetailExpanded(p => !p)}
+              title={isDayDetailExpanded ? "Colapsar detalle del día" : "Expandir detalle del día"}
+              className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-lg transition-all cursor-pointer shadow-2xs border border-slate-200/50"
+            >
+              {isDayDetailExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {isDayDetailExpanded && (
+          selectedDayReservas.length === 0 ? (
+            <div className={`text-center py-8 px-4 bg-slate-50/60 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center space-y-2.5 ${
+              isTopLayout ? 'sm:flex-row sm:justify-between sm:text-left sm:space-y-0 sm:py-5 sm:px-6' : ''
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white text-slate-400 rounded-2xl shadow-xs border border-slate-100 shrink-0">
+                  <Clock className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-700">Sin ocupación registrada</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">El Aula ATECA se encuentra libre en todas sus zonas para esta fecha.</p>
+                </div>
+              </div>
+              {canCreateBookings && onRequestNewBookingWithDate && (
+                <button
+                  onClick={() => onRequestNewBookingWithDate(selectedDayStr)}
+                  className="text-xs font-bold bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white cursor-pointer px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Reservar en esta fecha
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className={`${
+              isTopLayout 
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' 
+                : 'space-y-3 max-h-[380px] overflow-y-auto pr-1'
+            }`}>
+              {selectedDayReservas.map((res) => (
+                <div
+                  key={res.id_reserva}
+                  onClick={() => onSelectBooking && onSelectBooking(res)}
+                  className="p-3.5 bg-slate-50/60 hover:bg-white cursor-pointer active:scale-[0.99] border border-slate-200 hover:border-slate-300 rounded-xl transition-all space-y-2.5 text-xs shadow-2xs hover:shadow-xs flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs">
+                        <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                        {res.hora_inicio} - {res.hora_fin}
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getBadgeColor(res.estado)}`}>
+                        {res.estado}
+                      </span>
+                    </div>
+
+                    <div>
+                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                        <User className="w-3 h-3 text-slate-400" /> {res.profesor}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{res.departamento} • {res.modulo_materia_area}</p>
+                    </div>
+
+                    <div className="bg-white p-2 rounded-lg text-[11px] border border-slate-150 space-y-1">
+                      <p className="font-medium text-slate-700"><span className="text-slate-400 font-normal">Zona:</span> {res.zona_principal}</p>
+                      <p className="text-slate-500 truncate"><span className="text-slate-400 font-normal">Meta:</span> {res.objetivo_didactico}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400">
+                    <span>Aforo: {res.numero_alumnos} alumnos</span>
+                    <span className="font-bold text-indigo-600">Ver detalles →</span>
+                  </div>
+                </div>
+              ))}
+
+              {canCreateBookings && onRequestNewBookingWithDate && (
+                <button
+                  onClick={() => onRequestNewBookingWithDate(selectedDayStr)}
+                  className={`border border-dashed border-slate-300 hover:border-indigo-400 hover:text-indigo-600 text-slate-600 rounded-xl font-bold text-xs cursor-pointer transition-all bg-white hover:bg-indigo-50/30 flex items-center justify-center gap-1.5 ${
+                    isTopLayout ? 'p-4 min-h-[100px]' : 'w-full py-2.5'
+                  }`}
+                >
+                  <Plus className="w-4 h-4" /> Solicitar otra reserva en este día
+                </button>
+              )}
+            </div>
+          )
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Search and Filters Header */}
@@ -264,198 +395,166 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
       </div>
 
       {viewMode === 'month' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          {/* Calendar Grid Card */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 space-y-4">
-            {/* Month & Year Navigation Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                <h2 className="text-lg font-black text-slate-900 tracking-tight">
-                  {monthNames[month]} <span className="text-indigo-600 font-extrabold">{year}</span>
-                </h2>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
-                <button
-                  onClick={handlePrevMonth}
-                  aria-label="Mes anterior"
-                  title="Mes anterior"
-                  className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg transition-all cursor-pointer shadow-none hover:shadow-xs"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleToday}
-                  className="px-3 py-1 bg-white text-slate-900 hover:bg-slate-50 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer border border-slate-200/50"
-                >
-                  Hoy
-                </button>
-                <button
-                  onClick={handleNextMonth}
-                  aria-label="Mes siguiente"
-                  title="Mes siguiente"
-                  className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg transition-all cursor-pointer shadow-none hover:shadow-xs"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+        <div className="space-y-6">
+          
+          {/* Top position for day detail if selected by user */}
+          {dayDetailPosition === 'top' && renderDayDetailCard(true)}
 
-            {/* Days of week header */}
-            <div className="grid grid-cols-7 text-center font-bold text-[11px] text-slate-400 uppercase tracking-wider py-2 bg-slate-50/70 rounded-xl border border-slate-100">
-              <div>Lun</div>
-              <div>Mar</div>
-              <div>Mié</div>
-              <div>Jue</div>
-              <div>Vie</div>
-              <div className="text-amber-700/80">Sáb</div>
-              <div className="text-amber-700/85">Dom</div>
-            </div>
+          {/* Grid Layout (either full width when top or 2/3 when side) */}
+          <div className={dayDetailPosition === 'side' ? 'grid grid-cols-1 lg:grid-cols-3 gap-6 items-start' : 'w-full'}>
+            
+            {/* Calendar Grid Card */}
+            <div className={`${dayDetailPosition === 'side' ? 'lg:col-span-2' : 'w-full'} bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 space-y-4`}>
+              
+              {/* Month & Year Navigation Header + Collapse Button */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight">
+                    {monthNames[month]} <span className="text-indigo-600 font-extrabold">{year}</span>
+                  </h2>
+                </div>
 
-            {/* Calendar grid cells */}
-            <div className="grid grid-cols-7 gap-1.5">
-              {daysArray.map((cell, idx) => {
-                const isSelected = cell.dateStr === selectedDayStr;
-                const dailyReservations = getDayReservas(cell.dateStr);
-                const isToday = formatDateToYMD() === cell.dateStr;
+                <div className="flex items-center gap-2">
+                  {/* Prev / Today / Next Controls */}
+                  <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+                    <button
+                      onClick={handlePrevMonth}
+                      aria-label="Mes anterior"
+                      title="Mes anterior"
+                      className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg transition-all cursor-pointer shadow-none hover:shadow-xs"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleToday}
+                      className="px-3 py-1 bg-white text-slate-900 hover:bg-slate-50 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer border border-slate-200/50"
+                    >
+                      Hoy
+                    </button>
+                    <button
+                      onClick={handleNextMonth}
+                      aria-label="Mes siguiente"
+                      title="Mes siguiente"
+                      className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg transition-all cursor-pointer shadow-none hover:shadow-xs"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => setSelectedDayStr(cell.dateStr)}
-                    className={`min-h-20 md:min-h-22 p-2 rounded-xl cursor-pointer transition-all flex flex-col justify-between relative group border ${
-                      cell.isCurrentMonth ? 'bg-white' : 'bg-slate-50/60 text-slate-400'
-                    } ${
-                      isSelected 
-                        ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30 shadow-xs' 
-                        : 'border-slate-150 hover:border-slate-300 hover:bg-slate-50/50 hover:shadow-xs'
-                    }`}
+                  {/* Month Expand / Collapse button */}
+                  <button
+                    onClick={() => setIsMonthExpanded(prev => !prev)}
+                    title={isMonthExpanded ? "Colapsar vista mensual" : "Expandir vista mensual"}
+                    className="p-2 bg-slate-100/80 hover:bg-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer border border-slate-200/60 flex items-center gap-1 text-xs font-bold"
                   >
-                    <div className="flex justify-between items-start">
-                      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md transition-all ${
-                        isToday 
-                          ? 'bg-gradient-to-br from-slate-900 to-indigo-950 text-white font-black shadow-xs' 
-                          : isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'
-                      }`}>
-                        {cell.dayNum}
-                      </span>
-                      
-                      {dailyReservations.length > 0 && (
-                        <span className="text-[9px] bg-indigo-50 border border-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full font-extrabold font-mono">
-                          {dailyReservations.length}
-                        </span>
-                      )}
-                    </div>
+                    {isMonthExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <span className="text-[10px] hidden md:inline">{isMonthExpanded ? 'Colapsar Mes' : 'Expandir Mes'}</span>
+                  </button>
+                </div>
+              </div>
 
-                    {/* Indicators micro-chips */}
-                    <div className="space-y-1 my-1 overflow-hidden pointer-events-none">
-                      {dailyReservations.slice(0, 2).map((res, rIdx) => (
+              {/* Collapsible Month Body */}
+              {isMonthExpanded ? (
+                <>
+                  {/* Days of week header */}
+                  <div className="grid grid-cols-7 text-center font-bold text-[11px] text-slate-400 uppercase tracking-wider py-2 bg-slate-50/70 rounded-xl border border-slate-100">
+                    <div>Lun</div>
+                    <div>Mar</div>
+                    <div>Mié</div>
+                    <div>Jue</div>
+                    <div>Vie</div>
+                    <div className="text-amber-700/80">Sáb</div>
+                    <div className="text-amber-700/85">Dom</div>
+                  </div>
+
+                  {/* Calendar grid cells */}
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {daysArray.map((cell, idx) => {
+                      const isSelected = cell.dateStr === selectedDayStr;
+                      const dailyReservations = getDayReservas(cell.dateStr);
+                      const isToday = formatDateToYMD() === cell.dateStr;
+
+                      return (
                         <div
-                          key={rIdx}
-                          className="text-[9px] px-1.5 py-0.5 rounded-md truncate border leading-tight flex items-center gap-1 font-medium shadow-2xs"
-                          style={{
-                            backgroundColor: res.estado === 'APROBADA' ? '#f0fdf4' : res.estado === 'PENDIENTE' ? '#fffbeb' : '#f8fafc',
-                            borderColor: res.estado === 'APROBADA' ? '#bbf7d0' : res.estado === 'PENDIENTE' ? '#fde68a' : '#e2e8f0',
-                            color: res.estado === 'APROBADA' ? '#166534' : res.estado === 'PENDIENTE' ? '#92400e' : '#475569',
-                          }}
+                          key={idx}
+                          onClick={() => setSelectedDayStr(cell.dateStr)}
+                          className={`min-h-20 md:min-h-22 p-2 rounded-xl cursor-pointer transition-all flex flex-col justify-between relative group border ${
+                            cell.isCurrentMonth ? 'bg-white' : 'bg-slate-50/60 text-slate-400'
+                          } ${
+                            isSelected 
+                              ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30 shadow-xs' 
+                              : 'border-slate-150 hover:border-slate-300 hover:bg-slate-50/50 hover:shadow-xs'
+                          }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            res.estado === 'PENDIENTE' ? 'bg-amber-400' :
-                            res.estado === 'APROBADA' ? 'bg-emerald-500' :
-                            res.estado === 'REALIZADA' ? 'bg-sky-500' : 'bg-slate-400'
-                          }`}></span>
-                          <span className="truncate font-sans">
-                            {res.profesor.split(' ')[0]}
-                          </span>
+                          <div className="flex justify-between items-start">
+                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md transition-all ${
+                              isToday 
+                                ? 'bg-gradient-to-br from-slate-900 to-indigo-950 text-white font-black shadow-xs' 
+                                : isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'
+                            }`}>
+                              {cell.dayNum}
+                            </span>
+                            
+                            {dailyReservations.length > 0 && (
+                              <span className="text-[9px] bg-indigo-50 border border-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full font-extrabold font-mono">
+                                {dailyReservations.length}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Indicators micro-chips */}
+                          <div className="space-y-1 my-1 overflow-hidden pointer-events-none">
+                            {dailyReservations.slice(0, 2).map((res, rIdx) => (
+                              <div
+                                key={rIdx}
+                                className="text-[9px] px-1.5 py-0.5 rounded-md truncate border leading-tight flex items-center gap-1 font-medium shadow-2xs"
+                                style={{
+                                  backgroundColor: res.estado === 'APROBADA' ? '#f0fdf4' : res.estado === 'PENDIENTE' ? '#fffbeb' : '#f8fafc',
+                                  borderColor: res.estado === 'APROBADA' ? '#bbf7d0' : res.estado === 'PENDIENTE' ? '#fde68a' : '#e2e8f0',
+                                  color: res.estado === 'APROBADA' ? '#166534' : res.estado === 'PENDIENTE' ? '#92400e' : '#475569',
+                                }}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                  res.estado === 'PENDIENTE' ? 'bg-amber-400' :
+                                  res.estado === 'APROBADA' ? 'bg-emerald-500' :
+                                  res.estado === 'REALIZADA' ? 'bg-sky-500' : 'bg-slate-400'
+                                }`}></span>
+                                <span className="truncate font-sans">
+                                  {res.profesor.split(' ')[0]}
+                                </span>
+                              </div>
+                            ))}
+                            {dailyReservations.length > 2 && (
+                              <div className="text-[8px] text-slate-400 font-bold text-center">
+                                +{dailyReservations.length - 2} más
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                      {dailyReservations.length > 2 && (
-                        <div className="text-[8px] text-slate-400 font-bold text-center">
-                          +{dailyReservations.length - 2} más
-                        </div>
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </>
+              ) : (
+                <div 
+                  onClick={() => setIsMonthExpanded(true)}
+                  className="p-6 bg-slate-50/60 hover:bg-slate-100/70 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-500 font-semibold cursor-pointer transition-colors flex items-center justify-center gap-2"
+                >
+                  <CalendarDays className="w-4 h-4 text-indigo-500" />
+                  <span>Cuadrícula mensual colapsada. Haz clic aquí o en «Expandir Mes» para mostrarla.</span>
+                </div>
+              )}
 
-          {/* Agenda of selected day inside sidebar */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-4 shadow-xs">
-            <div className="border-b border-slate-100 pb-3">
-              <span className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wider font-mono">Detalle del Día</span>
-              <h3 className="font-black text-slate-900 text-base flex items-center gap-1.5 mt-0.5">
-                <CalendarIcon className="w-4 h-4 text-slate-500" />
-                {selectedDayStr.split('-').reverse().join('/')}
-              </h3>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                {selectedDayReservas.length === 0 
-                  ? "Espacio totalmente libre para solicitar" 
-                  : `${selectedDayReservas.length} actividad(es) programada(s)`}
-              </p>
             </div>
 
-            {selectedDayReservas.length === 0 ? (
-              <div className="text-center py-10 px-4 bg-slate-50/60 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center space-y-3">
-                <div className="p-3 bg-white text-slate-400 rounded-2xl shadow-xs border border-slate-100">
-                  <Clock className="w-6 h-6 text-indigo-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-700">Sin ocupación registrada</p>
-                  <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">El Aula ATECA se encuentra disponible en todas sus zonas para esta fecha.</p>
-                </div>
-                {canCreateBookings && onRequestNewBookingWithDate && (
-                  <button
-                    onClick={() => onRequestNewBookingWithDate(selectedDayStr)}
-                    className="mt-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white cursor-pointer px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Reservar en esta fecha
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-                {selectedDayReservas.map((res) => (
-                  <div
-                    key={res.id_reserva}
-                    onClick={() => onSelectBooking && onSelectBooking(res)}
-                    className="p-3.5 bg-slate-50/60 hover:bg-white cursor-pointer active:scale-[0.99] border border-slate-200 hover:border-slate-300 rounded-xl transition-all space-y-2.5 text-xs shadow-2xs hover:shadow-xs"
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs">
-                        <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                        {res.hora_inicio} - {res.hora_fin}
-                      </span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getBadgeColor(res.estado)}`}>
-                        {res.estado}
-                      </span>
-                    </div>
-
-                    <div>
-                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                        <User className="w-3 h-3 text-slate-400" /> {res.profesor}
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{res.departamento} • {res.modulo_materia_area}</p>
-                    </div>
-
-                    <div className="bg-white p-2 rounded-lg text-[11px] border border-slate-150 space-y-1">
-                      <p className="font-medium text-slate-700"><span className="text-slate-400 font-normal">Zona:</span> {res.zona_principal}</p>
-                      <p className="text-slate-500 truncate"><span className="text-slate-400 font-normal">Meta:</span> {res.objetivo_didactico}</p>
-                    </div>
-                  </div>
-                ))}
-
-                {canCreateBookings && onRequestNewBookingWithDate && (
-                  <button
-                    onClick={() => onRequestNewBookingWithDate(selectedDayStr)}
-                    className="w-full text-center py-2.5 border border-dashed border-slate-300 hover:border-indigo-400 hover:text-indigo-600 text-slate-600 rounded-xl font-bold text-xs cursor-pointer block transition-all bg-white hover:bg-indigo-50/30"
-                  >
-                    + Solicitar otra reserva en este día
-                  </button>
-                )}
+            {/* Side position for day detail if selected by user */}
+            {dayDetailPosition === 'side' && (
+              <div className="lg:col-span-1">
+                {renderDayDetailCard(false)}
               </div>
             )}
+
           </div>
         </div>
       ) : (
