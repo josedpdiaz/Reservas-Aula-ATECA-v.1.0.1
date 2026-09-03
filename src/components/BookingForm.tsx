@@ -52,14 +52,20 @@ export default function BookingForm({
 
   // Auto-detect priority based on Nivel
   useEffect(() => {
-    if (nivel.includes('FP') || nivel.includes('Profesional')) {
-      setPrioridad('ALTA');
-    } else if (nivel.includes('Proyecto')) {
+    if (nivel === 'Proyecto de Centro (No FP)') {
       setPrioridad('MEDIA');
-    } else if (nivel.includes('ESO') || nivel.includes('Bachillerato')) {
+    } else if (
+      nivel === 'Grado Superior FP' ||
+      nivel === 'Grado Medio FP' ||
+      nivel === 'FP Básica' ||
+      nivel === 'Proyecto de Centro de FP' ||
+      nivel === 'Prueba técnica / Demostración'
+    ) {
+      setPrioridad('ALTA');
+    } else if (nivel === 'Bachillerato' || nivel === 'ESO') {
       setPrioridad('NORMAL');
     } else {
-      setPrioridad('BAJA');
+      setPrioridad('NORMAL');
     }
   }, [nivel]);
 
@@ -258,15 +264,22 @@ export default function BookingForm({
               <select
                 value={nivel}
                 onChange={(e) => setNivel(e.target.value)}
-                className="w-full px-3 py-1.5 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none cursor-pointer"
+                className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded-lg text-xs outline-none cursor-pointer font-medium text-slate-800"
               >
-                <option value="Grado Superior FP">Grado Superior FP (Alta Prioridad)</option>
-                <option value="Grado Medio FP">Grado Medio FP (Alta Prioridad)</option>
-                <option value="FP Básica / Programas">FP Básica / Programas Especiales</option>
-                <option value="Proyecto de Centro">Proyecto de Centro (Prioridad Media)</option>
-                <option value="Bachillerato">Bachillerato (Prioridad Normal)</option>
-                <option value="ESO">ESO (Prioridad Normal)</option>
-                <option value="Prueba técnica / Demostración">Prueba técnica / Demostración</option>
+                <optgroup label="⭐ Formación Profesional y Tecnológica (P1 · Preferente ATECA)">
+                  <option value="Grado Superior FP">Grado Superior FP</option>
+                  <option value="Grado Medio FP">Grado Medio FP</option>
+                  <option value="FP Básica">FP Básica</option>
+                  <option value="Proyecto de Centro de FP">Proyecto de Centro de FP</option>
+                  <option value="Prueba técnica / Demostración">Prueba técnica / Demostración</option>
+                </optgroup>
+                <optgroup label="💡 Proyectos Transversales del Centro (P2 · Proyectos)">
+                  <option value="Proyecto de Centro (No FP)">Proyecto de Centro (No FP)</option>
+                </optgroup>
+                <optgroup label="📚 Enseñanzas Generales (P3 · Ordinaria)">
+                  <option value="Bachillerato">Bachillerato</option>
+                  <option value="ESO">ESO</option>
+                </optgroup>
               </select>
             </div>
             <div>
@@ -321,14 +334,26 @@ export default function BookingForm({
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Prioridad Asignada</label>
-              <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold ${
-                prioridad === 'ALTA' ? 'bg-red-50 text-red-600 border border-red-100' :
-                prioridad === 'MEDIA' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                prioridad === 'NORMAL' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
-                'bg-slate-50 text-slate-600 border border-slate-100'
-              }`}>
-                {prioridad}
-              </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-extrabold border shadow-2xs ${
+                  prioridad === 'ALTA' ? 'bg-emerald-50 text-emerald-800 border-emerald-200 ring-1 ring-emerald-500/20' :
+                  prioridad === 'MEDIA' ? 'bg-indigo-50 text-indigo-800 border-indigo-200 ring-1 ring-indigo-500/20' :
+                  'bg-slate-100 text-slate-700 border-slate-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${
+                    prioridad === 'ALTA' ? 'bg-emerald-500 animate-pulse' :
+                    prioridad === 'MEDIA' ? 'bg-indigo-500' : 'bg-slate-400'
+                  }`}></span>
+                  {prioridad === 'ALTA' ? 'P1 · Preferente FP' :
+                   prioridad === 'MEDIA' ? 'P2 · Proyectos' :
+                   'P3 · Ordinaria'}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {prioridad === 'ALTA' ? 'Acceso prioritario ATECA' :
+                   prioridad === 'MEDIA' ? 'Actividad de centro' :
+                   'Acceso general'}
+                </span>
+              </div>
             </div>
           </div>
         </div>

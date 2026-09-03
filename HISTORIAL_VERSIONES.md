@@ -5,6 +5,28 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.1.2] - 2026-09-03
+### 🎯 Clasificación Profesional de Prioridades y Reorganización de Niveles ATECA
+* **Objetivo**: Alinear los niveles educativos a la normativa del Aula ATECA con un modelo visual intuitivo y profesional por jerarquía (P1, P2 y P3).
+* **Mejoras clave**:
+  * **Niveles actualizados**:
+    * Se renombra `FP Básica / Programas Especiales` a `FP Básica` limpia y directa.
+    * Incorporación de `Proyecto de Centro de FP` (Prioridad P1).
+    * Incorporación de `Prueba técnica / Demostración` a Prioridad P1.
+    * Incorporación de `Proyecto de Centro (No FP)` (Prioridad P2).
+  * **Agrupación en el desplegable (`<optgroup>`)**:
+    * `⭐ Formación Profesional y Tecnológica (P1 · Preferente ATECA)`: Grado Superior, Grado Medio, FP Básica, Proyecto de Centro de FP y Pruebas técnicas.
+    * `💡 Proyectos Transversales del Centro (P2 · Proyectos)`: Proyecto de Centro (No FP).
+    * `📚 Enseñanzas Generales (P3 · Ordinaria)`: Bachillerato y ESO.
+  * **Insignias dinámicas de prioridad en tiempo real**:
+    * `P1 · Preferente FP` con punto de pulso en verde esmeralda institucional.
+    * `P2 · Proyectos` en azul índigo.
+    * `P3 · Ordinaria` en pizarra neutro.
+  * **Unificación en tablas y panel de coordinación**: Reemplazadas las etiquetas genéricas por los distintivos claros `P1 · FP`, `P2 · Proyectos` y `P3 · Ordinaria`.
+* **Archivos afectados**: `src/components/BookingForm.tsx`, `src/components/CalendarView.tsx`, `src/components/CoordinatorPanel.tsx`.
+
+---
+
 ## [v1.1.1] - 2026-09-03
 ### 🧹 Limpieza y Consolidación de Botones en la Hoja del Día
 * **Objetivo**: Evitar redundancia visual en la interfaz de usuario.

@@ -771,7 +771,10 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                   <option value="Todas">Todos los niveles</option>
                   <option value="Grado Superior FP">Grado Superior FP</option>
                   <option value="Grado Medio FP">Grado Medio FP</option>
-                  <option value="FP Básica / Programas">FP Básica</option>
+                  <option value="FP Básica">FP Básica</option>
+                  <option value="Proyecto de Centro de FP">Proyecto de Centro de FP</option>
+                  <option value="Prueba técnica / Demostración">Prueba técnica / Demostración</option>
+                  <option value="Proyecto de Centro (No FP)">Proyecto de Centro (No FP)</option>
                   <option value="Bachillerato">Bachillerato</option>
                   <option value="ESO">ESO</option>
                 </select>
@@ -937,13 +940,14 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                       <td className="p-3 text-center font-bold text-slate-600">{res.numero_alumnos}</td>
                       <td className="p-3 text-center font-semibold text-slate-500">{res.necesita_apoyo ? 'SÍ' : 'NO'}</td>
                       <td className="p-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold leading-tight ${
-                          res.prioridad === 'ALTA' ? 'bg-red-50 text-red-700 border border-red-100' :
-                          res.prioridad === 'MEDIA' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                          res.prioridad === 'NORMAL' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                          'bg-slate-50 text-slate-700'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold leading-tight border ${
+                          res.prioridad === 'ALTA' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                          res.prioridad === 'MEDIA' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                          'bg-slate-100 text-slate-700 border-slate-200'
                         }`}>
-                          {res.prioridad}
+                          {res.prioridad === 'ALTA' ? 'P1 · FP' :
+                           res.prioridad === 'MEDIA' ? 'P2 · Proyectos' :
+                           'P3 · Ordinaria'}
                         </span>
                       </td>
                       <td className="p-3 text-center">

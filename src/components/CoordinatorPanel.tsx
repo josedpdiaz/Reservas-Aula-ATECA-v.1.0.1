@@ -280,11 +280,14 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
                         <span className="px-2 py-0.5 bg-slate-900 text-white rounded text-[10px] font-bold">
                           {res.fecha_actividad.split('-').reverse().join('/')} (Horario: {res.hora_inicio} - {res.hora_fin})
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          res.prioridad === 'ALTA' ? 'bg-red-50 text-red-700' :
-                          res.prioridad === 'MEDIA' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                          res.prioridad === 'ALTA' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                          res.prioridad === 'MEDIA' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                          'bg-slate-100 text-slate-700 border-slate-200'
                         }`}>
-                          Prioridad: {res.prioridad}
+                          {res.prioridad === 'ALTA' ? 'P1 · Preferente FP' :
+                           res.prioridad === 'MEDIA' ? 'P2 · Proyectos' :
+                           'P3 · Ordinaria'}
                         </span>
                       </div>
                     </div>
@@ -425,11 +428,14 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
                         <td className="p-3 font-semibold text-slate-700">{res.zona_principal}</td>
                         <td className="p-3 text-center font-bold text-slate-500">{res.necesita_apoyo ? 'SÍ' : 'NO'}</td>
                         <td className="p-3 text-center">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                            res.prioridad === 'ALTA' ? 'bg-red-50 text-red-700' :
-                            res.prioridad === 'MEDIA' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold border ${
+                            res.prioridad === 'ALTA' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            res.prioridad === 'MEDIA' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                            'bg-slate-100 text-slate-700 border-slate-200'
                           }`}>
-                            {res.prioridad}
+                            {res.prioridad === 'ALTA' ? 'P1 · FP' :
+                             res.prioridad === 'MEDIA' ? 'P2 · Proyectos' :
+                             'P3 · Ordinaria'}
                           </span>
                         </td>
                         <td className="p-3 text-center">
