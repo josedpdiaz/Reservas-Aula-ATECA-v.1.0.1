@@ -416,7 +416,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                 onClick={() => setViewMode('day-sheet')}
                 className="w-full text-center py-2.5 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-indigo-200/60 shadow-2xs mt-2"
               >
-                <Clock className="w-3.5 h-3.5" /> Abrir Hoja Completa de Horarios (Mañana y Tarde)
+                <Clock className="w-3.5 h-3.5" /> Abrir Hoja Completa de Horarios (Mañana y Tarde-Noche)
               </button>
             </div>
           )

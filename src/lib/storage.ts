@@ -51,7 +51,7 @@ const DEFAULT_USERS: Usuario[] = [
     email: "l.perez@centro.edu",
     rol: "PROFESOR",
     departamento: "Administración",
-    turno: "Tarde",
+    turno: "Tarde-Noche",
     activo: true,
   },
   {

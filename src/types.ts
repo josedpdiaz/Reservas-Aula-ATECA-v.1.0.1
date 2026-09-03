@@ -9,7 +9,7 @@ export interface Usuario {
   email: string;
   rol: 'PROFESOR' | 'COORDINADOR' | 'ADMIN';
   departamento: string;
-  turno: 'Mañana' | 'Tarde' | 'Ambos';
+  turno: 'Mañana' | 'Tarde' | 'Tarde-Noche' | 'Ambos';
   activo: boolean;
 }
 

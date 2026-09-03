@@ -35,15 +35,15 @@ const MORNING_SLOTS = [
   { start: '13:30', end: '14:00', label: 'Franja Flexible / Cierre (30m)' },
 ];
 
-// Tarde: 6 sesiones de 50 min con descanso de 20 min tras la 3ª sesión
+// Tarde-Noche: 6 sesiones de 50 min con descanso de 20 min tras la 3ª sesión
 const AFTERNOON_SLOTS = [
-  { start: '17:00', end: '17:50', label: '1ª Sesión Tarde (50m)' },
-  { start: '17:50', end: '18:40', label: '2ª Sesión Tarde (50m)' },
-  { start: '18:40', end: '19:30', label: '3ª Sesión Tarde (50m)' },
-  { start: '19:30', end: '19:50', label: 'Descanso Tarde (20m)', isBreak: true },
-  { start: '19:50', end: '20:40', label: '4ª Sesión Tarde (50m)' },
-  { start: '20:40', end: '21:30', label: '5ª Sesión Tarde (50m)' },
-  { start: '21:30', end: '22:20', label: '6ª Sesión Tarde (50m)' },
+  { start: '17:00', end: '17:50', label: '1ª Sesión Tarde-Noche (50m)' },
+  { start: '17:50', end: '18:40', label: '2ª Sesión Tarde-Noche (50m)' },
+  { start: '18:40', end: '19:30', label: '3ª Sesión Tarde-Noche (50m)' },
+  { start: '19:30', end: '19:50', label: 'Descanso Tarde-Noche (20m)', isBreak: true },
+  { start: '19:50', end: '20:40', label: '4ª Sesión Tarde-Noche (50m)' },
+  { start: '20:40', end: '21:30', label: '5ª Sesión Tarde-Noche (50m)' },
+  { start: '21:30', end: '22:20', label: '6ª Sesión Tarde-Noche (50m)' },
 ];
 
 export default function DayScheduleSheet({
@@ -351,7 +351,7 @@ export default function DayScheduleSheet({
         </div>
       </div>
 
-      {/* Two Columns: Turno de Mañana & Turno de Tarde */}
+      {/* Two Columns: Turno de Mañana & Turno de Tarde-Noche */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Turno de Mañana */}
         {renderSlotGroup(
@@ -361,9 +361,9 @@ export default function DayScheduleSheet({
           'bg-gradient-to-r from-amber-50/60 to-transparent'
         )}
 
-        {/* Turno de Tarde */}
+        {/* Turno de Tarde-Noche */}
         {renderSlotGroup(
-          'Turno de Tarde', 
+          'Turno de Tarde-Noche', 
           <Moon className="w-4 h-4 text-indigo-500" />, 
           AFTERNOON_SLOTS,
           'bg-gradient-to-r from-indigo-50/60 to-transparent'
