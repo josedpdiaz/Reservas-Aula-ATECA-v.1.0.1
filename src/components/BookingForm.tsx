@@ -4,9 +4,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Edit3 } from 'lucide-react';
 import { Reserva, Usuario } from '../types';
-import { getReservas, getBloqueos, addReserva, checkTimeOverlap, formatDateToYMD, getConfig } from '../lib/storage';
+import { 
+  getReservas, getBloqueos, addReserva, updateReserva, 
+  isNonWorkingDay, checkTimeOverlap, formatDateToYMD, getConfig 
+} from '../lib/storage';
 
 interface BookingFormProps {
   currentUser: Usuario;
@@ -15,6 +18,7 @@ interface BookingFormProps {
   initialDate?: string;
   initialStartTime?: string;
   initialEndTime?: string;
+  bookingToEdit?: Reserva | null;
 }
 
 export default function BookingForm({ 
@@ -23,27 +27,28 @@ export default function BookingForm({
   onCancel, 
   initialDate,
   initialStartTime,
-  initialEndTime
+  initialEndTime,
+  bookingToEdit
 }: BookingFormProps) {
   const config = getConfig();
   
-  // Form fields
-  const [profesor, setProfesor] = useState(currentUser.nombre);
-  const [email, setEmail] = useState(currentUser.email);
-  const [departamento, setDepartamento] = useState(currentUser.departamento || '');
-  const [nivel, setNivel] = useState('Grado Superior FP');
-  const [grupo, setGrupo] = useState('');
-  const [moduloMateria, setModuloMateria] = useState('');
-  const [fecha, setFecha] = useState(() => initialDate || formatDateToYMD());
-  const [horaInicio, setHoraInicio] = useState(() => initialStartTime || '09:00');
-  const [horaFin, setHoraFin] = useState(() => initialEndTime || '11:00');
-  const [zonaPrincipal, setZonaPrincipal] = useState('Multimedia');
-  const [numAlumnos, setNumAlumnos] = useState(15);
-  const [objetivoDidactico, setObjetivoDidactico] = useState('');
-  const [descripcionActividad, setDescripcionActividad] = useState('');
-  const [recursosNecesarios, setRecursosNecesarios] = useState('');
-  const [necesitaApoyo, setNecesitaApoyo] = useState(false);
-  const [prioridad, setPrioridad] = useState<'ALTA' | 'MEDIA' | 'NORMAL' | 'BAJA'>('NORMAL');
+  // Form fields (prefilled with existing booking if in edit mode)
+  const [profesor, setProfesor] = useState(() => bookingToEdit ? bookingToEdit.profesor : currentUser.nombre);
+  const [email, setEmail] = useState(() => bookingToEdit ? bookingToEdit.email : currentUser.email);
+  const [departamento, setDepartamento] = useState(() => bookingToEdit ? bookingToEdit.departamento : (currentUser.departamento || ''));
+  const [nivel, setNivel] = useState(() => bookingToEdit ? bookingToEdit.nivel : 'Grado Superior FP');
+  const [grupo, setGrupo] = useState(() => bookingToEdit ? bookingToEdit.grupo : '');
+  const [moduloMateria, setModuloMateria] = useState(() => bookingToEdit ? bookingToEdit.modulo_materia_area : '');
+  const [fecha, setFecha] = useState(() => bookingToEdit ? bookingToEdit.fecha_actividad : (initialDate || formatDateToYMD()));
+  const [horaInicio, setHoraInicio] = useState(() => bookingToEdit ? bookingToEdit.hora_inicio : (initialStartTime || '09:00'));
+  const [horaFin, setHoraFin] = useState(() => bookingToEdit ? bookingToEdit.hora_fin : (initialEndTime || '11:00'));
+  const [zonaPrincipal, setZonaPrincipal] = useState(() => bookingToEdit ? bookingToEdit.zona_principal : 'Multimedia');
+  const [numAlumnos, setNumAlumnos] = useState(() => bookingToEdit ? bookingToEdit.numero_alumnos : 15);
+  const [objetivoDidactico, setObjetivoDidactico] = useState(() => bookingToEdit ? bookingToEdit.objetivo_didactico : '');
+  const [descripcionActividad, setDescripcionActividad] = useState(() => bookingToEdit ? bookingToEdit.descripcion_actividad : '');
+  const [recursosNecesarios, setRecursosNecesarios] = useState(() => bookingToEdit ? bookingToEdit.recursos_necesarios : '');
+  const [necesitaApoyo, setNecesitaApoyo] = useState(() => bookingToEdit ? bookingToEdit.necesita_apoyo : false);
+  const [prioridad, setPrioridad] = useState<'ALTA' | 'MEDIA' | 'NORMAL' | 'BAJA'>(() => bookingToEdit ? bookingToEdit.prioridad : 'NORMAL');
 
   // Warnings and calculations
   const [conflictType, setConflictType] = useState<'NONE' | 'BLOQUEO' | 'OVERLAP'>('NONE');
@@ -76,9 +81,17 @@ export default function BookingForm({
 
     if (!fecha || !horaInicio || !horaFin) return;
 
+    // 0. Check Non-Working Day / School Holidays
+    const nonWorking = isNonWorkingDay(fecha);
+    if (nonWorking.isNonWorking) {
+      setConflictType('BLOQUEO');
+      setConflictMsg(`¡ATENCIÓN! La fecha seleccionada es un día no lectivo: ${nonWorking.reason}. No se pueden programar reservas este día.`);
+      return;
+    }
+
     // Check configuration limits
     const startHourConfig = config.horario_inicio || '08:00';
-    const endHourConfig = config.horario_fin || '21:00';
+    const endHourConfig = config.horario_fin || '22:30';
 
     if (horaInicio < startHourConfig || horaFin > endHourConfig) {
       setConflictType('BLOQUEO');
@@ -105,9 +118,10 @@ export default function BookingForm({
       return;
     }
 
-    // 2. Check approved reservations overlap
+    // 2. Check approved reservations overlap (excluding own booking if editing)
     const reservas = getReservas();
     const overlapRes = reservas.find(r => {
+      if (bookingToEdit && r.id_reserva === bookingToEdit.id_reserva) return false;
       if (r.estado !== 'APROBADA' && r.estado !== 'REALIZADA') return false;
       if (r.fecha_actividad !== fecha) return false;
       return checkTimeOverlap(r.hora_inicio, r.hora_fin, horaInicio, horaFin);
@@ -117,7 +131,7 @@ export default function BookingForm({
       setConflictType('OVERLAP');
       setConflictMsg(`¡AVISO DE CONFLICTO! Ya existe una reserva APROBADA de ${overlapRes.profesor} (${overlapRes.grupo} - ${overlapRes.zona_principal}) de ${overlapRes.hora_inicio} a ${overlapRes.hora_fin}. Tu reserva se registrará como PENDIENTE para que la valide el Coordinador.`);
     }
-  }, [fecha, horaInicio, horaFin, config]);
+  }, [fecha, horaInicio, horaFin, config, bookingToEdit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,29 +148,57 @@ export default function BookingForm({
       return;
     }
 
-    const { success, conflict, message } = addReserva({
-      profesor,
-      email,
-      departamento,
-      nivel,
-      grupo,
-      modulo_materia_area: moduloMateria,
-      fecha_actividad: fecha,
-      hora_inicio: horaInicio,
-      hora_fin: horaFin,
-      zona_principal: zonaPrincipal,
-      numero_alumnos: Number(numAlumnos),
-      objetivo_didactico: objetivoDidactico,
-      descripcion_actividad: descripcionActividad,
-      recursos_necesarios: recursosNecesarios,
-      necesita_apoyo: necesitaApoyo,
-      prioridad,
-    });
+    if (bookingToEdit) {
+      const res = updateReserva({
+        ...bookingToEdit,
+        profesor,
+        email,
+        departamento,
+        nivel,
+        grupo,
+        modulo_materia_area: moduloMateria,
+        fecha_actividad: fecha,
+        hora_inicio: horaInicio,
+        hora_fin: horaFin,
+        zona_principal: zonaPrincipal,
+        numero_alumnos: Number(numAlumnos),
+        objetivo_didactico: objetivoDidactico,
+        descripcion_actividad: descripcionActividad,
+        recursos_necesarios: recursosNecesarios,
+        necesita_apoyo: necesitaApoyo,
+        prioridad,
+      });
 
-    if (success) {
-      onSuccess(message || 'Reserva registrada.');
+      if (res.success) {
+        onSuccess('Reserva modificada y actualizada con éxito en el calendario.');
+      } else {
+        setErrorMsg(res.message || 'Error al actualizar la reserva.');
+      }
     } else {
-      setErrorMsg(message || 'Error al guardar la reserva.');
+      const { success, message } = addReserva({
+        profesor,
+        email,
+        departamento,
+        nivel,
+        grupo,
+        modulo_materia_area: moduloMateria,
+        fecha_actividad: fecha,
+        hora_inicio: horaInicio,
+        hora_fin: horaFin,
+        zona_principal: zonaPrincipal,
+        numero_alumnos: Number(numAlumnos),
+        objetivo_didactico: objetivoDidactico,
+        descripcion_actividad: descripcionActividad,
+        recursos_necesarios: recursosNecesarios,
+        necesita_apoyo: necesitaApoyo,
+        prioridad,
+      });
+
+      if (success) {
+        onSuccess(message || 'Reserva registrada.');
+      } else {
+        setErrorMsg(message || 'Error al guardar la reserva.');
+      }
     }
   };
 
@@ -165,11 +207,15 @@ export default function BookingForm({
       <div className="bg-slate-900 px-6 py-4 flex items-center justify-between no-print text-white border-b border-slate-800">
         <div className="flex items-center space-x-3.5">
           <div className="p-2 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-xl border border-emerald-500/30">
-            <BookOpen className="h-5 w-5 text-emerald-400" />
+            {bookingToEdit ? <Edit3 className="h-5 w-5 text-emerald-400" /> : <BookOpen className="h-5 w-5 text-emerald-400" />}
           </div>
           <div>
-            <h2 className="text-lg font-black tracking-tight">Nueva Ficha de Reserva didáctica</h2>
-            <p className="text-xs text-slate-400">Planificación curricular Aula ATECA</p>
+            <h2 className="text-lg font-black tracking-tight">
+              {bookingToEdit ? 'Modificar Ficha de Reserva didáctica' : 'Nueva Ficha de Reserva didáctica'}
+            </h2>
+            <p className="text-xs text-slate-400">
+              {bookingToEdit ? `Actualizando reserva #${bookingToEdit.id_reserva}` : 'Planificación curricular Aula ATECA'}
+            </p>
           </div>
         </div>
         <button
@@ -477,7 +523,7 @@ export default function BookingForm({
             id="btn_submit_booking"
             className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] disabled:from-slate-300 disabled:to-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-xs hover:shadow-md"
           >
-            <CheckCircle2 className="h-4 w-4" /> Enviar solicitud de Reserva
+            <CheckCircle2 className="h-4 w-4" /> {bookingToEdit ? 'Guardar Cambios de la Reserva' : 'Enviar solicitud de Reserva'}
           </button>
         </div>
       </form>

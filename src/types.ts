@@ -67,3 +67,13 @@ export interface ConfigItem {
   clave: string;
   valor: string;
 }
+
+export type TipoDiaNoHabil = 'FESTIVO' | 'VACACIONES' | 'LIBRE_DISPOSICION';
+
+export interface DiaNoHabil {
+  id: string;
+  fecha_inicio: string; // YYYY-MM-DD
+  fecha_fin: string;    // YYYY-MM-DD
+  nombre: string;
+  tipo: TipoDiaNoHabil;
+}

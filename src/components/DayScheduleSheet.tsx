@@ -7,10 +7,10 @@ import React, { useMemo } from 'react';
 import { 
   ArrowLeft, Calendar as CalendarIcon, Clock, Plus, User, 
   ChevronLeft, ChevronRight, Sun, Moon, ShieldAlert, CheckCircle2,
-  Sparkles, Layers
+  Sparkles, Layers, CalendarOff
 } from 'lucide-react';
 import { Reserva, Bloqueo } from '../types';
-import { getBloqueos, formatDateToYMD, checkTimeOverlap } from '../lib/storage';
+import { getBloqueos, formatDateToYMD, checkTimeOverlap, isNonWorkingDay } from '../lib/storage';
 
 interface DayScheduleSheetProps {
   dateStr: string; // YYYY-MM-DD
@@ -98,6 +98,7 @@ export default function DayScheduleSheet({
   }, [dateStr]);
 
   const isToday = formatDateToYMD() === dateStr;
+  const nonWorking = useMemo(() => isNonWorkingDay(dateStr), [dateStr]);
 
   const getBadgeStyle = (estado: string) => {
     switch (estado) {
@@ -211,21 +212,31 @@ export default function DayScheduleSheet({
                       </p>
                     </div>
                   ) : (
-                    /* Free Slot */
-                    <div className="p-2.5 bg-emerald-50/30 border border-dashed border-emerald-200 rounded-xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        <span className="text-xs font-bold text-emerald-900">Franja Disponible</span>
+                    /* Free Slot or Non-Working Day */
+                    nonWorking.isNonWorking ? (
+                      <div className="p-2.5 bg-slate-100/70 border border-slate-200 rounded-xl flex items-center justify-between text-slate-500">
+                        <div className="flex items-center gap-2">
+                          <CalendarOff className="w-4 h-4 text-slate-400" />
+                          <span className="text-xs font-bold text-slate-600">Día No Lectivo ({nonWorking.reason})</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-semibold italic">Reservas cerradas</span>
                       </div>
-                      {canCreateBookings && (
-                        <button
-                          onClick={() => onRequestBookingWithSlot(dateStr, slot.start, slot.end)}
-                          className="px-3 py-1 bg-white hover:bg-slate-900 hover:text-white text-slate-800 border border-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 active:scale-[0.98]"
-                        >
-                          <Plus className="w-3 h-3" /> Reservar
-                        </button>
-                      )}
-                    </div>
+                    ) : (
+                      <div className="p-2.5 bg-emerald-50/30 border border-dashed border-emerald-200 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span className="text-xs font-bold text-emerald-900">Franja Disponible</span>
+                        </div>
+                        {canCreateBookings && (
+                          <button
+                            onClick={() => onRequestBookingWithSlot(dateStr, slot.start, slot.end)}
+                            className="px-3 py-1 bg-white hover:bg-slate-900 hover:text-white text-slate-800 border border-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 active:scale-[0.98]"
+                          >
+                            <Plus className="w-3 h-3" /> Reservar
+                          </button>
+                        )}
+                      </div>
+                    )
                   )}
                 </div>
               </div>
@@ -297,6 +308,19 @@ export default function DayScheduleSheet({
           </div>
         </div>
       </div>
+
+      {/* Non-working alert banner if applicable */}
+      {nonWorking.isNonWorking && (
+        <div className="bg-amber-500/10 border border-amber-300/80 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed text-amber-950 shadow-2xs">
+          <CalendarOff className="w-5 h-5 text-amber-600 shrink-0" />
+          <div>
+            <p className="font-bold text-sm text-amber-900">Día No Lectivo: {nonWorking.reason}</p>
+            <p className="text-amber-800 text-[11px] mt-0.5">
+              En esta fecha no se imparten actividades lectivas regulares en el centro y las solicitudes de reserva del Aula ATECA quedan deshabilitadas.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Summary Stats Strip for this day */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

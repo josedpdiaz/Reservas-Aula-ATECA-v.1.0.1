@@ -6,9 +6,11 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Award, Calendar, Clock, PlusCircle, Search, LayoutGrid, List, 
-  Layers, CheckCircle2, ChevronDown, ChevronUp, ArrowUpDown, Filter, Eye
+  Layers, CheckCircle2, ChevronDown, ChevronUp, ArrowUpDown, Filter, Eye,
+  Edit3, CalendarX, HeartHandshake, Trash2
 } from 'lucide-react';
 import { Reserva, Usuario, Valoracion } from '../types';
+import { updateReserva, deleteReserva, cancelReserva } from '../lib/storage';
 
 interface MyBookingsViewProps {
   currentUser: Usuario;
@@ -16,8 +18,10 @@ interface MyBookingsViewProps {
   valoraciones: Valoracion[];
   onSelectBooking: (booking: Reserva) => void;
   onNewBooking: () => void;
+  onEditBooking: (booking: Reserva) => void;
   onValuateBooking: (booking: Reserva) => void;
   onViewDetail: (booking: Reserva) => void;
+  onRefresh: () => void;
 }
 
 export default function MyBookingsView({
@@ -26,8 +30,10 @@ export default function MyBookingsView({
   valoraciones,
   onSelectBooking,
   onNewBooking,
+  onEditBooking,
   onValuateBooking,
   onViewDetail,
+  onRefresh,
 }: MyBookingsViewProps) {
   // View mode: 'cards' (etiquetas/tarjetas) vs 'list' (lista con filtrado)
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
@@ -36,6 +42,11 @@ export default function MyBookingsView({
   const [statusFilter, setStatusFilter] = useState<string>('TODAS');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
+  // Modal state for releasing / cancelling booking
+  const [bookingToRelease, setBookingToRelease] = useState<Reserva | null>(null);
+  const [releaseMode, setReleaseMode] = useState<'cancel' | 'delete'>('cancel');
+  const [releaseMotivo, setReleaseMotivo] = useState('');
 
   // Filter only current user's bookings
   const myAllBookings = useMemo(() => {
@@ -256,15 +267,38 @@ export default function MyBookingsView({
                 </div>
 
                 {/* Operations on single booking */}
-                <div className="border-t border-slate-100 pt-3 flex justify-between items-center text-xs">
+                <div className="border-t border-slate-100 pt-3 flex flex-wrap justify-between items-center gap-2 text-xs">
                   <button
                     onClick={() => onViewDetail(res)}
-                    className="text-slate-500 hover:text-slate-800 font-bold cursor-pointer transition-colors flex items-center gap-1"
+                    className="text-slate-500 hover:text-slate-800 font-bold cursor-pointer transition-colors flex items-center gap-1 text-[11px]"
                   >
                     <Eye className="w-3.5 h-3.5" /> Detalles
                   </button>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {res.estado !== 'CANCELADA' && (
+                      <>
+                        <button
+                          onClick={() => onEditBooking(res)}
+                          title="Editar datos de esta reserva"
+                          className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1 border border-indigo-200/60"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Editar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setBookingToRelease(res);
+                            setReleaseMotivo('');
+                            setReleaseMode('cancel');
+                          }}
+                          title="Liberar aula para que otros compañeros puedan reservar"
+                          className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1 border border-rose-200/60"
+                        >
+                          <CalendarX className="w-3.5 h-3.5" /> Liberar
+                        </button>
+                      </>
+                    )}
+
                     {(res.estado === 'APROBADA' || (res.estado === 'REALIZADA' && !val)) && (
                       <button
                         onClick={() => onValuateBooking(res)}
@@ -355,6 +389,28 @@ export default function MyBookingsView({
                         >
                           Ver
                         </button>
+                        {res.estado !== 'CANCELADA' && (
+                          <>
+                            <button
+                              onClick={() => onEditBooking(res)}
+                              title="Editar datos de esta reserva"
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold cursor-pointer transition-colors border border-indigo-200/50"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => {
+                                setBookingToRelease(res);
+                                setReleaseMotivo('');
+                                setReleaseMode('cancel');
+                              }}
+                              title="Liberar aula para que otros compañeros puedan reservar"
+                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold cursor-pointer transition-colors border border-rose-200/50"
+                            >
+                              Liberar
+                            </button>
+                          </>
+                        )}
                         {(res.estado === 'APROBADA' || (res.estado === 'REALIZADA' && !val)) && (
                           <button
                             onClick={() => onValuateBooking(res)}
@@ -369,6 +425,119 @@ export default function MyBookingsView({
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL COLABORATIVO: LIBERAR ESPACIO / CANCELAR RESERVA */}
+      {bookingToRelease && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in no-print">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-5 animate-scale-up">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 shrink-0">
+                <CalendarX className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Liberar Reserva en el Aula ATECA</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {bookingToRelease.modulo_materia_area} • {bookingToRelease.fecha_actividad.split('-').reverse().join('/')} ({bookingToRelease.hora_inicio} - {bookingToRelease.hora_fin})
+                </p>
+              </div>
+            </div>
+
+            {/* Mensaje de cortesía y civismo colaborativo */}
+            <div className="bg-gradient-to-br from-indigo-50/80 to-emerald-50/50 border border-indigo-100/80 rounded-xl p-4 text-xs leading-relaxed space-y-2 text-slate-700">
+              <div className="flex items-center gap-1.5 font-bold text-indigo-950">
+                <HeartHandshake className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span>Colaboración y aprovechamiento didáctico del claustro:</span>
+              </div>
+              <p className="text-slate-600">
+                Al liberar esta reserva, la franja horaria volverá a estar <strong>inmediatamente disponible en el calendario</strong> para que cualquier compañero o compañera pueda aprovechar el equipamiento tecnológico del Aula ATECA con su alumnado.
+              </p>
+              <p className="text-emerald-800 font-semibold text-[11px] flex items-center gap-1">
+                🌱 ¡Muchas gracias por avisar y colaborar con el resto de compañeros docentes!
+              </p>
+            </div>
+
+            {/* Opciones de liberación */}
+            <div className="space-y-2 text-xs">
+              <label className="block font-bold text-slate-700">¿Qué deseas hacer con esta reserva?</label>
+              <div className="space-y-2">
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                  releaseMode === 'cancel' ? 'bg-amber-50/70 border-amber-300 ring-1 ring-amber-400/20' : 'border-slate-200 hover:bg-slate-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="releaseMode"
+                    value="cancel"
+                    checked={releaseMode === 'cancel'}
+                    onChange={() => setReleaseMode('cancel')}
+                    className="mt-0.5 text-amber-600"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Marcar como Cancelada (Recomendado)</span>
+                    <span className="text-[11px] text-slate-500">Libera el aula al instante y conserva el registro en tu historial como cancelada.</span>
+                  </div>
+                </label>
+
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                  releaseMode === 'delete' ? 'bg-rose-50/70 border-rose-300 ring-1 ring-rose-400/20' : 'border-slate-200 hover:bg-slate-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="releaseMode"
+                    value="delete"
+                    checked={releaseMode === 'delete'}
+                    onChange={() => setReleaseMode('delete')}
+                    className="mt-0.5 text-rose-600"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Eliminar permanentemente del calendario</span>
+                    <span className="text-[11px] text-slate-500">Borra la ficha por completo de la base de datos sin dejar rastro en el historial.</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {releaseMode === 'cancel' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Motivo de la liberación o cancelación (opcional)</label>
+                <input
+                  type="text"
+                  value={releaseMotivo}
+                  onChange={(e) => setReleaseMotivo(e.target.value)}
+                  placeholder="Ej: Cambio de fecha, salida pedagógica, reprogramación de módulo..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-400"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setBookingToRelease(null)}
+                className="px-4 py-2 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Mantener mi reserva
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (releaseMode === 'delete') {
+                    deleteReserva(bookingToRelease.id_reserva);
+                  } else {
+                    cancelReserva(bookingToRelease.id_reserva, releaseMotivo);
+                  }
+                  setBookingToRelease(null);
+                  onRefresh();
+                }}
+                className={`px-5 py-2 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                  releaseMode === 'delete' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-amber-600 hover:bg-amber-500'
+                }`}
+              >
+                {releaseMode === 'delete' ? 'Eliminar y Liberar Aula' : 'Confirmar y Liberar Aula'}
+              </button>
+            </div>
           </div>
         </div>
       )}

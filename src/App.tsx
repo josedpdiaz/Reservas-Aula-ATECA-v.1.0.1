@@ -7,13 +7,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Calendar as CalendarIcon, ShieldAlert, CheckCircle, 
   Settings, Award, FileText, LogIn, LogOut, 
-  PlusCircle, Activity, BookmarkCheck, ShieldCheck, Mail
+  PlusCircle, Activity, BookmarkCheck, ShieldCheck, Mail,
+  Sun, Moon, Sparkles, Edit3, CalendarX, HeartHandshake, Trash2
 } from 'lucide-react';
 
 import { Usuario, Reserva } from './types';
 import { 
   initializeStorage, getReservas, getValoraciones, 
-  getCurrentUser, setCurrentUser, loginByEmail, getConfig 
+  getCurrentUser, setCurrentUser, loginByEmail, getConfig,
+  getTheme, setTheme, deleteReserva, cancelReserva
 } from './lib/storage';
 
 import CalendarView from './components/CalendarView';
@@ -40,12 +42,29 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState('');
 
+  // 3-Theme State (light, intermediate, dark)
+  const [theme, setThemeState] = useState<'light' | 'intermediate' | 'dark'>(() => getTheme());
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const handleThemeChange = (newTheme: 'light' | 'intermediate' | 'dark') => {
+    setThemeState(newTheme);
+    setTheme(newTheme);
+    triggerToast(`Tema visual cambiado a: ${newTheme === 'dark' ? 'Modo Oscuro' : newTheme === 'intermediate' ? 'Modo Intermedio Suave' : 'Modo Claro'}`);
+  };
+
   // Active Navigation Screen State
   const [activeTab, setActiveTab] = useState<'calendar' | 'my-bookings' | 'coordinator' | 'admin'>('calendar');
 
   // Secondary sub-screen States for CRUD Modals/Views
-  const [currentAction, setCurrentAction] = useState<'view' | 'new-booking' | 'new-valuation' | 'view-report' | 'view-booking-detail'>('view');
+  const [currentAction, setCurrentAction] = useState<'view' | 'new-booking' | 'edit-booking' | 'new-valuation' | 'view-report' | 'view-booking-detail'>('view');
   const [selectedBooking, setSelectedBooking] = useState<Reserva | null>(null);
+  const [bookingToEdit, setBookingToEdit] = useState<Reserva | null>(null);
+  const [detailReleaseModal, setDetailReleaseModal] = useState(false);
+  const [detailReleaseMode, setDetailReleaseMode] = useState<'cancel' | 'delete'>('cancel');
+  const [detailReleaseMotivo, setDetailReleaseMotivo] = useState('');
   
   // Custom Date and hours pre-selected from visual calendar grid clicks
   const [initialBookingDate, setInitialBookingDate] = useState<string | undefined>(undefined);
@@ -180,9 +199,15 @@ export default function App() {
       {/* PRIMARY APPLICATION HEADER BRAND */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/70 py-3.5 px-6 flex flex-col sm:flex-row justify-between items-center gap-4 no-print shadow-2xs sticky top-0 z-30">
         <div className="flex items-center gap-3.5">
-          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-2.5 rounded-xl flex items-center justify-center shadow-xs border border-indigo-500/20">
-            <BookOpen className="w-5 h-5 text-emerald-400" />
-          </div>
+          {config.logo_centro ? (
+            <div className="w-11 h-11 rounded-xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center overflow-hidden p-1 shrink-0">
+              <img src={config.logo_centro} alt="Logo del Centro" className="w-full h-full object-contain" />
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-2.5 rounded-xl flex items-center justify-center shadow-xs border border-indigo-500/20 shrink-0">
+              <BookOpen className="w-5 h-5 text-emerald-400" />
+            </div>
+          )}
           <div>
             <h1 className="text-lg font-black tracking-tight text-slate-900 leading-none">Gestor Aula ATECA</h1>
             <p className="text-[10px] text-slate-500 font-bold mt-1 tracking-wider uppercase font-mono">
@@ -191,25 +216,58 @@ export default function App() {
           </div>
         </div>
 
-        {user && (
-          <div className="flex items-center gap-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 p-1.5 pl-3 rounded-2xl text-xs transition-colors shadow-2xs">
-            <div className="text-right">
-              <p className="font-bold text-slate-900 text-xs">{user.nombre}</p>
-              <p className="text-[10px] text-slate-500 font-medium">
-                {user.email} • <span className="font-bold text-indigo-600 uppercase tracking-wider">{user.rol}</span>
-              </p>
-            </div>
-            <div className="w-px h-7 bg-slate-200"></div>
+        <div className="flex items-center gap-3">
+          {/* 3-THEME SELECTOR: LIGHT / INTERMEDIATE / DARK */}
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs">
             <button
-              onClick={handleLogout}
-              id="btn_brand_logout"
-              title="Cerrar sesión"
-              className="p-1.5 px-2.5 bg-white border border-slate-200/80 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-xl cursor-pointer font-bold transition-all text-[10px] flex items-center gap-1 shadow-2xs"
+              onClick={() => handleThemeChange('light')}
+              title="Tema Claro (Blanco institucional)"
+              className={`p-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                theme === 'light' ? 'bg-white text-amber-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
             >
-              <LogOut className="w-3 h-3" /> Salir
+              <Sun className="w-3.5 h-3.5" /> <span className="hidden md:inline text-[11px]">Claro</span>
+            </button>
+            <button
+              onClick={() => handleThemeChange('intermediate')}
+              title="Tema Intermedio (Descanso visual / Tono neutro)"
+              className={`p-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                theme === 'intermediate' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" /> <span className="hidden md:inline text-[11px]">Intermedio</span>
+            </button>
+            <button
+              onClick={() => handleThemeChange('dark')}
+              title="Tema Oscuro (Alto contraste / Modo noche)"
+              className={`p-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                theme === 'dark' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" /> <span className="hidden md:inline text-[11px]">Oscuro</span>
             </button>
           </div>
-        )}
+
+          {user && (
+            <div className="flex items-center gap-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 p-1.5 pl-3 rounded-2xl text-xs transition-colors shadow-2xs">
+              <div className="text-right">
+                <p className="font-bold text-slate-900 text-xs">{user.nombre}</p>
+                <p className="text-[10px] text-slate-500 font-medium">
+                  {user.email} • <span className="font-bold text-indigo-600 uppercase tracking-wider">{user.rol}</span>
+                </p>
+              </div>
+              <div className="w-px h-7 bg-slate-200"></div>
+              <button
+                onClick={handleLogout}
+                id="btn_brand_logout"
+                title="Cerrar sesión"
+                className="p-1.5 px-2.5 bg-white border border-slate-200/80 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-xl cursor-pointer font-bold transition-all text-[10px] flex items-center gap-1 shadow-2xs"
+              >
+                <LogOut className="w-3 h-3" /> Salir
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* MAIN VIEWPORT BODY CONTAINER */}
@@ -372,17 +430,22 @@ export default function App() {
 
             {/* CORE COMPONENT SWITCHBOARD LOGIC */}
             <div className="transition-all animate-fade-in">
-              {currentAction === 'new-booking' ? (
+              {(currentAction === 'new-booking' || currentAction === 'edit-booking') ? (
                 <BookingForm
                   currentUser={user}
                   initialDate={initialBookingDate}
                   initialStartTime={initialStartTime}
                   initialEndTime={initialEndTime}
-                  onCancel={() => setCurrentAction('view')}
+                  bookingToEdit={bookingToEdit}
+                  onCancel={() => {
+                    setBookingToEdit(null);
+                    setCurrentAction('view');
+                  }}
                   onSuccess={(msg) => {
                     triggerToast(msg);
+                    setBookingToEdit(null);
                     setCurrentAction('view');
-                    setActiveTab('calendar');
+                    setActiveTab(bookingToEdit ? 'my-bookings' : 'calendar');
                     handleUpdate();
                   }}
                 />
@@ -461,13 +524,36 @@ export default function App() {
                   )}
 
                   {/* Operational actions footer inside modal detail */}
-                  <div className="flex justify-end gap-2 text-xs border-t border-slate-100 pt-4">
+                  <div className="flex flex-wrap justify-end gap-2 text-xs border-t border-slate-100 pt-4">
                     <button
                       onClick={() => setCurrentAction('view')}
                       className="px-4 py-2 bg-slate-100 hover:bg-slate-200 hover:shadow rounded-lg font-bold text-slate-600 cursor-pointer"
                     >
                       Atrás
                     </button>
+                    {(selectedBooking.email === user.email || user.rol === 'ADMIN') && selectedBooking.estado !== 'CANCELADA' && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setBookingToEdit(selectedBooking);
+                            setCurrentAction('edit-booking');
+                          }}
+                          className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Editar Datos
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDetailReleaseModal(true);
+                            setDetailReleaseMotivo('');
+                            setDetailReleaseMode('cancel');
+                          }}
+                          className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                        >
+                          <CalendarX className="w-3.5 h-3.5" /> Liberar Aula
+                        </button>
+                      </>
+                    )}
                     {selectedBooking.estado === 'REALIZADA' && (
                       <button
                         onClick={() => setCurrentAction('view-report')}
@@ -496,6 +582,7 @@ export default function App() {
                         setInitialBookingDate(date);
                         setInitialStartTime(start);
                         setInitialEndTime(end);
+                        setBookingToEdit(null);
                         setCurrentAction('new-booking');
                       }}
                       onSelectBooking={(booking) => {
@@ -511,9 +598,11 @@ export default function App() {
                       bookings={bookings}
                       valoraciones={valoraciones}
                       onSelectBooking={(res) => { setSelectedBooking(res); setCurrentAction('view-booking-detail'); }}
-                      onNewBooking={() => { setInitialBookingDate(undefined); setCurrentAction('new-booking'); }}
+                      onNewBooking={() => { setInitialBookingDate(undefined); setBookingToEdit(null); setCurrentAction('new-booking'); }}
+                      onEditBooking={(res) => { setBookingToEdit(res); setCurrentAction('edit-booking'); }}
                       onValuateBooking={(res) => { setSelectedBooking(res); setCurrentAction('new-valuation'); }}
                       onViewDetail={(res) => { setSelectedBooking(res); setCurrentAction('view-booking-detail'); }}
+                      onRefresh={handleUpdate}
                     />
                   )}
 
@@ -557,6 +646,120 @@ export default function App() {
           Consola optimizada para dispositivos Móviles, Tablets e iFrame. Sincronización Google Sheets Soportada.
         </p>
       </footer>
+
+      {/* MODAL COLABORATIVO: LIBERACIÓN DESDE VISTA DE DETALLE */}
+      {detailReleaseModal && selectedBooking && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in no-print">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-5 animate-scale-up">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 shrink-0">
+                <CalendarX className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Liberar Reserva en el Aula ATECA</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {selectedBooking.modulo_materia_area} • {selectedBooking.fecha_actividad.split('-').reverse().join('/')} ({selectedBooking.hora_inicio} - {selectedBooking.hora_fin})
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-indigo-50/80 to-emerald-50/50 border border-indigo-100/80 rounded-xl p-4 text-xs leading-relaxed space-y-2 text-slate-700">
+              <div className="flex items-center gap-1.5 font-bold text-indigo-950">
+                <HeartHandshake className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span>Colaboración y civismo con el claustro:</span>
+              </div>
+              <p className="text-slate-600">
+                Al liberar esta reserva, la franja horaria volverá a estar <strong>inmediatamente disponible en el calendario</strong> para que cualquier compañero o compañera pueda aprovechar el Aula ATECA.
+              </p>
+              <p className="text-emerald-800 font-semibold text-[11px] flex items-center gap-1">
+                🌱 ¡Muchas gracias por avisar y colaborar con el resto de compañeros docentes!
+              </p>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="block font-bold text-slate-700">¿Qué acción deseas realizar?</label>
+              <div className="space-y-2">
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                  detailReleaseMode === 'cancel' ? 'bg-amber-50/70 border-amber-300 ring-1 ring-amber-400/20' : 'border-slate-200 hover:bg-slate-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="detailReleaseMode"
+                    value="cancel"
+                    checked={detailReleaseMode === 'cancel'}
+                    onChange={() => setDetailReleaseMode('cancel')}
+                    className="mt-0.5 text-amber-600"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Marcar como Cancelada (Recomendado)</span>
+                    <span className="text-[11px] text-slate-500">Libera el aula y conserva la constancia histórica en el registro.</span>
+                  </div>
+                </label>
+
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                  detailReleaseMode === 'delete' ? 'bg-rose-50/70 border-rose-300 ring-1 ring-rose-400/20' : 'border-slate-200 hover:bg-slate-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="detailReleaseMode"
+                    value="delete"
+                    checked={detailReleaseMode === 'delete'}
+                    onChange={() => setDetailReleaseMode('delete')}
+                    className="mt-0.5 text-rose-600"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Eliminar permanentemente del calendario</span>
+                    <span className="text-[11px] text-slate-500">Borra la ficha por completo de la base de datos sin dejar rastro.</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {detailReleaseMode === 'cancel' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Motivo (opcional)</label>
+                <input
+                  type="text"
+                  value={detailReleaseMotivo}
+                  onChange={(e) => setDetailReleaseMotivo(e.target.value)}
+                  placeholder="Ej: Cambio de fecha, salida pedagógica..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-400"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setDetailReleaseModal(false)}
+                className="px-4 py-2 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (detailReleaseMode === 'delete') {
+                    deleteReserva(selectedBooking.id_reserva);
+                    triggerToast('Reserva eliminada del calendario. Aula liberada.');
+                  } else {
+                    cancelReserva(selectedBooking.id_reserva, detailReleaseMotivo);
+                    triggerToast('Reserva cancelada. Franja horaria liberada para el claustro.');
+                  }
+                  setDetailReleaseModal(false);
+                  setCurrentAction('view');
+                  handleUpdate();
+                }}
+                className={`px-5 py-2 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                  detailReleaseMode === 'delete' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-amber-600 hover:bg-amber-500'
+                }`}
+              >
+                {detailReleaseMode === 'delete' ? 'Eliminar y Liberar' : 'Confirmar y Liberar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* RGPD Privacy Modal */}
       <PrivacyModal isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />

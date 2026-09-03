@@ -5,6 +5,31 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.2.0] - 2026-09-03
+### 🚀 Edición y Liberación de Reservas, Logotipo del Centro, 3 Modos de Tema y Calendario de Días No Hábiles
+* **Objetivo**: Proporcionar autonomía total al docente para modificar y liberar sus reservas fomentando el civismo colaborativo, personalizar la imagen institucional del centro, incorporar temas visuales descansados y de alto contraste, y blindar el calendario frente a reservas en fines de semana o vacaciones escolares.
+* **Mejoras clave**:
+  * **1. Edición y Liberación Colaborativa de Reservas Propias**:
+    * Cualquier usuario (Profesor, Coordinador o Admin) puede editar los datos didácticos o la fecha/hora de sus reservas.
+    * Botón «Liberar Aula / Cancelar» con modal de civismo que recuerda la importancia de dejar el aula libre para los compañeros de claustro.
+    * Dos modalidades: Marcar como cancelada (conserva registro histórico) o eliminar definitivamente del calendario.
+  * **2. Logotipo Institucional del Centro**:
+    * El Administrador puede subir el logotipo o escudo de su centro (SVG, PNG, JPG) o vincular una URL.
+    * Vista previa en vivo con guía de especificaciones técnicas: formato transparente, resolución óptima (48x48 a 128x128 px) y peso sugerido (< 500 KB).
+    * Reemplaza elegantemente el icono genérico en la barra de cabecera.
+  * **3. Selector de 3 Temas Visuales (Claro, Intermedio y Oscuro)**:
+    * **Claro**: Fondo blanco institucional de alta pureza.
+    * **Intermedio**: Tono neutro / sepia suave descansado para la vista en horas prolongadas de aula o despacho.
+    * **Oscuro**: Modo noche de alto contraste, con tarjetas pizarra y tipografía clara nítida.
+    * Control rápido con iconos (Sol ☀️, Intermedio 🌓 y Luna 🌙) persistido en almacenamiento local.
+  * **4. Calendario Escolar y Días No Hábiles**:
+    * **Sábados y Domingos**: Permanentemente inhabilitados como días no lectivos en todo el calendario.
+    * Nueva pestaña en la consola de administración para configurar festividades (Navidad, Semana Santa, festivos locales, libre disposición).
+    * Bloqueo proactivo en formulario de reserva y distintivo visual en cuadrícula mensual y hoja diaria.
+* **Archivos afectados**: `src/types.ts`, `src/lib/storage.ts`, `src/App.tsx`, `src/components/AdminPanel.tsx`, `src/components/BookingForm.tsx`, `src/components/CalendarView.tsx`, `src/components/DayScheduleSheet.tsx`, `src/components/MyBookingsView.tsx`, `src/index.css`.
+
+---
+
 ## [v1.1.2] - 2026-09-03
 ### 🎯 Clasificación Profesional de Prioridades y Reorganización de Niveles ATECA
 * **Objetivo**: Alinear los niveles educativos a la normativa del Aula ATECA con un modelo visual intuitivo y profesional por jerarquía (P1, P2 y P3).

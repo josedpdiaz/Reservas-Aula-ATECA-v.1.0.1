@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem } from '../types';
+import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil } from '../types';
 
 // Pre-seeded configuration data
 const DEFAULT_CONFIG: Record<string, string> = {
@@ -14,6 +14,7 @@ const DEFAULT_CONFIG: Record<string, string> = {
   duracion_minima_reserva: "30",
   duracion_maxima_reserva: "360",
   email_coordinador: "coordinador.ateca@centro.edu",
+  logo_centro: "", // Optional Base64 or URL logo
 };
 
 // Pre-seeded users
@@ -266,6 +267,52 @@ const DEFAULT_BLOQUEOS: Bloqueo[] = [
   }
 ];
 
+// Pre-seeded School Calendar Non-Working Periods (Canarias Educación)
+const DEFAULT_DIAS_NO_HABILES: DiaNoHabil[] = [
+  {
+    id: "dnh-1",
+    fecha_inicio: "2026-12-23",
+    fecha_fin: "2027-01-07",
+    nombre: "Vacaciones de Navidad",
+    tipo: "VACACIONES",
+  },
+  {
+    id: "dnh-2",
+    fecha_inicio: "2027-03-22",
+    fecha_fin: "2027-03-29",
+    nombre: "Semana Santa",
+    tipo: "VACACIONES",
+  },
+  {
+    id: "dnh-3",
+    fecha_inicio: "2026-10-12",
+    fecha_fin: "2026-10-12",
+    nombre: "Fiesta Nacional de España",
+    tipo: "FESTIVO",
+  },
+  {
+    id: "dnh-4",
+    fecha_inicio: "2026-11-27",
+    fecha_fin: "2026-11-27",
+    nombre: "Día del Enseñante y del Estudiante",
+    tipo: "LIBRE_DISPOSICION",
+  },
+  {
+    id: "dnh-5",
+    fecha_inicio: "2026-12-06",
+    fecha_fin: "2026-12-08",
+    nombre: "Puente de la Constitución e Inmaculada",
+    tipo: "FESTIVO",
+  },
+  {
+    id: "dnh-6",
+    fecha_inicio: "2027-05-30",
+    fecha_fin: "2027-05-30",
+    nombre: "Día de Canarias",
+    tipo: "FESTIVO",
+  }
+];
+
 const STORAGE_KEYS = {
   USERS: 'ateca_usuarios',
   RESERVAS: 'ateca_reservas',
@@ -273,6 +320,8 @@ const STORAGE_KEYS = {
   BLOQUEOS: 'ateca_bloqueos',
   CONFIG: 'ateca_config',
   CURRENT_USER: 'ateca_usuario_actual',
+  DIAS_NO_HABILES: 'ateca_dias_no_habiles',
+  THEME: 'ateca_theme',
 };
 
 // Main controller to boot the storage
@@ -291,6 +340,12 @@ export const initializeStorage = (force: boolean = false) => {
   }
   if (force || !localStorage.getItem(STORAGE_KEYS.CONFIG)) {
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
+  }
+  if (force || !localStorage.getItem(STORAGE_KEYS.DIAS_NO_HABILES)) {
+    localStorage.setItem(STORAGE_KEYS.DIAS_NO_HABILES, JSON.stringify(DEFAULT_DIAS_NO_HABILES));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.THEME)) {
+    localStorage.setItem(STORAGE_KEYS.THEME, 'light');
   }
   if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
     // Auto login as user u-1 (José Díaz, ADMIN) because of the email in additional metadata!
@@ -366,6 +421,71 @@ export const setCurrentUser = (usuario: Usuario | null) => {
   localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(usuario));
 };
 
+export const getDiasNoHabiles = (): DiaNoHabil[] => {
+  return safeParse(localStorage.getItem(STORAGE_KEYS.DIAS_NO_HABILES), []);
+};
+
+export const setDiasNoHabiles = (dias: DiaNoHabil[]) => {
+  localStorage.setItem(STORAGE_KEYS.DIAS_NO_HABILES, JSON.stringify(dias));
+};
+
+export const addDiaNoHabil = (dia: Omit<DiaNoHabil, 'id'>): DiaNoHabil => {
+  const arr = getDiasNoHabiles();
+  const nuevo: DiaNoHabil = {
+    ...dia,
+    id: generateUniqueId('dnh'),
+  };
+  arr.push(nuevo);
+  setDiasNoHabiles(arr);
+  return nuevo;
+};
+
+export const removeDiaNoHabil = (id: string) => {
+  const arr = getDiasNoHabiles();
+  const filtered = arr.filter(d => d.id !== id);
+  setDiasNoHabiles(filtered);
+};
+
+export const getTheme = (): 'light' | 'intermediate' | 'dark' => {
+  return (localStorage.getItem(STORAGE_KEYS.THEME) as any) || 'light';
+};
+
+export const setTheme = (theme: 'light' | 'intermediate' | 'dark') => {
+  localStorage.setItem(STORAGE_KEYS.THEME, theme);
+};
+
+// Check if a given YYYY-MM-DD date is a weekend or holiday/vacation
+export const isNonWorkingDay = (dateStr: string): { isNonWorking: boolean; reason?: string; isWeekend?: boolean } => {
+  if (!dateStr) return { isNonWorking: false };
+
+  // 1. Weekend Check (Saturday or Sunday)
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dateObj = new Date(y, m - 1, d);
+  const dayOfWeek = dateObj.getDay(); // 0 is Sunday, 6 is Saturday
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    return {
+      isNonWorking: true,
+      reason: dayOfWeek === 0 ? 'Domingo (Fin de semana)' : 'Sábado (Fin de semana)',
+      isWeekend: true,
+    };
+  }
+
+  // 2. Holidays & Vacations Check configured in School Calendar
+  const dias = getDiasNoHabiles();
+  for (const dia of dias) {
+    if (dateStr >= dia.fecha_inicio && dateStr <= dia.fecha_fin) {
+      const tipoLabel = dia.tipo === 'VACACIONES' ? 'Vacaciones' : dia.tipo === 'LIBRE_DISPOSICION' ? 'Libre Disposición' : 'Festivo';
+      return {
+        isNonWorking: true,
+        reason: `${dia.nombre} (${tipoLabel})`,
+        isWeekend: false,
+      };
+    }
+  }
+
+  return { isNonWorking: false };
+};
+
 // Business operations
 export const loginByEmail = (email: string): { success: boolean; user?: Usuario; error?: string } => {
   const users = getUsuarios();
@@ -407,6 +527,16 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
   const id_reserva = generateUniqueId('res');
   const fecha_creacion = formatDateToYMD();
   
+  // 0. Check if non-working day (weekend or school holiday)
+  const nonWorking = isNonWorkingDay(reserva.fecha_actividad);
+  if (nonWorking.isNonWorking) {
+    return {
+      success: false,
+      conflict: true,
+      message: `No se pueden programar reservas en días no lectivos: ${nonWorking.reason}.`
+    };
+  }
+
   // Check conflicts
   const reservasArr = getReservas();
   const bloqueosArr = getBloqueos();
@@ -518,6 +648,63 @@ export const updateReservaEstado = (reservaId: string, nuevoEstado: 'PENDIENTE' 
     }
     setReservas(arr);
   }
+};
+
+// Update entire reservation (for editing own bookings)
+export const updateReserva = (reserva: Reserva): { success: boolean; message?: string } => {
+  const arr = getReservas();
+  const idx = arr.findIndex(r => r.id_reserva === reserva.id_reserva);
+  if (idx < 0) return { success: false, message: 'Reserva no encontrada.' };
+
+  // Check if non-working day
+  const nonWorking = isNonWorkingDay(reserva.fecha_actividad);
+  if (nonWorking.isNonWorking) {
+    return {
+      success: false,
+      message: `No se pueden programar reservas en días no lectivos: ${nonWorking.reason}.`
+    };
+  }
+
+  // Check lockout blocks
+  const bloqueosArr = getBloqueos();
+  const hasBlock = bloqueosArr.some(b => {
+    if (b.fecha !== reserva.fecha_actividad) return false;
+    return checkTimeOverlap(b.hora_inicio, b.hora_fin, reserva.hora_inicio, reserva.hora_fin);
+  });
+
+  if (hasBlock) {
+    return {
+      success: false,
+      message: "Conflicto: El aula se encuentra bloqueada por mantenimiento en este horario."
+    };
+  }
+
+  arr[idx] = { ...arr[idx], ...reserva };
+  setReservas(arr);
+  return { success: true };
+};
+
+// Permanently remove reservation (leaves slot free for other teachers)
+export const deleteReserva = (id_reserva: string): boolean => {
+  const arr = getReservas();
+  const filtered = arr.filter(r => r.id_reserva !== id_reserva);
+  setReservas(filtered);
+  return true;
+};
+
+// Cancel reservation keeping historical trace
+export const cancelReserva = (id_reserva: string, motivo?: string): boolean => {
+  const arr = getReservas();
+  const idx = arr.findIndex(r => r.id_reserva === id_reserva);
+  if (idx >= 0) {
+    arr[idx].estado = 'CANCELADA';
+    if (motivo) {
+      arr[idx].observaciones_coordinador = `Cancelada: ${motivo}`;
+    }
+    setReservas(arr);
+    return true;
+  }
+  return false;
 };
 
 // Update user settings (ADMIN)

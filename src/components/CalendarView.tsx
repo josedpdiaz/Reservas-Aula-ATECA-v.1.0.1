@@ -8,10 +8,10 @@ import {
   Calendar as CalendarIcon, Layers, CheckCircle2, Plus, Clock, Search, 
   User, ChevronLeft, ChevronRight, Sparkles, Filter, ChevronDown, ChevronUp,
   PanelRight, PanelTop, PanelLeft, CalendarDays, Eye, Minus, Maximize2, Minimize2,
-  X, GripVertical
+  X, GripVertical, CalendarOff
 } from 'lucide-react';
 import { Reserva } from '../types';
-import { getReservas, formatDateToYMD } from '../lib/storage';
+import { getReservas, formatDateToYMD, isNonWorkingDay } from '../lib/storage';
 import DayScheduleSheet from './DayScheduleSheet';
 
 interface CalendarViewProps {
@@ -549,6 +549,7 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
               const isSelected = cell.dateStr === selectedDayStr;
               const dailyReservations = getDayReservas(cell.dateStr);
               const isToday = formatDateToYMD() === cell.dateStr;
+              const nonWorking = isNonWorkingDay(cell.dateStr);
 
               return (
                 <div
@@ -558,9 +559,15 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                     setIsDayDetailVisible(true);
                     setViewMode('day-sheet');
                   }}
-                  title={`Ver horario y reservas del ${cell.dateStr}`}
+                  title={nonWorking.isNonWorking ? `${cell.dateStr} - No Lectivo: ${nonWorking.reason}` : `Ver horario y reservas del ${cell.dateStr}`}
                   className={`min-h-20 md:min-h-22 p-2 rounded-xl cursor-pointer transition-all flex flex-col justify-between relative group border ${
-                    cell.isCurrentMonth ? 'bg-white' : 'bg-slate-50/60 text-slate-400'
+                    !cell.isCurrentMonth 
+                      ? 'bg-slate-50/60 text-slate-400' 
+                      : nonWorking.isWeekend
+                      ? 'bg-slate-100/60 border-slate-200/70'
+                      : nonWorking.isNonWorking
+                      ? 'bg-amber-50/40 border-amber-200/80'
+                      : 'bg-white'
                   } ${
                     isSelected 
                       ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30 shadow-xs' 
@@ -571,16 +578,28 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                     <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md transition-all ${
                       isToday 
                         ? 'bg-gradient-to-br from-slate-900 to-indigo-950 text-white font-black shadow-xs' 
-                        : isSelected ? 'text-indigo-950 font-black' : 'text-slate-700'
+                        : isSelected ? 'text-indigo-950 font-black' : nonWorking.isWeekend ? 'text-slate-400' : 'text-slate-700'
                     }`}>
                       {cell.dayNum}
                     </span>
                     
-                    {dailyReservations.length > 0 && (
-                      <span className="text-[9px] bg-indigo-50 border border-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full font-extrabold font-mono">
-                        {dailyReservations.length}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {nonWorking.isNonWorking && (
+                        <span 
+                          title={nonWorking.reason} 
+                          className={`text-[8px] font-bold px-1 py-0.2 rounded uppercase tracking-wider truncate max-w-[65px] ${
+                            nonWorking.isWeekend ? 'bg-slate-200/70 text-slate-500' : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {nonWorking.isWeekend ? 'Finde' : 'Festivo'}
+                        </span>
+                      )}
+                      {dailyReservations.length > 0 && (
+                        <span className="text-[9px] bg-indigo-50 border border-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full font-extrabold font-mono">
+                          {dailyReservations.length}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Indicators micro-chips */}
