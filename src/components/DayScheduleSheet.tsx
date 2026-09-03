@@ -295,15 +295,6 @@ export default function DayScheduleSheet({
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-
-          {canCreateBookings && (
-            <button
-              onClick={() => onRequestBookingWithSlot(dateStr, '09:00', '11:00')}
-              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1.5 active:scale-[0.98]"
-            >
-              <Plus className="w-4 h-4" /> Nueva Reserva
-            </button>
-          )}
         </div>
       </div>
 
