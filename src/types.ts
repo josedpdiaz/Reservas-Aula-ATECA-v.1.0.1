@@ -3,6 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export interface NotificationPreferences {
+  reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
+  recordatorio_previo: boolean;     // Recordatorio 24h antes del uso del aula
+  recordatorio_valoracion: boolean; // Recordatorio tras la clase para valorar
+  nueva_solicitud_coord: boolean;   // (Coordinación) Aviso de nueva solicitud
+  reserva_liberada_coord: boolean;  // (Coordinación) Aviso de aula liberada/cancelada
+  alerta_bloqueo: boolean;          // Aviso de bloqueo técnico por mantenimiento
+  email_alternativo?: string;       // Email alternativo opcional
+}
+
 export interface Usuario {
   id_usuario: string;
   nombre: string;
@@ -11,6 +21,31 @@ export interface Usuario {
   departamento: string;
   turno: 'Mañana' | 'Tarde' | 'Tarde-Noche' | 'Ambos';
   activo: boolean;
+  notificaciones?: NotificationPreferences;
+}
+
+export type TipoNotificacionEmail = 
+  | 'CONFIRMACION_SOLICITUD'
+  | 'APROBADA'
+  | 'RECHAZADA'
+  | 'RECORDATORIO_24H'
+  | 'RECORDATORIO_VALORACION'
+  | 'NUEVA_SOLICITUD_COORD'
+  | 'AULA_LIBERADA_COORD'
+  | 'BLOQUEO_TECNICO'
+  | 'TEST';
+
+export interface EmailLog {
+  id: string;
+  fecha_hora: string;
+  destinatario_email: string;
+  destinatario_nombre: string;
+  asunto: string;
+  cuerpo_html: string;
+  cuerpo_texto: string;
+  tipo: TipoNotificacionEmail;
+  enviado_real: boolean;
+  error?: string;
 }
 
 export type RolTipo = 'PROFESOR' | 'COORDINADOR' | 'ADMIN';

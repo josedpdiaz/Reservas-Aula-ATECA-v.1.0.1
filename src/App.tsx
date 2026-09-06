@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Calendar as CalendarIcon, ShieldAlert, CheckCircle, 
   Settings, Award, FileText, LogIn, LogOut, 
-  PlusCircle, Activity, BookmarkCheck, ShieldCheck, Mail,
+  PlusCircle, Activity, BookmarkCheck, ShieldCheck, Mail, Bell, Inbox,
   Sun, Moon, Sparkles, Edit3, CalendarX, HeartHandshake, Trash2
 } from 'lucide-react';
 
@@ -18,6 +18,7 @@ import {
   getTheme, setTheme, deleteReserva, cancelReserva,
   getFontSize, setFontSize
 } from './lib/storage';
+import { notifyAulaLiberada } from './lib/emailService';
 
 import CalendarView from './components/CalendarView';
 import BookingForm from './components/BookingForm';
@@ -27,6 +28,8 @@ import AdminPanel from './components/AdminPanel';
 import ReportPDF from './components/ReportPDF';
 import PrivacyModal from './components/PrivacyModal';
 import MyBookingsView from './components/MyBookingsView';
+import NotificationSettingsModal from './components/NotificationSettingsModal';
+import EmailLogsModal from './components/EmailLogsModal';
 
 export default function App() {
   // Initialize App Databases inside localStorage
@@ -105,6 +108,10 @@ export default function App() {
 
   // Privacy & RGPD modal state
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  // Email notifications & logs modals
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+  const [emailLogsModalOpen, setEmailLogsModalOpen] = useState(false);
 
   // Success notify toast state
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -305,13 +312,36 @@ export default function App() {
           </div>
 
           {user && (
-            <div className="flex items-center gap-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 p-1.5 pl-3 rounded-2xl text-xs transition-colors shadow-2xs">
+            <div className="flex items-center gap-2 bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 p-1.5 pl-3 rounded-2xl text-xs transition-colors shadow-2xs">
               <div className="text-right">
                 <p className="font-bold text-slate-900 text-xs">{user.nombre}</p>
                 <p className="text-[10px] text-slate-500 font-medium">
                   {user.email} • <span className="font-bold text-indigo-600 uppercase tracking-wider">{user.rol}</span>
                 </p>
               </div>
+
+              {/* Botón Preferencias Notificaciones Correo */}
+              <button
+                onClick={() => setNotificationModalOpen(true)}
+                title="Configurar avisos y notificaciones por correo"
+                className="p-1.5 px-2 bg-white border border-slate-200/80 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-xl cursor-pointer font-bold transition-all text-[10px] flex items-center gap-1 shadow-2xs"
+              >
+                <Bell className="w-3.5 h-3.5 text-indigo-600" />
+                <span className="hidden lg:inline text-[11px]">Avisos</span>
+              </button>
+
+              {/* Botón Bandeja de Auditoría de Correos (Coordinador / Admin) */}
+              {(user.rol === 'COORDINADOR' || user.rol === 'ADMIN') && (
+                <button
+                  onClick={() => setEmailLogsModalOpen(true)}
+                  title="Ver bandeja y auditoría de correos emitidos"
+                  className="p-1.5 px-2 bg-white border border-slate-200/80 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-xl cursor-pointer font-bold transition-all text-[10px] flex items-center gap-1 shadow-2xs"
+                >
+                  <Inbox className="w-3.5 h-3.5 text-slate-600" />
+                  <span className="hidden xl:inline text-[11px]">Bandeja</span>
+                </button>
+              )}
+
               <div className="w-px h-7 bg-slate-200"></div>
               <button
                 onClick={handleLogout}
@@ -802,6 +832,8 @@ export default function App() {
                     cancelReserva(selectedBooking.id_reserva, detailReleaseMotivo);
                     triggerToast('Reserva cancelada. Franja horaria liberada para el claustro.');
                   }
+                  // Notificar por correo a Coordinación
+                  notifyAulaLiberada(selectedBooking, user, detailReleaseMotivo);
                   setDetailReleaseModal(false);
                   setCurrentAction('view');
                   handleUpdate();
@@ -816,6 +848,25 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* User Email Notification Settings Modal */}
+      {user && (
+        <NotificationSettingsModal
+          user={user}
+          isOpen={notificationModalOpen}
+          onClose={() => setNotificationModalOpen(false)}
+          onSaved={(updUser, msg) => {
+            setUser(updUser);
+            triggerToast(msg);
+          }}
+        />
+      )}
+
+      {/* Coordinator & Admin Email Logs Outbox Modal */}
+      <EmailLogsModal
+        isOpen={emailLogsModalOpen}
+        onClose={() => setEmailLogsModalOpen(false)}
+      />
 
       {/* RGPD Privacy Modal */}
       <PrivacyModal isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />

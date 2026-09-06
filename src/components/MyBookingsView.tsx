@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Reserva, Usuario, Valoracion } from '../types';
 import { updateReserva, deleteReserva, cancelReserva } from '../lib/storage';
+import { notifyAulaLiberada } from '../lib/emailService';
 
 interface MyBookingsViewProps {
   currentUser: Usuario;
@@ -528,6 +529,8 @@ export default function MyBookingsView({
                   } else {
                     cancelReserva(bookingToRelease.id_reserva, releaseMotivo);
                   }
+                  // Notificar por correo a la Coordinación ATECA
+                  notifyAulaLiberada(bookingToRelease, currentUser, releaseMotivo);
                   setBookingToRelease(null);
                   onRefresh();
                 }}

@@ -5,6 +5,32 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.0] - 2026-09-06
+### 📧 Sistema de Avisos y Notificaciones por Correo Electrónico Configurable
+* **Objetivo**: Proveer un canal de comunicación automatizado y privado para notificar a docentes, coordinadores y administradores sobre solicitudes, resoluciones pedagógicas, liberaciones de aula, avisos de mantenimiento y recordatorios, respetando las preferencias individuales de cada usuario.
+* **Mejoras clave**:
+  * **Modal de Preferencias de Notificaciones (`NotificationSettingsModal`)**:
+    * Accesible directamente desde la cabecera superior con el botón de campana (**«Avisos»**).
+    * Interruptores independientes para cada tipo de aviso:
+      * *Aprobación o Rechazo de mis reservas*.
+      * *Recordatorio 24 horas antes del uso del aula*.
+      * *Recordatorio post-clase para cumplimentar la memoria didáctica*.
+      * *Avisos de mantenimiento y bloqueos técnicos*.
+      * *(Coordinación/Admin)* *Aviso inmediato de nueva solicitud registrada*.
+      * *(Coordinación/Admin)* *Aviso cuando un docente libera una franja horaria*.
+    * Opción para configurar un **correo alternativo o personal** de recepción.
+    * Botón de **«Enviar correo de prueba»** en vivo para verificar la conectividad al instante.
+  * **Motor de Correo con Plantillas HTML Pedagógicas (`emailService.ts`)**:
+    * Diseño visual responsivo, estilizado con identidad institucional ATECA (azul noche, verde esmeralda y detalles en tarjeta).
+    * Filtrado estricto de consentimiento: el sistema comprueba si el destinatario consiente recibir cada tipo de aviso antes de despacharlo.
+  * **Bandeja de Salida y Auditoría de Correos (`EmailLogsModal` y pestaña en `AdminPanel`)**:
+    * Visor de todos los mensajes generados con destinatario, fecha/hora, estado de envío y previsualización interactiva del HTML renderizado.
+  * **Doble Motor de Despacho (Google Apps Script / Registro Local)**:
+    * Compatible con `MailApp.sendEmail()` en el script de Google Sheets de la Consejería de Educación para envío real de emails sin costes de API.
+* **Archivos afectados**: `src/types.ts`, `src/lib/emailService.ts`, `src/components/NotificationSettingsModal.tsx`, `src/components/EmailLogsModal.tsx`, `src/components/BookingForm.tsx`, `src/components/CoordinatorPanel.tsx`, `src/components/MyBookingsView.tsx`, `src/components/AdminPanel.tsx`, `src/components/SheetsGuide.tsx`, `src/App.tsx`.
+
+---
+
 ## [v1.2.3] - 2026-09-06
 ### 🚀 Preparación para Producción y Fase de Pruebas (Base de Datos Limpia)
 * **Objetivo**: Dejar la aplicación 100% lista para su despliegue en entorno real y fase de pruebas de centro, sin datos ficticios ni reservas de demostración, manteniendo la configuración institucional y los roles de usuario.

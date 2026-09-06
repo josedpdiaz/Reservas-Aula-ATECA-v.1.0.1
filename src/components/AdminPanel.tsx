@@ -7,15 +7,16 @@ import React, { useState } from 'react';
 import { 
   UserPlus, Power, Settings, Trash, AlertTriangle, FileSpreadsheet, 
   Play, CheckCircle2, CloudLightning, Calendar, CalendarOff, Image as ImageIcon, 
-  Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw
+  Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check
 } from 'lucide-react';
-import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil } from '../types';
+import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog } from '../types';
 import { 
   getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig, 
   modifyUsuario, addUsuario, addBloqueo, removeBloqueo, setConfig, 
   formatDateToYMD, getDiasNoHabiles, addDiaNoHabil, removeDiaNoHabil,
   clearAllReservasAndValoraciones
 } from '../lib/storage';
+import { notifyBloqueoTecnico, getEmailLogs, clearEmailLogs, notifyTestEmail } from '../lib/emailService';
 import SheetsGuide from './SheetsGuide';
 
 interface AdminPanelProps {
@@ -53,8 +54,15 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [blockFin, setBlockFin] = useState('14:00');
   const [blockMotivo, setBlockMotivo] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'users' | 'blocks' | 'holidays' | 'settings' | 'sheets'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'blocks' | 'holidays' | 'settings' | 'sheets' | 'emails'>('users');
   const [syncStatus, setSyncStatus] = useState<{ loading: boolean; success?: boolean; msg?: string }>({ loading: false });
+
+  // Email logs viewer states
+  const [emailLogsList, setEmailLogsList] = useState<EmailLog[]>(() => getEmailLogs());
+  const [selectedAdminLog, setSelectedAdminLog] = useState<EmailLog | null>(null);
+  const [copiedHtml, setCopiedHtml] = useState(false);
+  const [testSending, setTestSending] = useState(false);
+  const [testMsg, setTestMsg] = useState<string | null>(null);
 
   const usuarios = getUsuarios();
   const bloqueos = getBloqueos();
@@ -92,13 +100,16 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     e.preventDefault();
     if (!blockMotivo.trim()) return;
 
-    addBloqueo({
+    const newB = addBloqueo({
       fecha: blockFecha,
       hora_inicio: blockInicio,
       hora_fin: blockFin,
       motivo: blockMotivo.trim(),
       creado_por: currentUser.nombre,
     });
+
+    // Notificar a los usuarios docentes del bloqueo técnico
+    notifyBloqueoTecnico(newB);
 
     setBlockMotivo('');
     onRefresh();
@@ -263,11 +274,22 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
         </button>
         <button
           onClick={() => setActiveTab('sheets')}
-          className={`flex-1 py-3 text-center cursor-pointer transition-colors flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-3 border-r border-slate-200 text-center cursor-pointer transition-colors flex items-center justify-center gap-1.5 ${
             activeTab === 'sheets' ? 'bg-white text-slate-800 border-b-2 border-b-slate-900' : 'hover:bg-slate-100'
           }`}
         >
           <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Google Sheets
+        </button>
+        <button
+          onClick={() => {
+            setEmailLogsList(getEmailLogs());
+            setActiveTab('emails');
+          }}
+          className={`flex-1 py-3 text-center cursor-pointer transition-colors flex items-center justify-center gap-1.5 ${
+            activeTab === 'emails' ? 'bg-white text-indigo-900 border-b-2 border-b-indigo-600 font-black' : 'hover:bg-slate-100'
+          }`}
+        >
+          <Mail className="w-3.5 h-3.5 text-indigo-600" /> Registro de Avisos
         </button>
       </div>
 
@@ -829,6 +851,178 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
             </div>
 
             <SheetsGuide />
+          </div>
+        )}
+
+        {activeTab === 'emails' && (
+          <div className="space-y-6">
+            {/* Status & Action Bar */}
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider font-mono">
+                  <Mail className="w-4 h-4 text-indigo-600" /> Registro y Auditoría de Avisos Emitidos
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Total de avisos registrados en esta instalación: <strong className="text-slate-800">{emailLogsList.length}</strong>
+                </p>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border bg-white">
+                  {gsheetUrl ? (
+                    <span className="text-emerald-700 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Motor Google Apps Script activo (envío real habilitado)
+                    </span>
+                  ) : (
+                    <span className="text-amber-700 flex items-center gap-1">
+                      <Info className="w-3.5 h-3.5 text-amber-500" /> Modo Registro Local (conecta la URL en la pestaña Google Sheets para envío directo)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setTestSending(true);
+                    setTestMsg(null);
+                    try {
+                      const res = await notifyTestEmail(currentUser);
+                      setEmailLogsList(getEmailLogs());
+                      setTestMsg(`Prueba emitida con éxito hacia ${currentUser.email}`);
+                    } catch (e: any) {
+                      setTestMsg('Error: ' + e.message);
+                    } finally {
+                      setTestSending(false);
+                    }
+                  }}
+                  disabled={testSending}
+                  className="px-3.5 py-2 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-2xs disabled:opacity-50"
+                >
+                  <Mail className="w-3.5 h-3.5" /> {testSending ? 'Enviando prueba...' : 'Emitir correo de prueba'}
+                </button>
+
+                {emailLogsList.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('¿Vaciar todo el registro de correos?')) {
+                        clearEmailLogs();
+                        setEmailLogsList([]);
+                        setSelectedAdminLog(null);
+                      }
+                    }}
+                    className="px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl cursor-pointer flex items-center gap-1 transition-all"
+                  >
+                    <Trash className="w-3.5 h-3.5" /> Vaciar historial
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {testMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{testMsg}</span>
+              </div>
+            )}
+
+            {/* Split Screen Master-Detail */}
+            <div className="border border-slate-200 rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-slate-200 min-h-[460px]">
+              {/* Left Column: Email List */}
+              <div className="md:col-span-5 bg-slate-50/50 flex flex-col h-[480px] overflow-hidden">
+                <div className="p-3 bg-white border-b border-slate-200 text-xs font-bold text-slate-700 flex justify-between">
+                  <span>Mensajes Registrados ({emailLogsList.length})</span>
+                  <button
+                    type="button"
+                    onClick={() => setEmailLogsList(getEmailLogs())}
+                    className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-semibold"
+                  >
+                    Actualizar
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                  {emailLogsList.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 space-y-2">
+                      <Inbox className="w-8 h-8 mx-auto opacity-40" />
+                      <p className="text-xs font-semibold">No hay avisos registrados todavía.</p>
+                      <p className="text-[11px]">Genera solicitudes o pruebas para visualizar los correos aquí.</p>
+                    </div>
+                  ) : (
+                    emailLogsList.map((log) => {
+                      const isSel = selectedAdminLog?.id === log.id;
+                      return (
+                        <div
+                          key={log.id}
+                          onClick={() => setSelectedAdminLog(log)}
+                          className={`p-3 text-xs cursor-pointer transition-all border-l-3 ${
+                            isSel ? 'bg-indigo-50 border-indigo-600 shadow-2xs' : 'hover:bg-white border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="font-bold text-slate-900 truncate">{log.destinatario_nombre}</span>
+                            <span className="text-[10px] text-slate-400 shrink-0 font-mono">{log.fecha_hora}</span>
+                          </div>
+                          <p className="text-slate-700 font-medium truncate mb-1">{log.asunto}</p>
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="font-mono text-slate-500 truncate max-w-[160px]">{log.destinatario_email}</span>
+                            <span className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                              log.enviado_real ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
+                            }`}>
+                              {log.enviado_real ? 'Enviado' : 'Registrado'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: HTML Render Preview */}
+              <div className="md:col-span-7 bg-white flex flex-col h-[480px] overflow-hidden">
+                {selectedAdminLog ? (
+                  <div className="flex-1 flex flex-col h-full overflow-hidden">
+                    <div className="p-3.5 border-b border-slate-200 bg-slate-50/70 flex items-start justify-between gap-2 shrink-0">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900">{selectedAdminLog.asunto}</h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Para: <strong className="text-slate-800">{selectedAdminLog.destinatario_nombre}</strong> &lt;{selectedAdminLog.destinatario_email}&gt;
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedAdminLog.cuerpo_html);
+                          setCopiedHtml(true);
+                          setTimeout(() => setCopiedHtml(false), 2000);
+                        }}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-white border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-700 cursor-pointer flex items-center gap-1 transition-colors"
+                      >
+                        {copiedHtml ? <Check className="w-3 h-3 text-emerald-600" /> : <Eye className="w-3 h-3" />}
+                        {copiedHtml ? 'Copiado' : 'Copiar HTML'}
+                      </button>
+                    </div>
+
+                    <div className="flex-1 p-3 bg-slate-100 overflow-hidden flex flex-col">
+                      <iframe
+                        title="Vista previa correo administrador"
+                        srcDoc={selectedAdminLog.cuerpo_html}
+                        className="w-full flex-1 rounded-xl border border-slate-300 bg-white shadow-inner"
+                        sandbox="allow-same-origin"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-2">
+                    <Inbox className="w-10 h-10 opacity-30 stroke-1" />
+                    <p className="text-xs font-bold text-slate-600">Selecciona un mensaje del registro</p>
+                    <p className="text-[11px] text-slate-400 max-w-xs">
+                      El panel mostrará aquí la previsualización interactiva con el diseño HTML de la plantilla educativa.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

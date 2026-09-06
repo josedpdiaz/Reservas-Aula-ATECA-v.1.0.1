@@ -102,6 +102,15 @@ function doPost(e) {
     } else if (action === "delete_bloqueo") {
       deleteRow(sheet.getSheetByName("Bloqueos"), "id_bloqueo", requestData.id);
       result = {success: true};
+    } else if (action === "sendEmail") {
+      // Envío automático de notificaciones por correo electrónico educativo ATECA
+      MailApp.sendEmail({
+        to: requestData.to,
+        subject: requestData.subject,
+        htmlBody: requestData.htmlBody,
+        body: requestData.textBody || ""
+      });
+      result = {success: true, message: "Correo electrónico enviado correctamente."};
     }
     
     return ContentService.createTextOutput(JSON.stringify(result))

@@ -10,6 +10,7 @@ import {
   getReservas, getBloqueos, addReserva, updateReserva, 
   isNonWorkingDay, checkTimeOverlap, formatDateToYMD, getConfig 
 } from '../lib/storage';
+import { notifySolicitudRecibida, notifyNuevaSolicitudCoordinacion } from '../lib/emailService';
 
 interface BookingFormProps {
   currentUser: Usuario;
@@ -175,7 +176,7 @@ export default function BookingForm({
         setErrorMsg(res.message || 'Error al actualizar la reserva.');
       }
     } else {
-      const { success, message } = addReserva({
+      const { success, reserva: nuevaReserva, message } = addReserva({
         profesor,
         email,
         departamento,
@@ -194,8 +195,11 @@ export default function BookingForm({
         prioridad,
       });
 
-      if (success) {
-        onSuccess(message || 'Reserva registrada.');
+      if (success && nuevaReserva) {
+        // Notificaciones por correo electrónico automáticas
+        notifySolicitudRecibida(nuevaReserva, currentUser);
+        notifyNuevaSolicitudCoordinacion(nuevaReserva);
+        onSuccess(message || 'Reserva registrada con éxito y confirmada por correo.');
       } else {
         setErrorMsg(message || 'Error al guardar la reserva.');
       }

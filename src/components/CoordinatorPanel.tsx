@@ -6,7 +6,8 @@
 import React, { useState, useMemo } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, FileCheck, CheckCircle2, Layers } from 'lucide-react';
 import { Reserva, Usuario } from '../types';
-import { getReservas, getValoraciones, updateReservaEstado } from '../lib/storage';
+import { getReservas, getValoraciones, updateReservaEstado, getUsuarios } from '../lib/storage';
+import { notifyReservaAprobada, notifyReservaRechazada } from '../lib/emailService';
 
 interface CoordinatorPanelProps {
   onSelectBookingForReport: (booking: Reserva) => void;
@@ -85,6 +86,28 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
 
   const handleAction = (id: string, nuevoEstado: 'APROBADA' | 'RECHAZADA' | 'CANCELADA', obs: string) => {
     updateReservaEstado(id, nuevoEstado, obs);
+
+    // Disparar notificación por correo al docente solicitante
+    const targetBooking = rawReservas.find(r => r.id_reserva === id);
+    if (targetBooking) {
+      const allUsers = getUsuarios();
+      const requestingUser = allUsers.find(u => u.email.toLowerCase() === targetBooking.email.toLowerCase()) || {
+        id_usuario: 'temp',
+        nombre: targetBooking.profesor,
+        email: targetBooking.email,
+        rol: 'PROFESOR' as const,
+        departamento: targetBooking.departamento,
+        turno: 'Ambos' as const,
+        activo: true,
+      };
+
+      if (nuevoEstado === 'APROBADA') {
+        notifyReservaAprobada(targetBooking, requestingUser, obs);
+      } else if (nuevoEstado === 'RECHAZADA') {
+        notifyReservaRechazada(targetBooking, requestingUser, obs || 'Ajuste de prioridades formativas o conflicto de calendario.');
+      }
+    }
+
     onRefresh();
     // clear input
     setObservacionesInput(prev => {
