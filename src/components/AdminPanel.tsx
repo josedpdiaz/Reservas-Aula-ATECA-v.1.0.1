@@ -5,14 +5,15 @@
 
 import React, { useState } from 'react';
 import { 
-  UserPlus, Power, Settings, Trash, AlertTriangle, FileSpreadsheet, 
+  UserPlus, Power, Settings, Trash, Trash2, AlertTriangle, FileSpreadsheet, 
   Play, CheckCircle2, CloudLightning, Calendar, CalendarOff, Image as ImageIcon, 
-  Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check
+  Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
+  Edit, Search, UserCheck, UserX
 } from 'lucide-react';
 import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog } from '../types';
 import { 
   getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig, 
-  modifyUsuario, addUsuario, addBloqueo, removeBloqueo, setConfig, 
+  modifyUsuario, addUsuario, deleteUsuario, addBloqueo, removeBloqueo, setConfig, 
   formatDateToYMD, getDiasNoHabiles, addDiaNoHabil, removeDiaNoHabil,
   clearAllReservasAndValoraciones
 } from '../lib/storage';
@@ -48,6 +49,17 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [newUsrRol, setNewUsrRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
   const [newUsrDept, setNewUsrDept] = useState('');
 
+  // User search, edit and delete modal states
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userToEdit, setUserToEdit] = useState<Usuario | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editDept, setEditDept] = useState('');
+  const [editRol, setEditRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
+  const [editTurno, setEditTurno] = useState<string>('Ambos');
+  const [editActivo, setEditActivo] = useState(true);
+  const [userToDelete, setUserToDelete] = useState<Usuario | null>(null);
+
   // Lockout form
   const [blockFecha, setBlockFecha] = useState(() => formatDateToYMD());
   const [blockInicio, setBlockInicio] = useState('08:00');
@@ -74,6 +86,44 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
 
   const handleToggleUserActive = (id: string, currentStatus: boolean) => {
     modifyUsuario(id, { activo: !currentStatus });
+    onRefresh();
+  };
+
+  const openEditModal = (u: Usuario) => {
+    setUserToEdit(u);
+    setEditName(u.nombre);
+    setEditEmail(u.email);
+    setEditDept(u.departamento || '');
+    setEditRol(u.rol);
+    setEditTurno(u.turno || 'Ambos');
+    setEditActivo(u.activo);
+  };
+
+  const handleSaveEditUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToEdit || !editName.trim() || !editEmail.trim()) return;
+
+    modifyUsuario(userToEdit.id_usuario, {
+      nombre: editName.trim(),
+      email: editEmail.trim().toLowerCase(),
+      departamento: editDept.trim(),
+      rol: editRol,
+      turno: editTurno,
+      activo: editActivo,
+    });
+
+    setUserToEdit(null);
+    onRefresh();
+  };
+
+  const handleConfirmDelete = (mode: 'deactivate' | 'delete') => {
+    if (!userToDelete) return;
+    if (mode === 'delete') {
+      deleteUsuario(userToDelete.id_usuario);
+    } else {
+      modifyUsuario(userToDelete.id_usuario, { activo: false });
+    }
+    setUserToDelete(null);
     onRefresh();
   };
 
@@ -357,53 +407,135 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
               </div>
             </form>
 
+            {/* Search & Stats Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 border border-slate-200 rounded-xl shadow-2xs">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  placeholder="Buscar docente por nombre, email, departamento o rol..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-lg text-xs outline-none transition-colors"
+                />
+                {userSearchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setUserSearchTerm('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <div className="text-xs text-slate-500 font-medium flex items-center gap-3">
+                <span>Total: <strong className="text-slate-800">{usuarios.length}</strong></span>
+                <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  {usuarios.filter(u => u.activo).length} activos
+                </span>
+                {usuarios.some(u => !u.activo) && (
+                  <span className="text-rose-600 font-semibold flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                    {usuarios.filter(u => !u.activo).length} de baja
+                  </span>
+                )}
+              </div>
+            </div>
+
             {/* Users lists */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs bg-white">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                     <th className="p-3">Docente</th>
                     <th className="p-3">Email de cuenta</th>
                     <th className="p-3">Departamento</th>
+                    <th className="p-3 text-center">Turno</th>
                     <th className="p-3 text-center">Rol asignado</th>
-                    <th className="p-3 text-center">Estado de acceso</th>
+                    <th className="p-3 text-center">Estado</th>
+                    <th className="p-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {usuarios.map(usr => (
-                    <tr key={usr.id_usuario} className="hover:bg-slate-50/20">
-                      <td className="p-3 font-semibold text-slate-800">{usr.nombre}</td>
-                      <td className="p-3 font-mono text-slate-500">{usr.email}</td>
-                      <td className="p-3 font-medium text-slate-600">{usr.departamento}</td>
-                      <td className="p-3 text-center">
-                        <select
-                          value={usr.rol}
-                          disabled={usr.id_usuario === currentUser.id_usuario}
-                          onChange={(e) => handleUpdateUserRol(usr.id_usuario, e.target.value as any)}
-                          className={`px-2 py-1 text-[11px] rounded-lg border font-bold bg-white text-slate-700 outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          <option value="PROFESOR">PROFESOR</option>
-                          <option value="COORDINADOR">COORDINADOR</option>
-                          <option value="ADMIN">ADMIN</option>
-                        </select>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button
-                          type="button"
-                          disabled={usr.id_usuario === currentUser.id_usuario}
-                          onClick={() => handleToggleUserActive(usr.id_usuario, usr.activo)}
-                          className={`px-3 py-1 text-[10px] rounded-full font-bold cursor-pointer transition-all flex items-center justify-center gap-1 mx-auto disabled:opacity-50 disabled:cursor-not-allowed border ${
-                            usr.activo 
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100' 
-                              : 'bg-red-50 text-red-700 border-red-100 hover:bg-red-100'
-                          }`}
-                        >
-                          <Power className="w-3 h-3" />
-                          {usr.activo ? 'ACTIVO' : 'DEBAJA'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {usuarios
+                    .filter(u => {
+                      if (!userSearchTerm.trim()) return true;
+                      const term = userSearchTerm.toLowerCase();
+                      return u.nombre.toLowerCase().includes(term) ||
+                             u.email.toLowerCase().includes(term) ||
+                             (u.departamento && u.departamento.toLowerCase().includes(term)) ||
+                             u.rol.toLowerCase().includes(term);
+                    })
+                    .map(usr => (
+                      <tr key={usr.id_usuario} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3">
+                          <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                            <span>{usr.nombre}</span>
+                            {usr.id_usuario === currentUser.id_usuario && (
+                              <span className="px-1.5 py-0.2 text-[9px] font-black bg-indigo-100 text-indigo-700 rounded-md">
+                                Tú
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 font-mono text-slate-500 text-[11px]">{usr.email}</td>
+                        <td className="p-3 font-medium text-slate-600">{usr.departamento || 'General'}</td>
+                        <td className="p-3 text-center">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                            {usr.turno || 'Ambos'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <select
+                            value={usr.rol}
+                            disabled={usr.id_usuario === currentUser.id_usuario}
+                            onChange={(e) => handleUpdateUserRol(usr.id_usuario, e.target.value as any)}
+                            className={`px-2 py-1 text-[11px] rounded-lg border font-bold bg-white text-slate-700 outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            <option value="PROFESOR">PROFESOR</option>
+                            <option value="COORDINADOR">COORDINADOR</option>
+                            <option value="ADMIN">ADMIN</option>
+                          </select>
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            disabled={usr.id_usuario === currentUser.id_usuario}
+                            onClick={() => handleToggleUserActive(usr.id_usuario, usr.activo)}
+                            className={`px-3 py-1 text-[10px] rounded-full font-bold cursor-pointer transition-all flex items-center justify-center gap-1 mx-auto disabled:opacity-50 disabled:cursor-not-allowed border ${
+                              usr.activo 
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
+                                : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            }`}
+                          >
+                            <Power className="w-3 h-3" />
+                            {usr.activo ? 'ACTIVO' : 'DE BAJA'}
+                          </button>
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(usr)}
+                              title="Modificar datos del docente"
+                              className="p-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={usr.id_usuario === currentUser.id_usuario}
+                              onClick={() => setUserToDelete(usr)}
+                              title={usr.id_usuario === currentUser.id_usuario ? 'No puedes eliminarte a ti mismo' : 'Eliminar o gestionar baja'}
+                              className="p-1.5 bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -1026,6 +1158,194 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
           </div>
         )}
       </div>
+
+      {/* MODAL: MODIFICAR USUARIO */}
+      {userToEdit && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in no-print">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-5 animate-scale-up">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+                  <Edit className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 tracking-tight">Modificar Datos del Docente</h3>
+                  <p className="text-xs text-slate-500">{userToEdit.email}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUserToEdit(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditUser} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-600 mb-1">Nombre y Apellidos</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-600 mb-1">Correo institucional</label>
+                  <input
+                    type="email"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 font-mono transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-600 mb-1">Departamento</label>
+                  <input
+                    type="text"
+                    value={editDept}
+                    onChange={(e) => setEditDept(e.target.value)}
+                    placeholder="Ej: Informática, Electricidad..."
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-600 mb-1">Turno</label>
+                  <select
+                    value={editTurno}
+                    onChange={(e) => setEditTurno(e.target.value)}
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none font-semibold cursor-pointer"
+                  >
+                    <option value="Ambos">Ambos</option>
+                    <option value="Mañana">Mañana</option>
+                    <option value="Tarde-Noche">Tarde-Noche</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-600 mb-1">Rol</label>
+                  <select
+                    value={editRol}
+                    disabled={userToEdit.id_usuario === currentUser.id_usuario}
+                    onChange={(e) => setEditRol(e.target.value as any)}
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none font-semibold cursor-pointer disabled:opacity-50"
+                  >
+                    <option value="PROFESOR">PROFESOR</option>
+                    <option value="COORDINADOR">COORDINADOR</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-600 mb-1">Estado de acceso</label>
+                  <select
+                    value={editActivo ? 'true' : 'false'}
+                    disabled={userToEdit.id_usuario === currentUser.id_usuario}
+                    onChange={(e) => setEditActivo(e.target.value === 'true')}
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none font-semibold cursor-pointer disabled:opacity-50"
+                  >
+                    <option value="true">Activo</option>
+                    <option value="false">De baja</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setUserToEdit(null)}
+                  className="px-4 py-2 hover:bg-slate-100 text-slate-600 rounded-xl font-bold cursor-pointer transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xs cursor-pointer transition-all"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ELIMINAR O DAR DE BAJA USUARIO */}
+      {userToDelete && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in no-print">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-5 animate-scale-up">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Gestionar Docente</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {userToDelete.nombre} ({userToDelete.email})
+                </p>
+              </div>
+            </div>
+
+            {/* Comprobación de reservas asociadas */}
+            {(() => {
+              const countRes = getReservas().filter(r => r.email.toLowerCase() === userToDelete.email.toLowerCase()).length;
+              return countRes > 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1.5 leading-relaxed">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Registro histórico detectado ({countRes} reservas)</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    Este docente tiene actividades didácticas registradas en el Aula ATECA. 
+                    Recomendamos <strong>Dar de baja</strong> para bloquear su acceso sin alterar las memorias pedagógicas del centro.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Este docente no tiene reservas activas. Puedes eliminarlo por completo de la base de datos o simplemente desactivar su acceso.
+                </p>
+              );
+            })()}
+
+            <div className="space-y-2 text-xs pt-1">
+              <button
+                type="button"
+                onClick={() => handleConfirmDelete('deactivate')}
+                className="w-full py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Power className="w-4 h-4 text-amber-600" />
+                Dar de baja / Desactivar (Recomendado)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleConfirmDelete('delete')}
+                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Eliminar definitivamente de la base de datos
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
+                className="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-center cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

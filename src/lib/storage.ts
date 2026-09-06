@@ -637,6 +637,17 @@ export const modifyUsuario = (userId: string, updates: Partial<Usuario>) => {
   }
 };
 
+// Delete user (ADMIN)
+export const deleteUsuario = (userId: string): boolean => {
+  const users = getUsuarios();
+  const filtered = users.filter(u => u.id_usuario !== userId);
+  if (filtered.length !== users.length) {
+    setUsuarios(filtered);
+    return true;
+  }
+  return false;
+};
+
 // Add user
 export const addUsuario = (user: Omit<Usuario, 'id_usuario'>): Usuario => {
   const users = getUsuarios();

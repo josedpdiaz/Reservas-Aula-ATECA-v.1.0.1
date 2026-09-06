@@ -5,6 +5,24 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.2] - 2026-09-06
+### 👥 Gestión Flexible de Docentes: Edición Completa, Eliminación Segura y Buscador
+* **Objetivo**: Proporcionar autonomía total al Administrador para modificar cualquier dato de un profesor (nombre, email, departamento, turno, rol, estado) o gestionar su baja/eliminación con protección del histórico pedagógico.
+* **Mejoras clave**:
+  * **Modal de Edición Completa de Docente (`userToEdit`)**:
+    * Permite modificar nombre, correo corporativo, departamento, turno preferente (`Mañana`, `Tarde-Noche`, `Ambos`), rol asignado y estado.
+  * **Modal de Eliminación Segura con Doble Modalidad (`userToDelete`)**:
+    * Detección proactiva de reservas pasadas en el historial.
+    * *Opción recomendada*: «Dar de baja / Desactivar» (revoca el acceso sin alterar las memorias didácticas del centro).
+    * *Opción definitiva*: «Eliminar definitivamente de la base de datos».
+    * Salvaguarda: Bloqueo de auto-eliminación y auto-desactivación para el administrador logueado.
+  * **Buscador en Vivo y Estadísticas**:
+    * Búsqueda en tiempo real por nombre, correo, departamento o rol.
+    * Contadores dinámicos de usuarios totales, activos y de baja.
+* **Archivos afectados**: `src/lib/storage.ts`, `src/components/AdminPanel.tsx`, `package.json`.
+
+---
+
 ## [v1.3.1] - 2026-09-06
 ### 🌐 Despliegue en Producción en Hostinger y Automatización SSH
 * **Objetivo**: Publicar la aplicación beta en Internet en el subdominio `https://ateca.josedpdiaz.net` con certificado SSL, soporte de rutas SPA y flujo de despliegue continuo mediante SSH.
