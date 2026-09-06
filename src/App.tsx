@@ -109,6 +109,9 @@ export default function App() {
   // Privacy & RGPD modal state
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
+  // Toggle for interactive demo bar (hidden by default for clean production look)
+  const [showDemoBar, setShowDemoBar] = useState(false);
+
   // Email notifications & logs modals
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [emailLogsModalOpen, setEmailLogsModalOpen] = useState(false);
@@ -193,47 +196,57 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-indigo-50/20 text-slate-800 flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
       
-      {/* NO-PRINT ALERT AND QUICK SIMULATED LOGIN SELECTOR PANEL */}
-      <div className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-2 text-white no-print text-xs flex flex-col md:flex-row justify-between items-center gap-2">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span className="font-mono text-[10px] text-slate-300">
-            <strong>DEMO INTERACTIVA:</strong> Cambia de perfil al instante para probar permisos:
-          </span>
+      {/* NO-PRINT ALERT AND QUICK SIMULATED LOGIN SELECTOR PANEL (Oculta por defecto para producción) */}
+      {showDemoBar && (
+        <div className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-2 text-white no-print text-xs flex flex-col md:flex-row justify-between items-center gap-2 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span className="font-mono text-[10px] text-slate-300">
+              <strong>MODO PRUEBAS / EVALUACIÓN:</strong> Cambia de perfil al instante:
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => handleProfileSwitch('josedpdiaz@gmail.com')}
+              className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
+                user?.email === 'josedpdiaz@gmail.com' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
+              }`}
+            >
+              José Díaz (ADMIN)
+            </button>
+            <button
+              onClick={() => handleProfileSwitch('m.gonzalez@centro.edu')}
+              className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
+                user?.email === 'm.gonzalez@centro.edu' ? 'bg-amber-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
+              }`}
+            >
+              María González (COORDINADOR)
+            </button>
+            <button
+              onClick={() => handleProfileSwitch('j.santana@centro.edu')}
+              className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
+                user?.email === 'j.santana@centro.edu' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
+              }`}
+            >
+              Juan Santana (PROFESOR)
+            </button>
+            <button
+              onClick={() => handleProfileSwitch('p.ramirez@centro.edu')}
+              title="Prueba de acceso con usuario desactivado"
+              className="px-2.5 py-1 rounded-lg font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/40 cursor-pointer text-[10px] transition-colors"
+            >
+              Profe inactivo (Pedro R.)
+            </button>
+            <button
+              onClick={() => setShowDemoBar(false)}
+              className="ml-2 px-2 py-0.5 rounded-md text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title="Ocultar esta barra"
+            >
+              ✕ Ocultar
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => handleProfileSwitch('josedpdiaz@gmail.com')}
-            className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
-              user?.email === 'josedpdiaz@gmail.com' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
-            }`}
-          >
-            José Díaz (ADMIN)
-          </button>
-          <button
-            onClick={() => handleProfileSwitch('m.gonzalez@centro.edu')}
-            className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
-              user?.email === 'm.gonzalez@centro.edu' ? 'bg-amber-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
-            }`}
-          >
-            María González (COORDINADOR)
-          </button>
-          <button
-            onClick={() => handleProfileSwitch('j.santana@centro.edu')}
-            className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all text-[10px] ${
-              user?.email === 'j.santana@centro.edu' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300'
-            }`}
-          >
-            Juan Santana (PROFESOR)
-          </button>
-          <button
-            onClick={() => handleProfileSwitch('profe.inactivo@centro.edu')}
-            className="px-2.5 py-1 rounded-lg font-semibold bg-slate-800/60 hover:bg-slate-800 text-slate-400 cursor-pointer text-[10px] transition-colors"
-          >
-            Profe inactivo
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* PRIMARY APPLICATION HEADER BRAND */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/70 py-3.5 px-6 flex flex-col sm:flex-row justify-between items-center gap-4 no-print shadow-2xs sticky top-0 z-30">
@@ -424,16 +437,33 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Cuentas prediseñadas para evaluación:</h3>
-              <p className="text-[11px] text-slate-400">Puedes probar diferentes roles simplemente haciendo clic en los botones de "DEMO INTERACTIVA" de la zona superior de la pantalla, o introduciendo estos correos:</p>
-              <ul className="text-xs space-y-2 text-slate-550 list-disc pl-5">
-                <li><strong>Administrador:</strong> <code className="bg-slate-100 px-1 font-semibold rounded">josedpdiaz@gmail.com</code></li>
-                <li><strong>Coordinador:</strong> <code className="bg-slate-100 px-1 font-semibold rounded">m.gonzalez@centro.edu</code></li>
-                <li><strong>Profesor Activo FP:</strong> <code className="bg-slate-100 px-1 font-semibold rounded">j.santana@centro.edu</code></li>
-                <li><strong>Profesor de Baja:</strong> <code className="bg-slate-100 px-1 font-semibold rounded">profe.inactivo@centro.edu</code></li>
-              </ul>
-            </div>
+            {/* Desplegable discreto de cuentas para fase de pruebas */}
+            <details className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 text-left group">
+              <summary className="text-xs font-bold text-slate-500 hover:text-slate-700 cursor-pointer flex items-center justify-between select-none">
+                <span className="flex items-center gap-1.5">
+                  <span>⚙️ Cuentas de evaluación y pruebas</span>
+                </span>
+                <span className="text-[10px] text-indigo-600 font-semibold group-open:rotate-180 transition-transform">▼ Desplegar</span>
+              </summary>
+              <div className="pt-3 space-y-3 text-xs text-slate-500 border-t border-slate-200/60 mt-3 animate-fade-in">
+                <p className="text-[11px] text-slate-400">Puedes introducir estos correos de prueba o activar la barra superior de cambio rápido:</p>
+                <ul className="text-xs space-y-1.5 text-slate-600 list-disc pl-5">
+                  <li><strong>Administrador:</strong> <code className="bg-white border border-slate-200 px-1 font-semibold rounded">josedpdiaz@gmail.com</code></li>
+                  <li><strong>Coordinador:</strong> <code className="bg-white border border-slate-200 px-1 font-semibold rounded">m.gonzalez@centro.edu</code></li>
+                  <li><strong>Profesor Activo FP:</strong> <code className="bg-white border border-slate-200 px-1 font-semibold rounded">j.santana@centro.edu</code></li>
+                  <li><strong>Profesor Desactivado/Baja:</strong> <code className="bg-white border border-slate-200 px-1 font-semibold rounded">p.ramirez@centro.edu</code></li>
+                </ul>
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowDemoBar(!showDemoBar)}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+                  >
+                    {showDemoBar ? '✕ Ocultar barra superior de Demo' : '⚡ Mostrar barra superior de cambio rápido'}
+                  </button>
+                </div>
+              </div>
+            </details>
           </div>
         ) : (
           /* FULL APPLICATION SHELL FOR WORKFLOWS */
@@ -720,12 +750,20 @@ export default function App() {
       {/* LOWER FOOTER BRAND (Hidden when printing reports) */}
       <footer className="mt-12 py-6 bg-slate-900 border-t border-slate-800 text-slate-400 text-center text-[10px] md:text-xs font-medium no-print space-y-2">
         <p>© 2026 Gestor Aula ATECA. Diseñado para simplificar la planificación de innovación educativa y currículo en Formación Profesional canaria.</p>
-        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 font-semibold pt-1">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-400 font-semibold pt-1">
           <button
             onClick={() => setShowPrivacyModal(true)}
             className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 underline underline-offset-4 transition-colors cursor-pointer"
           >
             <ShieldCheck className="w-3.5 h-3.5" /> Cláusula de Privacidad y Protección de Datos (RGPD)
+          </button>
+          <span className="text-slate-700 select-none">•</span>
+          <button
+            onClick={() => setShowDemoBar(prev => !prev)}
+            className="text-slate-500 hover:text-slate-300 transition-colors cursor-pointer text-[10px]"
+            title="Alternar barra de cambio rápido de perfil para pruebas"
+          >
+            {showDemoBar ? '✕ Ocultar barra de pruebas' : '⚡ Modo pruebas'}
           </button>
         </div>
         <p className="text-slate-500 font-bold font-mono uppercase text-[9px] tracking-widest pt-1">
