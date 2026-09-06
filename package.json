@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "deploy": "vite build && scp -P 65002 -r dist/* dist/.htaccess u220313307@109.106.243.32:domains/josedpdiaz.net/public_html/ateca/ && ssh -p 65002 u220313307@109.106.243.32 \"chmod -R 755 domains/josedpdiaz.net/public_html/ateca && find domains/josedpdiaz.net/public_html/ateca -type f -exec chmod 644 {} \\;\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
