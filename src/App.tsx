@@ -112,6 +112,11 @@ export default function App() {
   // Toggle for interactive demo bar (hidden by default for clean production look)
   const [showDemoBar, setShowDemoBar] = useState(false);
 
+  // Dynamic browser tab title
+  useEffect(() => {
+    document.title = 'Gestor de Aula ATECA';
+  }, []);
+
   // Email notifications & logs modals
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [emailLogsModalOpen, setEmailLogsModalOpen] = useState(false);
