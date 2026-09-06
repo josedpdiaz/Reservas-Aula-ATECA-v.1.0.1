@@ -5,6 +5,19 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.1] - 2026-09-06
+### 🌐 Despliegue en Producción en Hostinger y Automatización SSH
+* **Objetivo**: Publicar la aplicación beta en Internet en el subdominio `https://ateca.josedpdiaz.net` con certificado SSL, soporte de rutas SPA y flujo de despliegue continuo mediante SSH.
+* **Mejoras clave**:
+  * **Publicación en Subdominio Institucional**: Disponible con protocolo seguro HTTPS en `https://ateca.josedpdiaz.net`.
+  * **Enrutamiento SPA (`.htaccess`)**: Reglas de reescritura para Apache/LiteSpeed que garantizan que recargar la página en cualquier pestaña no cause error 404.
+  * **Despliegue Automatizado (`npm run deploy`)**: Script en `package.json` para compilar y sincronizar automáticamente con Hostinger vía SCP/SSH con verificación de permisos `755/644`.
+  * **Identidad de Navegador**: Título oficial fijado en `Gestor de Aula ATECA`, idioma español (`es`) y favicon institucional en formato SVG.
+  * **Modo Producción Limpio**: Barra interactiva de demo oculta por defecto para acceso limpio del claustro, con alternancia discreta en pie de página y desplegable de cuentas.
+* **Archivos afectados**: `index.html`, `src/App.tsx`, `public/.htaccess`, `package.json`.
+
+---
+
 ## [v1.3.0] - 2026-09-06
 ### 📧 Sistema de Avisos y Notificaciones por Correo Electrónico Configurable
 * **Objetivo**: Proveer un canal de comunicación automatizado y privado para notificar a docentes, coordinadores y administradores sobre solicitudes, resoluciones pedagógicas, liberaciones de aula, avisos de mantenimiento y recordatorios, respetando las preferencias individuales de cada usuario.
