@@ -113,191 +113,14 @@ export const getRelativeWeekdayStr = (targetOffset: number): string => {
   return formatDateToYMD(d);
 };
 
-// Pre-seeded reservations (Garantizadas 100% en días lectivos de lunes a viernes)
-const DEFAULT_RESERVAS: Reserva[] = [
-  {
-    id_reserva: "res-1",
-    fecha_creacion: "2026-05-20",
-    profesor: "Juan Santana",
-    email: "j.santana@centro.edu",
-    departamento: "Electricidad",
-    nivel: "Grado Superior FP",
-    grupo: "2º Sistemas Electrotécnicos",
-    modulo_materia_area: "Sistemas Inteligentes",
-    fecha_actividad: getRelativeWeekdayStr(-2), // 2 días lectivos atrás
-    hora_inicio: "09:00",
-    hora_fin: "11:30",
-    zona_principal: "Realidad virtual y simuladores",
-    numero_alumnos: 18,
-    objetivo_didactico: "Comprobar el despliegue del software de simulación eléctrica en VR.",
-    descripcion_actividad: "Los estudiantes simularán una avería en un cuadro de alta tensión utilizando gafas Meta Quest y el simulador de subestaciones.",
-    recursos_necesarios: "Gafas VR (x5) y cargadores.",
-    necesita_apoyo: true,
-    prioridad: "ALTA",
-    estado: "REALIZADA",
-    observaciones_coordinador: "Uso correcto del aula didáctica de realidad virtual autónoma.",
-  },
-  {
-    id_reserva: "res-2",
-    fecha_creacion: "2026-05-22",
-    profesor: "Laura Pérez",
-    email: "l.perez@centro.edu",
-    departamento: "Administración",
-    nivel: "Grado Medio FP",
-    grupo: "1º Gestión Administrativa",
-    modulo_materia_area: "Comunicación Empresarial",
-    fecha_actividad: getRelativeWeekdayStr(-1), // Ayer (lectivo)
-    hora_inicio: "15:00",
-    hora_fin: "17:00",
-    zona_principal: "Multimedia",
-    numero_alumnos: 22,
-    objetivo_didactico: "Grabar una presentación empresarial interactiva.",
-    descripcion_actividad: "Los alumnos expondrán su proyecto de empresa simulada en el croma del Aula ATECA y grabarán su elevator pitch.",
-    recursos_necesarios: "Cámara, focos, micrófono corbata y panel croma.",
-    necesita_apoyo: false,
-    prioridad: "ALTA",
-    estado: "REALIZADA",
-    observaciones_coordinador: "Recuerda limpiar el material al finalizar.",
-  },
-  {
-    id_reserva: "res-3",
-    fecha_creacion: "2026-05-28",
-    profesor: "Juan Santana",
-    email: "j.santana@centro.edu",
-    departamento: "Electricidad",
-    nivel: "Grado Superior FP",
-    grupo: "2º Sistemas Electrotécnicos",
-    modulo_materia_area: "Automatización Industrial",
-    fecha_actividad: getRelativeWeekdayStr(1), // Próximo día lectivo
-    hora_inicio: "11:30",
-    hora_fin: "14:00",
-    zona_principal: "Impresión 3D",
-    numero_alumnos: 15,
-    objetivo_didactico: "Diseñar e imprimir cajas para PLCs.",
-    descripcion_actividad: "Sesión de impresión rápida de maquetas y carcasas protectoras para los relés lógicos utilizando Cura y las impresoras PLA del aula Ateca.",
-    recursos_necesarios: "Filamento PLA negro, laca, software Cura preinstalado.",
-    necesita_apoyo: false,
-    prioridad: "ALTA",
-    estado: "APROBADA",
-    observaciones_coordinador: "Aprobada por prioridad de FP. Recuerde que hay filamento disponible en el almacén B.",
-  },
-  {
-    id_reserva: "res-4",
-    fecha_creacion: "2026-05-29",
-    profesor: "José Díaz",
-    email: "josedpdiaz@gmail.com",
-    departamento: "Informática",
-    nivel: "Grado Superior FP",
-    grupo: "1º ASIR",
-    modulo_materia_area: "Planificación de Redes",
-    fecha_actividad: getRelativeWeekdayStr(2), // 2 días lectivos en el futuro
-    hora_inicio: "08:30",
-    hora_fin: "11:00",
-    zona_principal: "Vídeo y audio",
-    numero_alumnos: 20,
-    objetivo_didactico: "Podcast técnico de ciberseguridad.",
-    descripcion_actividad: "Grabación conjunta por equipos de un podcast técnico explicando vulnerabilidades y remediaciones. Uso de mesa de mezclas Rodecaster y micrófonos Shure.",
-    recursos_necesarios: "Estación de podcasting, mesa Rodecaster, Audacity.",
-    necesita_apoyo: true,
-    prioridad: "ALTA",
-    estado: "PENDIENTE",
-    observaciones_coordinador: "",
-  },
-  {
-    id_reserva: "res-5",
-    fecha_creacion: "2026-05-26",
-    profesor: "Laura Pérez",
-    email: "l.perez@centro.edu",
-    departamento: "Administración",
-    nivel: "Bachillerato",
-    grupo: "2º Bachillerato A",
-    modulo_materia_area: "Tecnología Industrial II",
-    fecha_actividad: getRelativeWeekdayStr(3), // 3 días lectivos en el futuro
-    hora_inicio: "11:30",
-    hora_fin: "13:30",
-    zona_principal: "Realidad virtual y simuladores",
-    numero_alumnos: 24,
-    objetivo_didactico: "Simulación de brazos mecánicos industriales.",
-    descripcion_actividad: "Exhibición virtual interactiva de aerogeneradores y brazos robóticos.",
-    recursos_necesarios: "Gafas VR.",
-    necesita_apoyo: false,
-    prioridad: "NORMAL",
-    estado: "PENDIENTE",
-    observaciones_coordinador: "",
-  },
-  {
-    id_reserva: "res-6",
-    fecha_creacion: "2026-05-25",
-    profesor: "María González",
-    email: "m.gonzalez@centro.edu",
-    departamento: "Tecnología",
-    nivel: "ESO",
-    grupo: "4º ESO B",
-    modulo_materia_area: "Tecnología Creativa",
-    fecha_actividad: getRelativeWeekdayStr(4), // 4 días lectivos en el futuro
-    hora_inicio: "12:00",
-    hora_fin: "14:00",
-    zona_principal: "Multimedia",
-    numero_alumnos: 16,
-    objetivo_didactico: "Edición de vídeos con DaVinci Resolve.",
-    descripcion_actividad: "Introducción a la edición de vídeo no lineal de los proyectos del trimestre en los ordenadores de alta gama del aula.",
-    recursos_necesarios: "DaVinci Resolve.",
-    necesita_apoyo: false,
-    prioridad: "NORMAL",
-    estado: "PENDIENTE",
-    observaciones_coordinador: "",
-  }
-];
+// Pre-seeded reservations (Vacío para producción y fase de pruebas)
+const DEFAULT_RESERVAS: Reserva[] = [];
 
-// Pre-seeded assessments
-const DEFAULT_VALORACIONES: Valoracion[] = [
-  {
-    id_valoracion: "val-1",
-    id_reserva: "res-1",
-    fecha_valoracion: getRelativeWeekdayStr(-2),
-    realizada_como_prevista: true,
-    aspectos_positivos: "La inmersión de los alumnos fue elevadísima, entendiendo de forma práctica e hiperrealista los riesgos en subestaciones sin peligro real alguno.",
-    dificultades: "Inicialmente dos gafas perdieron el tracking por falta de iluminación a primera hora.",
-    evidencias_generadas: "Fotos del grupo de alumnos operando y capturas del software guardadas en Drive.",
-    mejoras_futuras: "Asegurarse de encender todas las luces de la sala y calibrar el espacio antes de comenzar.",
-    valoracion_general: 5,
-    actividad_innovacion: true,
-    observaciones_finales: "Actividad excelente que repetiremos el próximo curso académico obligatoriamente.",
-  },
-  {
-    id_valoracion: "val-2",
-    id_reserva: "res-2",
-    fecha_valoracion: getRelativeWeekdayStr(-1),
-    realizada_como_prevista: false,
-    aspectos_positivos: "El croma funcionó a la perfección y motivó mucho al alumnado en su oratoria comercial.",
-    dificultades: "Faltó tiempo para que los 22 alumnos grabaran su pitch de forma coordinada. Hicimos cola.",
-    evidencias_generadas: "5 vídeos editados de 1 minuto subidos al canal de YouTube privado del centro.",
-    mejoras_futuras: "Particionar la clase en grupos más definidos para no perder tiempo de espera pasivo.",
-    valoracion_general: 4,
-    actividad_innovacion: true,
-    observaciones_finales: "Se sugiere un cronómetro grande para controlar los tiempos individuales de speech.",
-  }
-];
+// Pre-seeded assessments (Vacío para producción y fase de pruebas)
+const DEFAULT_VALORACIONES: Valoracion[] = [];
 
-// Pre-seeded lockouts
-const DEFAULT_BLOQUEOS: Bloqueo[] = [
-  {
-    id_bloqueo: "bloq-1",
-    fecha: getRelativeWeekdayStr(3),
-    hora_inicio: "08:00",
-    hora_fin: "11:30",
-    motivo: "Mantenimiento preventivo anual impresoras 3D y calibración de Realidad Virtual",
-    creado_por: "María González (Coordinadora)",
-  },
-  {
-    id_bloqueo: "bloq-2",
-    fecha: getRelativeWeekdayStr(5),
-    hora_inicio: "10:00",
-    hora_fin: "14:00",
-    motivo: "Reunión de Coordinadores de Innovación del Norte de Tenerife",
-    creado_por: "José Díaz (Administrador)",
-  }
-];
+// Pre-seeded lockouts (Vacío para producción y fase de pruebas)
+const DEFAULT_BLOQUEOS: Bloqueo[] = [];
 
 // Pre-seeded School Calendar Non-Working Periods (Canarias Educación)
 const DEFAULT_DIAS_NO_HABILES: DiaNoHabil[] = [
@@ -390,8 +213,23 @@ export const initializeStorage = (force: boolean = false) => {
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(DEFAULT_USERS[0]));
   }
 
+  // Limpieza inicial para fase de pruebas / producción sin datos mock
+  if (localStorage.getItem('ateca_production_clean_v122') !== 'true') {
+    localStorage.setItem(STORAGE_KEYS.RESERVAS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.VALORACIONES, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.BLOQUEOS, JSON.stringify([]));
+    localStorage.setItem('ateca_production_clean_v122', 'true');
+  }
+
   // PURGA INMEDIATA: Elimina cualquier tarea, reserva o bloqueo que se encuentre en sábado o domingo
   purgeWeekendTasks();
+};
+
+// Reiniciar base de datos a limpia para fase de pruebas / producción
+export const clearAllReservasAndValoraciones = (): void => {
+  localStorage.setItem(STORAGE_KEYS.RESERVAS, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.VALORACIONES, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.BLOQUEOS, JSON.stringify([]));
 };
 
 // Helper for safe JSON parsing

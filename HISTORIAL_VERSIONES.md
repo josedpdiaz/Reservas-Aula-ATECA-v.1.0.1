@@ -5,6 +5,17 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.2.3] - 2026-09-06
+### 🚀 Preparación para Producción y Fase de Pruebas (Base de Datos Limpia)
+* **Objetivo**: Dejar la aplicación 100% lista para su despliegue en entorno real y fase de pruebas de centro, sin datos ficticios ni reservas de demostración, manteniendo la configuración institucional y los roles de usuario.
+* **Mejoras clave**:
+  * **Vaciado de colecciones de prueba**: `DEFAULT_RESERVAS`, `DEFAULT_VALORACIONES` y `DEFAULT_BLOQUEOS` se inicializan a arrays vacíos (`[]`), garantizando un inicio totalmente limpio.
+  * **Utilidad de puesta a cero**: Nueva función `clearAllReservasAndValoraciones()` y botón en la pestaña de Configuración del Administrador para vaciar reservas y memorias didácticas en cualquier momento con confirmación de seguridad.
+  * **Actualización de metadatos**: `package.json` actualizado con nombre oficial `reservas-aula-ateca` y versión `1.2.3`.
+* **Archivos afectados**: `src/lib/storage.ts`, `src/components/AdminPanel.tsx`, `package.json`, `metadata.json`.
+
+---
+
 ## [v1.2.2] - 2026-09-03
 ### 🔍 Control de Tamaño de Fuente (A- / A+) y Eliminación del Modo Claro
 * **Objetivo**: Proporcionar accesibilidad visual y descanso ocular directo mediante botones de ampliación/reducción de texto, y concentrar los temas en los dos modos más confortables y de alto contraste (Intermedio y Oscuro), retirando el modo claro.

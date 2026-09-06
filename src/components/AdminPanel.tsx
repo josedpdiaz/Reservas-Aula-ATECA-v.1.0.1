@@ -7,13 +7,14 @@ import React, { useState } from 'react';
 import { 
   UserPlus, Power, Settings, Trash, AlertTriangle, FileSpreadsheet, 
   Play, CheckCircle2, CloudLightning, Calendar, CalendarOff, Image as ImageIcon, 
-  Upload, X, ShieldAlert, Sparkles, HelpCircle, Info
+  Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw
 } from 'lucide-react';
 import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil } from '../types';
 import { 
   getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig, 
   modifyUsuario, addUsuario, addBloqueo, removeBloqueo, setConfig, 
-  formatDateToYMD, getDiasNoHabiles, addDiaNoHabil, removeDiaNoHabil 
+  formatDateToYMD, getDiasNoHabiles, addDiaNoHabil, removeDiaNoHabil,
+  clearAllReservasAndValoraciones
 } from '../lib/storage';
 import SheetsGuide from './SheetsGuide';
 
@@ -756,6 +757,31 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none font-medium"
                 />
               </div>
+            </div>
+
+            {/* RESET / LIMPIEZA DE DATOS PARA PRODUCCIÓN */}
+            <div className="bg-rose-50/50 border border-rose-200/80 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <p className="text-xs font-bold text-rose-950 flex items-center gap-1.5">
+                  <RotateCcw className="w-4 h-4 text-rose-600" /> Puesta a Cero para Fase de Pruebas / Producción
+                </p>
+                <p className="text-[11px] text-rose-800 mt-0.5">
+                  Elimina todas las reservas, valoraciones y bloqueos técnicos, dejando el calendario totalmente limpio y listo para empezar a registrar actividad real.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("¿Seguro que deseas vaciar todas las reservas y valoraciones para dejar la aplicación limpia para la fase de pruebas?")) {
+                    clearAllReservasAndValoraciones();
+                    onRefresh();
+                    alert("Base de datos de reservas reiniciada. El sistema está limpio para pruebas y producción.");
+                  }
+                }}
+                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold rounded-xl text-xs cursor-pointer transition-all shrink-0 shadow-xs"
+              >
+                Limpiar datos para pruebas
+              </button>
             </div>
 
             <div className="border-t border-slate-100 pt-5 flex justify-end">
