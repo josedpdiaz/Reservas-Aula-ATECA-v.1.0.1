@@ -8,7 +8,7 @@ import {
   UserPlus, Power, Settings, Trash, Trash2, AlertTriangle, FileSpreadsheet, 
   Play, CheckCircle2, CloudLightning, Calendar, CalendarOff, Image as ImageIcon, 
   Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
-  Edit, Search, UserCheck, UserX
+  Edit, Search, UserCheck, UserX, ShieldCheck
 } from 'lucide-react';
 import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog } from '../types';
 import { 
@@ -49,7 +49,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [newUsrRol, setNewUsrRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
   const [newUsrDept, setNewUsrDept] = useState('');
 
-  // User search, edit and delete modal states
+  // User search, edit and deactivate modal states (Opción A)
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [userToEdit, setUserToEdit] = useState<Usuario | null>(null);
   const [editName, setEditName] = useState('');
@@ -58,7 +58,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [editRol, setEditRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
   const [editTurno, setEditTurno] = useState<string>('Ambos');
   const [editActivo, setEditActivo] = useState(true);
-  const [userToDelete, setUserToDelete] = useState<Usuario | null>(null);
+  const [userToDeactivate, setUserToDeactivate] = useState<Usuario | null>(null);
 
   // Lockout form
   const [blockFecha, setBlockFecha] = useState(() => formatDateToYMD());
@@ -116,14 +116,10 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     onRefresh();
   };
 
-  const handleConfirmDelete = (mode: 'deactivate' | 'delete') => {
-    if (!userToDelete) return;
-    if (mode === 'delete') {
-      deleteUsuario(userToDelete.id_usuario);
-    } else {
-      modifyUsuario(userToDelete.id_usuario, { activo: false });
-    }
-    setUserToDelete(null);
+  const handleConfirmToggleBaja = () => {
+    if (!userToDeactivate) return;
+    modifyUsuario(userToDeactivate.id_usuario, { activo: !userToDeactivate.activo });
+    setUserToDeactivate(null);
     onRefresh();
   };
 
@@ -526,11 +522,15 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                             <button
                               type="button"
                               disabled={usr.id_usuario === currentUser.id_usuario}
-                              onClick={() => setUserToDelete(usr)}
-                              title={usr.id_usuario === currentUser.id_usuario ? 'No puedes eliminarte a ti mismo' : 'Eliminar o gestionar baja'}
-                              className="p-1.5 bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                              onClick={() => setUserToDeactivate(usr)}
+                              title={usr.id_usuario === currentUser.id_usuario ? 'No puedes darte de baja a ti mismo' : (usr.activo ? 'Dar de baja (Opción A)' : 'Reactivar docente')}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                                usr.activo 
+                                  ? 'bg-slate-100 hover:bg-amber-50 text-slate-400 hover:text-amber-600' 
+                                  : 'bg-slate-100 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600'
+                              }`}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              {usr.activo ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                             </button>
                           </div>
                         </td>
@@ -1279,65 +1279,77 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
         </div>
       )}
 
-      {/* MODAL: ELIMINAR O DAR DE BAJA USUARIO */}
-      {userToDelete && (
+      {/* MODAL: GESTIONAR BAJA / REACTIVACIÓN DE DOCENTE (OPCIÓN A) */}
+      {userToDeactivate && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in no-print">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-5 animate-scale-up">
             <div className="flex items-start gap-3.5">
-              <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 shrink-0">
-                <Trash2 className="w-6 h-6" />
+              <div className={`p-3 rounded-2xl border shrink-0 ${
+                userToDeactivate.activo 
+                  ? 'bg-amber-50 text-amber-600 border-amber-100' 
+                  : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+              }`}>
+                {userToDeactivate.activo ? <UserX className="w-6 h-6" /> : <UserCheck className="w-6 h-6" />}
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900 tracking-tight">Gestionar Docente</h3>
+                <h3 className="text-base font-black text-slate-900 tracking-tight">
+                  {userToDeactivate.activo ? 'Dar de Baja a Docente' : 'Reactivar a Docente'}
+                </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {userToDelete.nombre} ({userToDelete.email})
+                  {userToDeactivate.nombre} ({userToDeactivate.email})
                 </p>
               </div>
             </div>
 
-            {/* Comprobación de reservas asociadas */}
-            {(() => {
-              const countRes = getReservas().filter(r => r.email.toLowerCase() === userToDelete.email.toLowerCase()).length;
-              return countRes > 0 ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1.5 leading-relaxed">
-                  <div className="font-bold flex items-center gap-1.5 text-amber-950">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>Registro histórico detectado ({countRes} reservas)</span>
-                  </div>
-                  <p className="text-[11px] text-amber-800">
-                    Este docente tiene actividades didácticas registradas en el Aula ATECA. 
-                    Recomendamos <strong>Dar de baja</strong> para bloquear su acceso sin alterar las memorias pedagógicas del centro.
-                  </p>
+            {userToDeactivate.activo ? (
+              <div className="bg-gradient-to-br from-amber-50/90 to-amber-50/40 border border-amber-200 rounded-xl p-4 text-xs text-amber-950 space-y-2 leading-relaxed">
+                <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Opción A: Protección del Histórico Escolar</span>
                 </div>
-              ) : (
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Este docente no tiene reservas activas. Puedes eliminarlo por completo de la base de datos o simplemente desactivar su acceso.
+                <p className="text-[11px] text-amber-800">
+                  Al dar de baja a este profesor, <strong>su acceso quedará revocado</strong> y no podrá realizar nuevas reservas ni identificarse en la aplicación.
                 </p>
-              );
-            })()}
+                <p className="text-[11px] text-emerald-800 font-semibold bg-white/80 p-2 rounded-lg border border-amber-200/60">
+                  🌱 <strong>Seguridad de datos</strong>: Todas sus reservas anteriores, valoraciones y memorias didácticas del Aula ATECA se <strong>conservarán intactas</strong> para las auditorías y estadísticas del centro.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs text-emerald-950 space-y-1.5 leading-relaxed">
+                <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+                  <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Reactivar acceso docente</span>
+                </div>
+                <p className="text-[11px] text-emerald-800">
+                  El profesor recuperará el acceso a la plataforma para poder solicitar reservas y registrar memorias del Aula ATECA normalmente.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2 text-xs pt-1">
               <button
                 type="button"
-                onClick={() => handleConfirmDelete('deactivate')}
-                className="w-full py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                onClick={handleConfirmToggleBaja}
+                className={`w-full py-2.5 px-4 font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors ${
+                  userToDeactivate.activo
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
               >
-                <Power className="w-4 h-4 text-amber-600" />
-                Dar de baja / Desactivar (Recomendado)
+                {userToDeactivate.activo ? (
+                  <>
+                    <UserX className="w-4 h-4" /> Confirmar y dar de baja al docente (Opción A)
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-4 h-4" /> Confirmar reactivación del docente
+                  </>
+                )}
               </button>
 
               <button
                 type="button"
-                onClick={() => handleConfirmDelete('delete')}
-                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                Eliminar definitivamente de la base de datos
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setUserToDelete(null)}
+                onClick={() => setUserToDeactivate(null)}
                 className="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-center cursor-pointer transition-colors"
               >
                 Cancelar

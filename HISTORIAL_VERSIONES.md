@@ -5,6 +5,20 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.3] - 2026-09-06
+### 🛡️ Consolidación de Opción A: Gestión de Bajas con Protección Total del Histórico Escolar
+* **Objetivo**: Blindar la base de datos frente a pérdida accidental de memorias pedagógicas, eliminando el borrado destructivo y adoptando la **Opción A** («Dar de baja / Desactivar») como estándar exclusivo del centro educativo.
+* **Mejoras clave**:
+  * **Acción Exclusiva de Baja / Reactivación (`UserX` / `UserCheck`)**:
+    * Se retira cualquier opción de eliminación destructiva de la base de datos.
+    * Al pulsar sobre el docente, se activa el modal de **Opción A: Protección del Histórico Escolar**: revoca el acceso a la plataforma de inmediato pero preserva intactas todas las reservas pasadas, valoraciones y memorias didácticas del Aula ATECA.
+    * Si el profesor ya está dado de baja, el botón y el modal permiten su reactivación con un clic.
+  * **Edición Integral**:
+    * Se mantiene el botón de edición (lápiz) para modificar nombre, correo, departamento, turno y rol.
+* **Archivos afectados**: `src/components/AdminPanel.tsx`, `package.json`.
+
+---
+
 ## [v1.3.2] - 2026-09-06
 ### 👥 Gestión Flexible de Docentes: Edición Completa, Eliminación Segura y Buscador
 * **Objetivo**: Proporcionar autonomía total al Administrador para modificar cualquier dato de un profesor (nombre, email, departamento, turno, rol, estado) o gestionar su baja/eliminación con protección del histórico pedagógico.
