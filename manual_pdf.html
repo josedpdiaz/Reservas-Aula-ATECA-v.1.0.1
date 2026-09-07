@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Manual de Pruebas Piloto - Aula ATECA</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.5;
+      font-size: 10pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+
+    /* COVER PAGE */
+    .cover {
+      page-break-after: always;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px 30px;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #0f172a 0%, #1e293b 60%, #064e3b 100%);
+      color: #ffffff;
+      box-shadow: inset 0 0 100px rgba(0,0,0,0.3);
+    }
+
+    .cover-badge {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #34d399;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 9pt;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      align-self: flex-start;
+    }
+
+    .cover-title-box {
+      margin-top: 80px;
+    }
+
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      margin: 16px 0 12px 0;
+      color: #ffffff;
+    }
+
+    .cover-subtitle {
+      font-size: 13pt;
+      color: #94a3b8;
+      font-weight: 400;
+      max-width: 520px;
+      line-height: 1.4;
+      margin-bottom: 24px;
+    }
+
+    .cover-url-pill {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 11pt;
+      color: #38bdf8;
+      font-weight: bold;
+    }
+
+    .cover-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5pt;
+      color: #94a3b8;
+    }
+
+    .cover-footer strong {
+      color: #f1f5f9;
+    }
+
+    /* INTERIOR PAGES */
+    .page {
+      page-break-after: always;
+      padding-top: 10px;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .header-running {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1.5px solid #0f172a;
+      padding-bottom: 6px;
+      margin-bottom: 22px;
+      font-size: 8pt;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .header-running span.accent {
+      color: #059669;
+    }
+
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      margin-top: 0;
+    }
+
+    h2 {
+      font-size: 14pt;
+      border-left: 4px solid #10b981;
+      padding-left: 10px;
+      margin-top: 20px;
+      margin-bottom: 12px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    h3 {
+      font-size: 11pt;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    p {
+      margin: 0 0 10px 0;
+      color: #334155;
+    }
+
+    /* INDEX / TOC */
+    .toc {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+
+    .toc-title {
+      font-size: 10pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #475569;
+      margin-bottom: 10px;
+    }
+
+    .toc-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .toc-list li {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5pt;
+      font-weight: 600;
+      padding: 4px 0;
+      border-bottom: 1px dotted #cbd5e1;
+      color: #1e293b;
+    }
+
+    .toc-list li:last-child {
+      border-bottom: none;
+    }
+
+    /* CARDS & HIGHLIGHT BOXES */
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .card-emerald {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+
+    .card-indigo {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+    }
+
+    .card-amber {
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+
+    /* BADGES */
+    .badge {
+      display: inline-block;
+      font-size: 7.5pt;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-p1 {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .badge-p2 {
+      background: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #a5b4fc;
+    }
+
+    .badge-p3 {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    /* STEP BOX */
+    .step-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      background: #ffffff;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 8pt;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-title {
+      font-size: 10pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    ul {
+      margin: 6px 0 10px 18px;
+      padding: 0;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 3px;
+    }
+
+    code {
+      font-family: monospace;
+      font-size: 8.5pt;
+      background: #f1f5f9;
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 7.5pt;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PORTADA -->
+  <div class="cover">
+    <div class="cover-badge">Red de Aulas ATECA · Canarias</div>
+    
+    <div class="cover-title-box">
+      <div class="cover-title">Manual de Pruebas Piloto en Remoto</div>
+      <div class="cover-subtitle">
+        Guía práctica para la evaluación de la plataforma web de reservas, dinamización curricular y memorias didácticas del Aula ATECA.
+      </div>
+      <div class="cover-url-pill">
+        🌐 https://ateca.josedpdiaz.net
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <div>
+        <strong>Versión:</strong> 1.3.3 Beta (Producción)<br>
+        <strong>Ámbito:</strong> Claustro Docente y Coordinación
+      </div>
+      <div style="text-align: right;">
+        <strong>Duración del Piloto:</strong> 1 Semana<br>
+        <strong>Fecha:</strong> Septiembre de 2026
+      </div>
+    </div>
+  </div>
+
+  <!-- PÁGINA 1: ÍNDICE Y ACCESO -->
+  <div class="page">
+    <div class="header-running">
+      <span>Gestor de Aula ATECA · Manual Piloto</span>
+      <span class="accent">ateca.josedpdiaz.net</span>
+    </div>
+
+    <!-- ÍNDICE BREVE -->
+    <div class="toc">
+      <div class="toc-title">Contenido del Manual</div>
+      <ul class="toc-list">
+        <li><span>1. Objetivo y Claves del Piloto</span> <span>Pág. 2</span></li>
+        <li><span>2. Identificación y Modo Pruebas Rápido</span> <span>Pág. 2</span></li>
+        <li><span>3. Guion de Pruebas por Pasos (Días 1 a 5)</span> <span>Pág. 3</span></li>
+        <li><span>4. Ergonomía, Confort Visual y Notificaciones</span> <span>Pág. 4</span></li>
+        <li><span>5. Cuestionario de Feedback y Cierre</span> <span>Pág. 4</span></li>
+      </ul>
+    </div>
+
+    <h2>1. Objetivo y Claves del Periodo de Pruebas</h2>
+    <p>
+      El propósito de esta semana de pruebas es validar de forma real y entre compañeros el funcionamiento, la agilidad y el flujo de trabajo del <strong>Aula ATECA</strong> antes de su difusión a todo el claustro:
+    </p>
+
+    <div class="card card-emerald">
+      <strong style="color: #065f46;">Puntos clave a comprobar:</strong>
+      <ul style="margin-bottom: 0;">
+        <li>Facilidad para solicitar franjas horarias libres desde el teléfono móvil, tablet o PC.</li>
+        <li>Asignación automática y rigurosa de las prioridades normativas de FP (P1, P2 y P3).</li>
+        <li>Mecanismo de civismo: liberación inmediata de horas no utilizadas para los compañeros.</li>
+        <li>Generación de la memoria pedagógica e informe oficial al término de la actividad.</li>
+      </ul>
+    </div>
+
+    <h2>2. Acceso e Identificación a la Plataforma</h2>
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Ingreso Directo</div>
+      </div>
+      <p>Entra desde cualquier navegador web a: <code>https://ateca.josedpdiaz.net</code>.</p>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title">Identificación Institucional</div>
+      </div>
+      <p>Introduce tu correo corporativo (ej. <code>tu_nombre@canariaseducacion.org</code> o dominio de centro) y pulsa <strong>«Autenticarse con cuenta Google / TIC»</strong>.</p>
+    </div>
+
+    <div class="card card-indigo">
+      <strong style="color: #312e81;">⚡ Atajo para Evaluadores: «Modo Pruebas»</strong>
+      <p style="margin: 4px 0 0 0; font-size: 9pt; color: #4338ca;">
+        En el pie de página (abajo del todo) tienes un botón llamado <strong>⚡ Modo pruebas</strong>. Al pulsarlo, se desplegará una barra superior que te permite alternar con un solo clic entre los perfiles de <strong>Profesor</strong>, <strong>Coordinador ATECA</strong> y <strong>Administrador</strong> para probar los distintos permisos sin cerrar sesión.
+      </p>
+    </div>
+
+    <div class="footer-note">
+      <span>Gestor de Aula ATECA · Manual de Pruebas</span>
+      <span>Página 2</span>
+    </div>
+  </div>
+
+  <!-- PÁGINA 2: GUION PRÁCTICO PASO A PASO -->
+  <div class="page">
+    <div class="header-running">
+      <span>Gestor de Aula ATECA · Guion de Pruebas</span>
+      <span class="accent">ateca.josedpdiaz.net</span>
+    </div>
+
+    <h2>3. Guion Práctico de Pruebas (Paso a Paso)</h2>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">A</div>
+        <div class="step-title">Explorar Calendario y Hoja Diaria de Horarios</div>
+      </div>
+      <p>Pulsa en cualquier día hábil del mes para ver la cuadrícula horaria oficial:</p>
+      <ul>
+        <li><strong>Mañana (6 sesiones de 50 min)</strong>: <code>08:00 - 13:30</code> con recreo central de <code>10:30 a 11:00</code>.</li>
+        <li><strong>Tarde-Noche (6 sesiones de 50 min)</strong>: <code>17:00 - 22:20</code> con descanso de <code>19:30 a 19:50</code>.</li>
+        <li>Los fines de semana están bloqueados por normativa educativa.</li>
+      </ul>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">B</div>
+        <div class="step-title">Registrar una Solicitud de Reserva</div>
+      </div>
+      <p>Pulsa el botón esmeralda <strong>«Solicitar Reserva»</strong> o pulsa directamente sobre cualquier franja libre:</p>
+      <ul>
+        <li>
+          <strong>Nivel y Prioridad ATECA</strong>:
+          <br><span class="badge badge-p1">P1 · Preferente FP</span> Ciclos de FP (Básica, Medio, Superior), proyectos FP y pruebas técnicas.
+          <br><span class="badge badge-p2">P2 · Proyectos</span> Proyectos transversales de centro (no FP).
+          <br><span class="badge badge-p3">P3 · Ordinaria</span> Enseñanzas generales (Bachillerato y ESO).
+        </li>
+        <li><strong>Tecnología requerida</strong>: Marca qué equipamiento vas a usar (Gafas VR, Impresión 3D, Kits Robóticos, Pantalla Táctil, etc.).</li>
+        <li><strong>Apoyo técnico</strong>: Solicita asistencia inicial de Coordinación si requieres ayuda en la configuración de los equipos.</li>
+      </ul>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">C</div>
+        <div class="step-title">Revisión y Aprobación (Rol Coordinador)</div>
+      </div>
+      <p>Conmuta a perfil de <strong>Coordinador</strong> y entra en la pestaña <strong>«Panel de Coordinación»</strong>:</p>
+      <ul>
+        <li>Revisa las solicitudes ordenadas según la prelación de FP.</li>
+        <li>Pulsa <strong>«Aprobar»</strong> (puedes añadir recomendaciones didácticas) o <strong>«Rechazar»</strong> (justificando el motivo).</li>
+      </ul>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">D</div>
+        <div class="step-title">Civismo: Liberación y Cancelación del Aula</div>
+      </div>
+      <p>
+        Desde <strong>«Mis Actividades»</strong>, pulsa en <strong>«Liberar Aula / Cancelar»</strong>. Comprobarás cómo la franja horaria queda libre inmediatamente en el calendario para que otros compañeros del claustro puedan aprovecharla.
+      </p>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">E</div>
+        <div class="step-title">Memoria Didáctica y Valoración Post-Uso</div>
+      </div>
+      <p>
+        Tras el uso didáctico del aula, pulsa en <strong>«Valorar Actividad»</strong> para consignar alumnos participantes, logros didácticos e incidencias materiales. Podrás previsualizar e imprimir el <strong>Informe Pedagógico Oficial</strong>.
+      </p>
+    </div>
+
+    <div class="footer-note">
+      <span>Gestor de Aula ATECA · Manual de Pruebas</span>
+      <span>Página 3</span>
+    </div>
+  </div>
+
+  <!-- PÁGINA 3: AJUSTES Y FEEDBACK -->
+  <div class="page">
+    <div class="header-running">
+      <span>Gestor de Aula ATECA · Confort y Feedback</span>
+      <span class="accent">ateca.josedpdiaz.net</span>
+    </div>
+
+    <h2>4. Ajustes de Confort Visual y Notificaciones</h2>
+    
+    <div class="card card-indigo">
+      <strong style="color: #1e1b4b;">🔍 Escalado de Fuente (Accesibilidad y Descanso Ocular)</strong>
+      <p style="margin: 4px 0 0 0; font-size: 9pt;">
+        En la parte superior encontrarás los botones <code>A-</code>, <code>100%</code> y <code>A+</code>. Te permiten agrandar o reducir toda la tipografía de la aplicación entre un 85% y un 130% para adaptarla a la distancia de tu pantalla o proyector.
+      </p>
+    </div>
+
+    <div class="card card-amber">
+      <strong style="color: #78350f;">🌓 Modos de Color (Sin Fatiga Visual)</strong>
+      <p style="margin: 4px 0 0 0; font-size: 9pt;">
+        Puedes alternar entre el <strong>Modo Intermedio</strong> (fondo sepia descansado de lectura prolongada) y el <strong>Modo Oscuro</strong> (modo noche de alto contraste).
+      </p>
+    </div>
+
+    <div class="card card-emerald">
+      <strong style="color: #065f46;">🔔 Preferencias de Avisos por Correo</strong>
+      <p style="margin: 4px 0 0 0; font-size: 9pt;">
+        Pulsando en el botón con la campana (<strong>«Avisos»</strong>), cada profesor puede personalizar qué correos desea recibir (aprobaciones, recordatorios 24h previas, solicitud de memoria didáctica, etc.) y definir una cuenta de correo alternativa.
+      </p>
+    </div>
+
+    <h2>5. Cuestionario de Feedback para el Final de la Semana</h2>
+    <p>Agradeceremos que tras completar tus pruebas dediques 2 minutos a trasladarnos tus impresiones:</p>
+
+    <div class="card">
+      <ul style="margin: 0 0 0 16px; font-size: 9pt;">
+        <li><strong>Experiencia en Móvil:</strong> ¿Resulta cómodo reservar y consultar la agenda desde el teléfono?</li>
+        <li><strong>Simetría de Horarios:</strong> ¿Las 6 sesiones de mañana y 6 de tarde-noche encajan con el timbre del instituto?</li>
+        <li><strong>Claridad Normativa:</strong> ¿Los distintivos de prioridad P1, P2 y P3 te resultan claros y transparentes?</li>
+        <li><strong>Propuestas y Mejoras:</strong> ¿Echas en falta algún recurso técnico, campo didáctico o ajuste visual?</li>
+      </ul>
+    </div>
+
+    <div style="background: #0f172a; color: #ffffff; padding: 14px 18px; border-radius: 12px; margin-top: 24px; text-align: center;">
+      <div style="font-weight: 800; font-size: 11pt; color: #34d399; margin-bottom: 4px;">
+        ¡Muchas gracias por colaborar en la dinamización del Aula ATECA!
+      </div>
+      <div style="font-size: 8.5pt; color: #94a3b8;">
+        Tu participación es esencial para consolidar un espacio de innovación tecnológica riguroso, ágil y colaborativo.
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <span>Gestor de Aula ATECA · Manual de Pruebas</span>
+      <span>Página 4</span>
+    </div>
+  </div>
+
+</body>
+</html>
