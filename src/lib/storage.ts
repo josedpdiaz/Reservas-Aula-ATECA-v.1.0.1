@@ -5,8 +5,7 @@
 
 import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil } from '../types';
 import { syncToGoogleSheets } from './syncService';
-
-// Pre-seeded configuration data
+// Pre-seeded configuration data (Producción Oficial)
 const DEFAULT_CONFIG: Record<string, string> = {
   nombre_centro: "IES Agustín de Betancourt",
   nombre_aula: "Aula ATECA Innovación",
@@ -18,7 +17,7 @@ const DEFAULT_CONFIG: Record<string, string> = {
   logo_centro: "/logo_iesb.png", // Logo oficial IES Agustín de Betancourt
 };
 
-// Pre-seeded users (Solo el Administrador oficial del centro)
+// Pre-seeded users (Solo el Administrador oficial del centro en Producción)
 const DEFAULT_USERS: Usuario[] = [
   {
     id_usuario: "u-1",
@@ -174,7 +173,7 @@ export const initializeStorage = (force: boolean = false) => {
     localStorage.setItem(STORAGE_KEYS.FONT_SIZE, '100');
   }
 
-  // Configuración inicial de centro IES Agustín de Betancourt y logo sin tocar datos de usuarios
+  // Configuración inicial de centro IES Agustín de Betancourt y logo en producción
   if (localStorage.getItem('ateca_ies_betancourt_v3') !== 'true') {
     const rawCfg = localStorage.getItem(STORAGE_KEYS.CONFIG);
     if (!rawCfg) {
@@ -385,7 +384,7 @@ export const isNonWorkingDay = (dateStr: string): { isNonWorking: boolean; reaso
 export const loginByEmail = (email: string): { success: boolean; user?: Usuario; error?: string } => {
   const emailLower = email.trim().toLowerCase();
 
-  // Exigir terminación oficial @gobiernodecanarias.org
+  // En producción oficial se exige la terminación oficial @gobiernodecanarias.org.
   if (!emailLower.endsWith('@gobiernodecanarias.org')) {
     return {
       success: false,

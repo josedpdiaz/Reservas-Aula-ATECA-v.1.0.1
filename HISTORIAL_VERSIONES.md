@@ -6,9 +6,19 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 ---
 
 ## [v1.3.4] - 2026-09-13
-### 🏛️ Producción Oficial IES Agustín de Betancourt (ateca.fpapps.es) y Autenticación Corporativa @gobiernodecanarias.org
-* **Objetivo**: Puesta en marcha definitiva del sistema en producción para el **IES Agustín de Betancourt** en el dominio oficial `https://ateca.fpapps.es`, suprimiendo cualquier formato de cuentas de prueba o evaluación, implementando la autenticación corporativa con cuentas Google del Gobierno de Canarias (`@gobiernodecanarias.org`) con el administrador oficial `jpacdia@gobiernodecanarias.org`, y manteniendo la plataforma secundaria `https://ateca.josedpdiaz.net` como banco técnico auxiliar.
+### 🏛️ Producción Oficial IES Agustín de Betancourt (ateca.fpapps.es) y Arquitectura Simplificada de 3 Capas
+* **Objetivo**: Puesta en marcha definitiva del sistema en producción para el **IES Agustín de Betancourt** en el dominio oficial `https://ateca.fpapps.es`, suprimiendo definitivamente el entorno de pruebas para operar en un modelo unificado y robusto de 3 capas (Guardado Local, Git GitHub y Producción Oficial), con autenticación corporativa mediante cuentas Google del Gobierno de Canarias (`@gobiernodecanarias.org`) y el administrador oficial `jpacdia@gobiernodecanarias.org`.
 * **Mejoras clave**:
+  * **Corrección Crítica en Panel de Administración**:
+    * Subsanado el fallo de pantalla en blanco al acceder al Panel de Administración mediante la importación de `useEffect` en React.
+    * Eliminación de importaciones duplicadas en iconos.
+  * **Persistencia Inmediata de Google Sheets**:
+    * Guardado en tiempo real en `localStorage` tanto del enlace directo a la hoja como del endpoint de Apps Script, evitando pérdidas accidentales al conmutar pestañas.
+  * **Arquitectura Simplificada en 3 Capas**:
+    * **Capa 1: Guardado en Local**: Código fuente consolidado en el equipo local y copias de seguridad limpias en ZIP.
+    * **Capa 2: Control de Versiones en Git**: Repositorio GitHub sincronizado en rama `main`.
+    * **Capa 3: Despliegue en Producción**: Despliegue automatizado directo a `https://ateca.fpapps.es` (`npm run deploy:prod`).
+    * Supresión definitiva de dependencias, scripts y elementos del entorno de pruebas secundario.
   * **Identidad Institucional de Centro**:
     * Cabecera oficial con la denominación del centro: **Gestor Aula ATECA • IES Agustín de Betancourt**.
     * Configuración base predeterminada asignada al IES Agustín de Betancourt.
@@ -17,15 +27,7 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
     * Validación estricta de dominio: solo se permite el acceso a direcciones con terminación `@gobiernodecanarias.org`.
     * Alta y acceso automático de profesorado corporativo del centro.
     * Administrador único oficial fijado en `jpacdia@gobiernodecanarias.org`.
-  * **Limpieza Total del Entorno de Producción**:
-    * Eliminación definitiva de barras superiores de demo, desplegables de cuentas de prueba/evaluación y botones de alternancia de pruebas.
-    * Entorno 100% operativo, profesional y listo para uso del claustro docente.
-  * **Automatización de Despliegues y Arquitectura Dual**:
-    * `npm run deploy:prod`: Compila y sincroniza de forma aislada la producción oficial del centro (`ateca.fpapps.es`).
-    * `npm run deploy:test`: Sincroniza el entorno técnico auxiliar (`ateca.josedpdiaz.net`).
-    * `npm run deploy`: Despliegue simultáneo en ambos servidores.
-    * Protocolo de confirmación previa del asistente antes de cualquier sincronización.
-* **Archivos afectados**: `src/lib/storage.ts`, `src/App.tsx`, `src/components/AdminPanel.tsx`, `package.json`, `HISTORIAL_VERSIONES.md`, `INFORME_ESPECIAL_ENTORNOS_Y_PROTOCOLO_DUAL.md`.
+* **Archivos afectados**: `src/lib/storage.ts`, `src/App.tsx`, `src/components/AdminPanel.tsx`, `package.json`, `HISTORIAL_VERSIONES.md`.
 
 ---
 

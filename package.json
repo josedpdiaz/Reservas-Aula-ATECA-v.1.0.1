@@ -9,9 +9,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "deploy:test": "vite build && scp -P 65002 -r dist/* dist/.htaccess u220313307@109.106.243.32:domains/josedpdiaz.net/public_html/ateca/ && ssh -p 65002 u220313307@109.106.243.32 \"chmod -R 755 domains/josedpdiaz.net/public_html/ateca && find domains/josedpdiaz.net/public_html/ateca -type f -exec chmod 644 {} \\;\"",
     "deploy:prod": "vite build && scp -P 65002 -r dist/* dist/.htaccess u220313307@109.106.243.32:domains/fpapps.es/public_html/ateca/ && ssh -p 65002 u220313307@109.106.243.32 \"chmod -R 755 domains/fpapps.es/public_html/ateca && find domains/fpapps.es/public_html/ateca -type f -exec chmod 644 {} \\;\"",
-    "deploy": "npm run deploy:test && npm run deploy:prod"
+    "deploy": "npm run deploy:prod"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
