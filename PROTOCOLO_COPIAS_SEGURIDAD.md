@@ -20,10 +20,19 @@ Cada vez que el usuario indique **«guardar una copia de seguridad»** o cerremo
 
 ---
 
-### 3. 🌐 Capa 3: Actualización del Servidor en Producción (Hostinger)
-* **Ubicación**: `https://ateca.josedpdiaz.net`
-* **Naturaleza**: Aplicación web en vivo compilada con Vite (`dist/`) y enrutamiento `.htaccess`.
-* **Función**: Garantizar que la versión pública que utilizan los docentes del centro refleje siempre las mejoras estables. Se actualiza mediante `npm run deploy` por SSH.
+### 3. 🌐 Capa 3: Actualización de Servidores Remotos (Hostinger)
+* **Entorno de Pruebas (Piloto/Ensayos)**: `https://ateca.josedpdiaz.net` (`domains/josedpdiaz.net/public_html/ateca/`)
+  * Despliegue individual: `npm run deploy:test`
+  * Mantiene datos de prueba/piloto y características en validación.
+* **Entorno de Producción (Oficial de Centro)**: `https://ateca.fpapps.es` (`domains/fpapps.es/public_html/ateca/`)
+  * Despliegue individual: `npm run deploy:prod`
+  * Aloja los datos reales de profesorado y reservas del centro.
+* **Regla de Operación**:
+  * Si el usuario pide cambios para **Producción (`ateca.fpapps.es`)**, los cambios se publican en producción de forma aislada para no alterar el entorno de pruebas, salvo que indique expresamente que deben trasladarse a todas las capas.
+  * Si el usuario pide cambios o pruebas en **Pruebas (`ateca.josedpdiaz.net`)**, producción queda intacta.
+  * Cuando se trate de **actualizaciones globales o hitos importantes**, se compilará y desplegará unificadamente con `npm run deploy` y se replicará en las 4 capas.
+* **Naturaleza**: Aplicaciones web en vivo compiladas (`dist/`), protegidas con HTTPS y reglas SPA `.htaccess`.
+* **Credenciales SSH**: Mismo host (`109.106.243.32`), puerto (`65002`) y usuario (`u220313307`) mediante clave ED25519.
 
 ---
 
