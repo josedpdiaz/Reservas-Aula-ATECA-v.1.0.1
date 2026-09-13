@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: Record<string, string> = {
   duracion_minima_reserva: "30",
   duracion_maxima_reserva: "360",
   email_coordinador: "jpacdia@gobiernodecanarias.org",
-  logo_centro: "", // Optional Base64 or URL logo
+  logo_centro: "/logo_iesb.png", // Logo oficial IES Agustín de Betancourt
 };
 
 // Pre-seeded users (Solo el Administrador oficial del centro)
@@ -173,15 +173,15 @@ export const initializeStorage = (force: boolean = false) => {
     localStorage.setItem(STORAGE_KEYS.FONT_SIZE, '100');
   }
 
-  // Saneamiento oficial de centro IES Agustín de Betancourt
-  if (localStorage.getItem('ateca_ies_betancourt_v1') !== 'true') {
+  // Saneamiento oficial de centro IES Agustín de Betancourt y logo
+  if (localStorage.getItem('ateca_ies_betancourt_v2') !== 'true') {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(DEFAULT_USERS));
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
     const current = safeParse<Usuario | null>(localStorage.getItem(STORAGE_KEYS.CURRENT_USER), null);
     if (current && (!current.email.endsWith('@gobiernodecanarias.org') || current.email !== 'jpacdia@gobiernodecanarias.org')) {
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     }
-    localStorage.setItem('ateca_ies_betancourt_v1', 'true');
+    localStorage.setItem('ateca_ies_betancourt_v2', 'true');
   }
 
   // Limpieza inicial para producción sin datos mock
