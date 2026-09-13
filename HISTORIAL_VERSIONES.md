@@ -5,6 +5,30 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.4] - 2026-09-13
+### 🚀 Arquitectura Dual: Producción Oficial de Centro (ateca.fpapps.es) y Pruebas Piloto (ateca.josedpdiaz.net) con Protocolo de Sincronización Blindado
+* **Objetivo**: Habilitar el dominio definitivo de producción para el centro educativo (`https://ateca.fpapps.es`), preservando al mismo tiempo el entorno de pruebas (`https://ateca.josedpdiaz.net`) para ensayos y validaciones con profesorado, implementando automatización de despliegues independientes y una política estricta de confirmación y clasificación de cambios.
+* **Mejoras clave**:
+  * **Convivencia de Dos Entornos Operativos en Hostinger**:
+    * **Producción de Centro**: `https://ateca.fpapps.es` (carpeta remota `domains/fpapps.es/public_html/ateca/`).
+    * **Entorno de Pruebas / Piloto**: `https://ateca.josedpdiaz.net` (carpeta remota `domains/josedpdiaz.net/public_html/ateca/`).
+    * Ambos entornos operan bajo la misma clave criptográfica ED25519 (`u220313307@109.106.243.32:65002`) sin requerir credenciales adicionales.
+  * **Automatización de Despliegues en `package.json`**:
+    * `npm run deploy:prod`: Compila y sincroniza exclusivamente el entorno oficial de producción.
+    * `npm run deploy:test`: Compila y sincroniza exclusivamente el entorno de pruebas.
+    * `npm run deploy`: Compila y despliega simultáneamente en ambos servidores.
+  * **Clasificación Estricta de Cambios**:
+    * *🅰️ Cambios Funcionales*: Sincronización integral en las 4 capas del protocolo (Escritorio, Nube comprimida `.zip`, Servidores Hostinger duales y GitHub ramas subyacentes).
+    * *🅱️ Cambios de Datos de Centro*: Despliegue aislado en Producción (`ateca.fpapps.es`) para no mezclar datos reales del centro con las pruebas.
+    * *🧪 Ensayos y Ajustes*: Despliegue aislado en Pruebas (`ateca.josedpdiaz.net`).
+  * **Regla de Oro de Confirmación Obligatoria**:
+    * El asistente consulta siempre al usuario antes de desplegar para confirmar el destino exacto de la sincronización.
+  * **Documentación y Gobierno del Proyecto**:
+    * Creación de `INFORME_ESPECIAL_ENTORNOS_Y_PROTOCOLO_DUAL.md` y actualización de `PROTOCOLO_COPIAS_SEGURIDAD.md` en el repositorio y en la carpeta de archivo en la nube.
+* **Archivos afectados**: `package.json`, `PROTOCOLO_COPIAS_SEGURIDAD.md`, `HISTORIAL_VERSIONES.md`, `INFORME_ESPECIAL_ENTORNOS_Y_PROTOCOLO_DUAL.md`.
+
+---
+
 ## [v1.3.3] - 2026-09-06
 ### 🛡️ Consolidación de Opción A: Gestión de Bajas con Protección Total del Histórico Escolar
 * **Objetivo**: Blindar la base de datos frente a pérdida accidental de memorias pedagógicas, eliminando el borrado destructivo y adoptando la **Opción A** («Dar de baja / Desactivar») como estándar exclusivo del centro educativo.
