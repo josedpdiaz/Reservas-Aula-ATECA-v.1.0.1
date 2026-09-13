@@ -16,7 +16,7 @@ export default function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
   if (!isOpen) return null;
 
   const config = getConfig();
-  const centro = config.nombre_centro || "Centro Educativo (Canarias Educación)";
+  const centro = config.nombre_centro || "IES Agustín de Betancourt";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs no-print animate-fade-in">
@@ -94,7 +94,7 @@ export default function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
               <FileText className="w-3.5 h-3.5 text-slate-500" /> 4. Datos del Profesorado y Buenas Prácticas
             </h3>
             <p>
-              Se recomienda el uso exclusivo de la <strong>cuenta de correo corporativa</strong> proporcionada por la Consejería de Educación o el centro educativo (ej. <code>@canariaseducacion.org</code>). Los datos tratados se limitan a: nombre y apellidos del profesorado solicitante, departamento didáctico, correo oficial y descripción de las actividades lectivas.
+              Se requiere el uso exclusivo de la <strong>cuenta de correo corporativa oficial</strong> asignada por la Consejería de Educación: <code>@gobiernodecanarias.org</code>. Los datos tratados se limitan a: nombre y apellidos del profesorado solicitante, departamento didáctico, correo oficial de Canarias Educación y justificación pedagógica de las actividades lectivas.
             </p>
           </div>
 
@@ -114,7 +114,7 @@ export default function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
               <FileText className="w-3.5 h-3.5 text-slate-500" /> 6. Ejercicio de Derechos
             </h3>
             <p>
-              El profesorado interesado podrá ejercer sus derechos de acceso, rectificación, supresión o limitación del tratamiento dirigiéndose a la Secretaría del centro educativo o ante el Delegado de Protección de Datos (DPD) de la Consejería de Educación.
+              El profesorado interesado podrá ejercer sus derechos de acceso, rectificación, supresión o limitación del tratamiento dirigiéndose a la Secretaría del <strong>IES Agustín de Betancourt</strong> o ante el Delegado de Protección de Datos (DPD) de la Consejería de Educación del Gobierno de Canarias.
             </p>
           </div>
 

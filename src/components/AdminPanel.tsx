@@ -365,7 +365,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                     required
                     value={newUsrEmail}
                     onChange={(e) => setNewUsrEmail(e.target.value)}
-                    placeholder="docente@centro.edu"
+                    placeholder="docente@gobiernodecanarias.org"
                     className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none"
                   />
                 </div>

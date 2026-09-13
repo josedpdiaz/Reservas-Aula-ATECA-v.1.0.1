@@ -7,62 +7,26 @@ import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil } from '.
 
 // Pre-seeded configuration data
 const DEFAULT_CONFIG: Record<string, string> = {
-  nombre_centro: "IES Blas Cabrera Felipe",
+  nombre_centro: "IES Agustín de Betancourt",
   nombre_aula: "Aula ATECA Innovación",
   horario_inicio: "08:00",
   horario_fin: "22:30",
   duracion_minima_reserva: "30",
   duracion_maxima_reserva: "360",
-  email_coordinador: "coordinador.ateca@centro.edu",
+  email_coordinador: "jpacdia@gobiernodecanarias.org",
   logo_centro: "", // Optional Base64 or URL logo
 };
 
-// Pre-seeded users
+// Pre-seeded users (Solo el Administrador oficial del centro)
 const DEFAULT_USERS: Usuario[] = [
   {
     id_usuario: "u-1",
     nombre: "José Díaz",
-    email: "josedpdiaz@gmail.com", // User's email from metadata to auto-login as Admin!
+    email: "jpacdia@gobiernodecanarias.org",
     rol: "ADMIN",
     departamento: "Informática",
     turno: "Ambos",
     activo: true,
-  },
-  {
-    id_usuario: "u-2",
-    nombre: "María González",
-    email: "m.gonzalez@centro.edu",
-    rol: "COORDINADOR",
-    departamento: "Tecnología",
-    turno: "Mañana",
-    activo: true,
-  },
-  {
-    id_usuario: "u-3",
-    nombre: "Juan Santana",
-    email: "j.santana@centro.edu",
-    rol: "PROFESOR",
-    departamento: "Electricidad",
-    turno: "Ambos",
-    activo: true,
-  },
-  {
-    id_usuario: "u-4",
-    nombre: "Laura Pérez",
-    email: "l.perez@centro.edu",
-    rol: "PROFESOR",
-    departamento: "Administración",
-    turno: "Tarde-Noche",
-    activo: true,
-  },
-  {
-    id_usuario: "u-5",
-    nombre: "Pedro Ramírez",
-    email: "p.ramirez@centro.edu",
-    rol: "PROFESOR",
-    departamento: "Sanidad",
-    turno: "Mañana",
-    activo: false, // Inactive
   }
 ];
 
@@ -208,12 +172,19 @@ export const initializeStorage = (force: boolean = false) => {
   if (!localStorage.getItem(STORAGE_KEYS.FONT_SIZE)) {
     localStorage.setItem(STORAGE_KEYS.FONT_SIZE, '100');
   }
-  if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
-    // Auto login as user u-1 (José Díaz, ADMIN) because of the email in additional metadata!
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(DEFAULT_USERS[0]));
+
+  // Saneamiento oficial de centro IES Agustín de Betancourt
+  if (localStorage.getItem('ateca_ies_betancourt_v1') !== 'true') {
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(DEFAULT_USERS));
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
+    const current = safeParse<Usuario | null>(localStorage.getItem(STORAGE_KEYS.CURRENT_USER), null);
+    if (current && (!current.email.endsWith('@gobiernodecanarias.org') || current.email !== 'jpacdia@gobiernodecanarias.org')) {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    }
+    localStorage.setItem('ateca_ies_betancourt_v1', 'true');
   }
 
-  // Limpieza inicial para fase de pruebas / producción sin datos mock
+  // Limpieza inicial para producción sin datos mock
   if (localStorage.getItem('ateca_production_clean_v122') !== 'true') {
     localStorage.setItem(STORAGE_KEYS.RESERVAS, JSON.stringify([]));
     localStorage.setItem(STORAGE_KEYS.VALORACIONES, JSON.stringify([]));
@@ -408,16 +379,25 @@ export const isNonWorkingDay = (dateStr: string): { isNonWorking: boolean; reaso
 
 // Business operations
 export const loginByEmail = (email: string): { success: boolean; user?: Usuario; error?: string } => {
-  const users = getUsuarios();
   const emailLower = email.trim().toLowerCase();
+
+  // Exigir terminación oficial @gobiernodecanarias.org
+  if (!emailLower.endsWith('@gobiernodecanarias.org')) {
+    return {
+      success: false,
+      error: "Acceso restringido: Debes identificarte con tu cuenta oficial del Gobierno de Canarias (@gobiernodecanarias.org)."
+    };
+  }
+
+  const users = getUsuarios();
   const user = users.find(u => u.email.trim().toLowerCase() === emailLower);
 
   if (!user) {
-    // Default fallback: create an active PROFESOR if email is entered
+    // Si la cuenta es del Gobierno de Canarias pero aún no está en el listado, se registra como profesor activo
     const defaultUser: Usuario = {
       id_usuario: generateUniqueId('u'),
-      nombre: emailSplitName(email),
-      email: email.trim(),
+      nombre: emailSplitName(emailLower),
+      email: emailLower,
       rol: 'PROFESOR',
       departamento: "General",
       turno: "Ambos",
@@ -430,7 +410,7 @@ export const loginByEmail = (email: string): { success: boolean; user?: Usuario;
   }
 
   if (!user.activo) {
-    return { success: false, error: "Tu usuario existe pero se encuentra DESACTIVADO. Contacta con el administrador." };
+    return { success: false, error: "Tu usuario existe pero se encuentra DESACTIVADO. Contacta con la Coordinación o Administración del centro." };
   }
 
   setCurrentUser(user);
