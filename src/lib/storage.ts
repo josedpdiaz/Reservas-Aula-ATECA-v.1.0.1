@@ -173,15 +173,18 @@ export const initializeStorage = (force: boolean = false) => {
     localStorage.setItem(STORAGE_KEYS.FONT_SIZE, '100');
   }
 
-  // Saneamiento oficial de centro IES Agustín de Betancourt y logo
-  if (localStorage.getItem('ateca_ies_betancourt_v2') !== 'true') {
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(DEFAULT_USERS));
-    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
-    const current = safeParse<Usuario | null>(localStorage.getItem(STORAGE_KEYS.CURRENT_USER), null);
-    if (current && (!current.email.endsWith('@gobiernodecanarias.org') || current.email !== 'jpacdia@gobiernodecanarias.org')) {
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  // Configuración inicial de centro IES Agustín de Betancourt y logo sin tocar datos de usuarios
+  if (localStorage.getItem('ateca_ies_betancourt_v3') !== 'true') {
+    const rawCfg = localStorage.getItem(STORAGE_KEYS.CONFIG);
+    if (!rawCfg) {
+      localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
+    } else {
+      const cfg = safeParse<Record<string, string>>(rawCfg, {});
+      cfg.nombre_centro = DEFAULT_CONFIG.nombre_centro;
+      cfg.logo_centro = DEFAULT_CONFIG.logo_centro;
+      localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(cfg));
     }
-    localStorage.setItem('ateca_ies_betancourt_v2', 'true');
+    localStorage.setItem('ateca_ies_betancourt_v3', 'true');
   }
 
   // Limpieza inicial para producción sin datos mock
@@ -614,6 +617,12 @@ export const modifyUsuario = (userId: string, updates: Partial<Usuario>) => {
   if (idx >= 0) {
     users[idx] = { ...users[idx], ...updates };
     setUsuarios(users);
+
+    // Si el usuario modificado es el usuario actualmente en sesión, actualizar de inmediato su sesión activa
+    const current = getCurrentUser();
+    if (current && (current.id_usuario === userId || current.email.toLowerCase() === users[idx].email.toLowerCase())) {
+      setCurrentUser(users[idx]);
+    }
   }
 };
 

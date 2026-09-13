@@ -689,7 +689,7 @@ export default function App() {
 
       {/* LOWER FOOTER BRAND (Hidden when printing reports) */}
       <footer className="mt-12 py-6 bg-slate-900 border-t border-slate-800 text-slate-400 text-center text-[10px] md:text-xs font-medium no-print space-y-2">
-        <p>© 2026 Gestor Aula ATECA • IES Agustín de Betancourt. Diseñado para simplificar la planificación de innovación educativa y currículo en Formación Profesional canaria.</p>
+        <p>© 2026 Gestor de Aulas ATECA y Entorno Virtual • IES Agustín de Betancourt. Diseñado para simplificar la planificación de la programación docente y currículo de Formación Profesional Canaria.</p>
         <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-400 font-semibold pt-1">
           <button
             onClick={() => setShowPrivacyModal(true)}

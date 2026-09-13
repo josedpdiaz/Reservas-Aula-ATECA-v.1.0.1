@@ -234,7 +234,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
                 <div>
                   <h4 className="font-bold text-[11px] text-slate-500 uppercase mb-1">12. Observaciones Generales Finales</h4>
                   <p className="text-xs text-slate-700 italic leading-relaxed">
-                    {valuation.observaciones_finales || "Ficha didáctica y evidencia pedagógica completada conforme a la normativa de evaluación formativa de FP canaria."}
+                    {valuation.observaciones_finales || "Ficha didáctica y evidencia pedagógica completada conforme a la normativa de evaluación formativa de FP Canaria."}
                   </p>
                 </div>
               </div>
