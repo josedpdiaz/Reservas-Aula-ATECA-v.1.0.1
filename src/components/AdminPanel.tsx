@@ -73,6 +73,16 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [docUrlSaved, setDocUrlSaved] = useState(false);
   const [endpointUrlSaved, setEndpointUrlSaved] = useState(false);
 
+  useEffect(() => {
+    const cfg = getConfig();
+    if (cfg.google_sheets_url && cfg.google_sheets_url !== gsheetUrl) {
+      setGsheetUrl(cfg.google_sheets_url);
+    }
+    if (cfg.google_sheets_doc_url && cfg.google_sheets_doc_url !== gsheetDocUrl) {
+      setGsheetDocUrl(cfg.google_sheets_doc_url);
+    }
+  }, [activeTab]);
+
   const handleSaveDocUrl = () => {
     const currentCfg = getConfig();
     currentCfg.google_sheets_doc_url = gsheetDocUrl.trim();
@@ -232,15 +242,16 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
+    const currentCfg = getConfig();
     setConfig({
-      ...rawConfig,
+      ...currentCfg,
       nombre_centro: nombreCentro,
       nombre_aula: nombreAula,
       horario_inicio: horarioInicio,
       horario_fin: horarioFin,
       email_coordinador: emailCoordinador,
-      google_sheets_url: gsheetUrl,
-      google_sheets_doc_url: gsheetDocUrl,
+      google_sheets_url: gsheetUrl.trim() || currentCfg.google_sheets_url || '',
+      google_sheets_doc_url: gsheetDocUrl.trim() || currentCfg.google_sheets_doc_url || '',
       logo_centro: logoCentro,
     });
     alert('Configuración y personalización del centro guardadas correctamente.');
@@ -1023,7 +1034,13 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                 <input
                   type="url"
                   value={gsheetDocUrl}
-                  onChange={(e) => setGsheetDocUrl(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setGsheetDocUrl(val);
+                    const currentCfg = getConfig();
+                    currentCfg.google_sheets_doc_url = val.trim();
+                    setConfig(currentCfg);
+                  }}
                   placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRX.../edit"
                   className="flex-1 px-3 py-2 bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg text-xs outline-none shadow-2xs font-mono"
                 />
@@ -1059,7 +1076,13 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                 <input
                   type="url"
                   value={gsheetUrl}
-                  onChange={(e) => setGsheetUrl(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setGsheetUrl(val);
+                    const currentCfg = getConfig();
+                    currentCfg.google_sheets_url = val.trim();
+                    setConfig(currentCfg);
+                  }}
                   onBlur={() => {
                     if (gsheetUrl.trim()) {
                       handleSaveEndpointUrl(gsheetUrl.trim());
