@@ -16,9 +16,9 @@ import {
   initializeStorage, getReservas, getValoraciones, 
   getCurrentUser, setCurrentUser, loginByEmail, getConfig,
   getTheme, setTheme, deleteReserva, cancelReserva,
-  getFontSize, setFontSize
+  getFontSize, setFontSize, updateReservaEstado, getUsuarios
 } from './lib/storage';
-import { notifyAulaLiberada } from './lib/emailService';
+import { notifyAulaLiberada, notifyReservaAprobada } from './lib/emailService';
 
 import CalendarView from './components/CalendarView';
 import BookingForm from './components/BookingForm';
@@ -587,6 +587,30 @@ export default function App() {
                     >
                       Atrás
                     </button>
+                    {(user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && selectedBooking.estado === 'PENDIENTE' && (
+                      <button
+                        onClick={() => {
+                          updateReservaEstado(selectedBooking.id_reserva, 'APROBADA', 'Autorizada por la Coordinación/Administración.');
+                          const allUsers = getUsuarios();
+                          const requestingUser = allUsers.find(u => u.email.toLowerCase() === selectedBooking.email.toLowerCase()) || {
+                            id_usuario: 'temp',
+                            nombre: selectedBooking.profesor,
+                            email: selectedBooking.email,
+                            rol: 'PROFESOR' as const,
+                            departamento: selectedBooking.departamento,
+                            turno: 'Ambos' as const,
+                            activo: true,
+                          };
+                          notifyReservaAprobada(selectedBooking, requestingUser, 'Autorizada desde la ficha de detalle.');
+                          triggerToast('¡Reserva aprobada con éxito! Aula confirmada en el calendario.');
+                          setCurrentAction('view');
+                          handleUpdate();
+                        }}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 text-white" /> Aprobar Reserva
+                      </button>
+                    )}
                     {(selectedBooking.email === user.email || user.rol === 'ADMIN') && selectedBooking.estado !== 'CANCELADA' && (
                       <>
                         <button
