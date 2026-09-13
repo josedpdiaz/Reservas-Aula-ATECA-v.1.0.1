@@ -4,6 +4,7 @@
  */
 
 import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil } from '../types';
+import { syncToGoogleSheets } from './syncService';
 
 // Pre-seeded configuration data
 const DEFAULT_CONFIG: Record<string, string> = {
@@ -480,6 +481,9 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
   reservasArr.unshift(finalReserva); // put on top
   setReservas(reservasArr);
 
+  // Sincronización automática en segundo plano con Google Sheets
+  syncToGoogleSheets('save_reserva', finalReserva);
+
   return {
     success: true,
     reserva: finalReserva,
@@ -523,6 +527,8 @@ export const saveValoracion = (val: Omit<Valoracion, 'id_valoracion' | 'fecha_va
     // Turn reservation to REALIZADA if valorated
     updateReservaEstado(val.id_reserva, 'REALIZADA');
 
+    syncToGoogleSheets('save_valoracion', updated);
+
     return updated;
   } else {
     const newId = generateUniqueId('val');
@@ -537,6 +543,8 @@ export const saveValoracion = (val: Omit<Valoracion, 'id_valoracion' | 'fecha_va
     // Turn reservation to REALIZADA if valorated
     updateReservaEstado(val.id_reserva, 'REALIZADA');
 
+    syncToGoogleSheets('save_valoracion', newVal);
+
     return newVal;
   }
 };
@@ -550,6 +558,7 @@ export const updateReservaEstado = (reservaId: string, nuevoEstado: 'PENDIENTE' 
       arr[idx].observaciones_coordinador = observaciones;
     }
     setReservas(arr);
+    syncToGoogleSheets('save_reserva', arr[idx]);
   }
 };
 
@@ -584,6 +593,7 @@ export const updateReserva = (reserva: Reserva): { success: boolean; message?: s
 
   arr[idx] = { ...arr[idx], ...reserva };
   setReservas(arr);
+  syncToGoogleSheets('save_reserva', arr[idx]);
   return { success: true };
 };
 
@@ -605,6 +615,7 @@ export const cancelReserva = (id_reserva: string, motivo?: string): boolean => {
       arr[idx].observaciones_coordinador = `Cancelada: ${motivo}`;
     }
     setReservas(arr);
+    syncToGoogleSheets('save_reserva', arr[idx]);
     return true;
   }
   return false;
@@ -623,6 +634,7 @@ export const modifyUsuario = (userId: string, updates: Partial<Usuario>) => {
     if (current && (current.id_usuario === userId || current.email.toLowerCase() === users[idx].email.toLowerCase())) {
       setCurrentUser(users[idx]);
     }
+    syncToGoogleSheets('save_usuario', users[idx]);
   }
 };
 
@@ -644,6 +656,7 @@ export const addUsuario = (user: Omit<Usuario, 'id_usuario'>): Usuario => {
   const newUsr: Usuario = { ...user, id_usuario };
   users.push(newUsr);
   setUsuarios(users);
+  syncToGoogleSheets('save_usuario', newUsr);
   return newUsr;
 };
 
@@ -654,6 +667,7 @@ export const addBloqueo = (bloq: Omit<Bloqueo, 'id_bloqueo'>): Bloqueo => {
   const newB: Bloqueo = { ...bloq, id_bloqueo };
   bloqs.unshift(newB);
   setBloqueos(bloqs);
+  syncToGoogleSheets('save_bloqueo', newB);
   return newB;
 };
 
@@ -662,4 +676,5 @@ export const removeBloqueo = (blockId: string) => {
   const bloqs = getBloqueos();
   const filtered = bloqs.filter(b => b.id_bloqueo !== blockId);
   setBloqueos(filtered);
+  syncToGoogleSheets('delete_bloqueo', blockId);
 };

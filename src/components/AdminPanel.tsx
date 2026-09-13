@@ -71,6 +71,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [activeTab, setActiveTab] = useState<'users' | 'blocks' | 'holidays' | 'settings' | 'sheets' | 'emails'>('users');
   const [syncStatus, setSyncStatus] = useState<{ loading: boolean; success?: boolean; msg?: string }>({ loading: false });
   const [docUrlSaved, setDocUrlSaved] = useState(false);
+  const [endpointUrlSaved, setEndpointUrlSaved] = useState(false);
 
   const handleSaveDocUrl = () => {
     const currentCfg = getConfig();
@@ -78,6 +79,15 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     setConfig(currentCfg);
     setDocUrlSaved(true);
     setTimeout(() => setDocUrlSaved(false), 3500);
+  };
+
+  const handleSaveEndpointUrl = (urlToSave?: string) => {
+    const url = (urlToSave !== undefined ? urlToSave : gsheetUrl).trim();
+    const currentCfg = getConfig();
+    currentCfg.google_sheets_url = url;
+    setConfig(currentCfg);
+    setEndpointUrlSaved(true);
+    setTimeout(() => setEndpointUrlSaved(false), 3500);
   };
 
   // Email logs viewer states
@@ -1035,26 +1045,65 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
             </div>
 
             {/* Sheet webhook configure input */}
-            <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl space-y-4">
-              <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider"><CloudLightning className="w-4 h-4 text-emerald-500" /> Endpoint de Apps Script API</h3>
-              <p className="text-xs text-slate-400 leading-tight">Introduce aquí la URL del Web App de Google Apps Script generado. Esto permitirá sincronizar la base de datos de forma segura e inmediata.</p>
+            <div className="bg-slate-50 p-4 sm:p-5 border border-slate-200 rounded-xl space-y-4">
+              <div>
+                <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
+                  <CloudLightning className="w-4 h-4 text-emerald-500" /> Endpoint de Apps Script API (Sincronización y Correos)
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Introduce aquí la URL del Web App de Google Apps Script generado. Se guarda de inmediato y activa la sincronización reactiva en tiempo real y el envío de notificaciones por correo.
+                </p>
+              </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="url"
                   value={gsheetUrl}
                   onChange={(e) => setGsheetUrl(e.target.value)}
-                  placeholder="Ej: https://script.google.com/macros/s/.../exec"
-                  className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs outline-none leading-none"
+                  onBlur={() => {
+                    if (gsheetUrl.trim()) {
+                      handleSaveEndpointUrl(gsheetUrl.trim());
+                    }
+                  }}
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  className="flex-1 px-3 py-2 bg-white border border-slate-200 focus:border-indigo-500 rounded-lg text-xs outline-none font-mono"
                 />
                 <button
+                  type="button"
+                  onClick={() => handleSaveEndpointUrl()}
+                  disabled={!gsheetUrl}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 disabled:bg-slate-300 text-white font-bold rounded-lg cursor-pointer text-xs flex items-center justify-center gap-1.5 transition-colors shrink-0"
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400" /> Guardar Endpoint
+                </button>
+                <button
+                  type="button"
                   onClick={handleSheetsSync}
                   disabled={syncStatus.loading || !gsheetUrl}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-slate-300 text-white font-bold rounded-lg cursor-pointer text-xs flex items-center gap-1 transition-colors"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-slate-300 text-white font-bold rounded-lg cursor-pointer text-xs flex items-center justify-center gap-1.5 transition-colors shrink-0"
                 >
                   <Play className="w-3.5 h-3.5" /> {syncStatus.loading ? 'Enviando...' : 'Transferir todo (Sincronizar)'}
                 </button>
               </div>
+
+              {endpointUrlSaved && (
+                <div className="p-2.5 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-medium flex items-center gap-1.5 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                  Endpoint de Apps Script guardado automáticamente en la configuración.
+                </div>
+              )}
+
+              {gsheetUrl && (
+                <div className="flex items-center gap-2 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium">
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span>
+                    <strong>Sincronización en tiempo real activa:</strong> Cada reserva nueva, aprobación, cancelación, valoración o bloqueo se sincroniza automáticamente con tu hoja de cálculo en segundo plano.
+                  </span>
+                </div>
+              )}
 
               {syncStatus.msg && (
                 <div className={`p-3 text-xs rounded-lg font-semibold flex items-center gap-2 ${
