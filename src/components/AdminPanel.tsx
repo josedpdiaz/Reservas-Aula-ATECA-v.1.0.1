@@ -8,7 +8,8 @@ import {
   UserPlus, Power, Settings, Trash, Trash2, AlertTriangle, FileSpreadsheet, 
   Play, CheckCircle2, CloudLightning, Calendar, CalendarOff, Image as ImageIcon, 
   Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
-  Edit, Search, UserCheck, UserX, ShieldCheck
+  Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
+  Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink
 } from 'lucide-react';
 import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog } from '../types';
 import { 
@@ -34,6 +35,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [horarioFin, setHorarioFin] = useState(rawConfig.horario_fin || '22:30');
   const [emailCoordinador, setEmailCoordinador] = useState(rawConfig.email_coordinador || '');
   const [gsheetUrl, setGsheetUrl] = useState(rawConfig.google_sheets_url || '');
+  const [gsheetDocUrl, setGsheetDocUrl] = useState(rawConfig.google_sheets_doc_url || '');
   const [logoCentro, setLogoCentro] = useState(rawConfig.logo_centro || '');
 
   // Holidays state
@@ -68,6 +70,15 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
 
   const [activeTab, setActiveTab] = useState<'users' | 'blocks' | 'holidays' | 'settings' | 'sheets' | 'emails'>('users');
   const [syncStatus, setSyncStatus] = useState<{ loading: boolean; success?: boolean; msg?: string }>({ loading: false });
+  const [docUrlSaved, setDocUrlSaved] = useState(false);
+
+  const handleSaveDocUrl = () => {
+    const currentCfg = getConfig();
+    currentCfg.google_sheets_doc_url = gsheetDocUrl.trim();
+    setConfig(currentCfg);
+    setDocUrlSaved(true);
+    setTimeout(() => setDocUrlSaved(false), 3500);
+  };
 
   // Email logs viewer states
   const [emailLogsList, setEmailLogsList] = useState<EmailLog[]>(() => getEmailLogs());
@@ -219,6 +230,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
       horario_fin: horarioFin,
       email_coordinador: emailCoordinador,
       google_sheets_url: gsheetUrl,
+      google_sheets_doc_url: gsheetDocUrl,
       logo_centro: logoCentro,
     });
     alert('Configuración y personalización del centro guardadas correctamente.');
@@ -231,6 +243,14 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
       alert('Por favor, introduce una URL de Google Apps Script primero.');
       return;
     }
+
+    // Persistir URLs en configuración
+    const currentCfg = getConfig();
+    currentCfg.google_sheets_url = gsheetUrl.trim();
+    if (gsheetDocUrl.trim()) {
+      currentCfg.google_sheets_doc_url = gsheetDocUrl.trim();
+    }
+    setConfig(currentCfg);
 
     setSyncStatus({ loading: true });
 
@@ -274,7 +294,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
       {/* Banner */}
-      <div className="bg-slate-900 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+      <div className="bg-slate-900 border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center space-x-3 text-white">
           <Settings className="h-6 w-6 text-indigo-400" />
           <div>
@@ -282,6 +302,19 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
             <p className="text-xs text-indigo-200">Ajustes generales, bloqueos técnicos e integración de base de datos</p>
           </div>
         </div>
+
+        {gsheetDocUrl && (
+          <a
+            href={gsheetDocUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Abrir hoja de cálculo de Google Sheets en Google Drive"
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer hover:shadow shrink-0"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Abrir Hoja de Cálculo en Drive ↗</span>
+          </a>
+        )}
       </div>
 
       {/* Tabs */}
@@ -951,6 +984,56 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
 
         {activeTab === 'sheets' && (
           <div className="space-y-6">
+            {/* Sheet direct database URL (Admin quick access) */}
+            <div className="bg-gradient-to-r from-emerald-50 via-teal-50/60 to-emerald-50 border border-emerald-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    Acceso Directo al Archivo Google Sheets (Base de Datos)
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Pega aquí el enlace directo a tu archivo de cálculo en Google Drive para que los administradores puedan consultarlo e inspeccionarlo con un solo clic.
+                  </p>
+                </div>
+                {gsheetDocUrl && (
+                  <a
+                    href={gsheetDocUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors shrink-0"
+                  >
+                    <span>Abrir Hoja en Drive</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <input
+                  type="url"
+                  value={gsheetDocUrl}
+                  onChange={(e) => setGsheetDocUrl(e.target.value)}
+                  placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRX.../edit"
+                  className="flex-1 px-3 py-2 bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg text-xs outline-none shadow-2xs font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveDocUrl}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-white font-bold rounded-lg cursor-pointer text-xs flex items-center justify-center gap-1.5 transition-colors shrink-0"
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400" /> Guardar enlace directo
+                </button>
+              </div>
+
+              {docUrlSaved && (
+                <div className="p-2.5 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-medium flex items-center gap-1.5 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                  Enlace directo a la base de datos guardado correctamente.
+                </div>
+              )}
+            </div>
+
             {/* Sheet webhook configure input */}
             <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl space-y-4">
               <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider"><CloudLightning className="w-4 h-4 text-emerald-500" /> Endpoint de Apps Script API</h3>
