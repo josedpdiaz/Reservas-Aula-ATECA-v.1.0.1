@@ -58,16 +58,27 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
       {/* Main Print Container Sheet */}
       <div className="print-area bg-white border border-slate-300 p-8 md:p-12 shadow-md rounded-xl max-w-4xl mx-auto text-slate-800 font-sans leading-relaxed relative">
         
-        {/* Header - Mimicking official Canary Islands Educational Department Layout */}
-        <div className="border-b-4 border-slate-900 pb-5 pl-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono">CONSEJERÍA DE EDUCACIÓN Y DEPORTES</p>
-            <h1 className="text-xl font-black text-slate-900 uppercase mt-0.5 tracking-tight font-serif">
-              {config.nombre_centro || "CENTRO EDUCATIVO DE CANARIAS"}
-            </h1>
-            <p className="text-xs text-slate-500 font-bold mt-0.5">{config.nombre_aula || "Aula ATECA de Innovación"}</p>
+        {/* Header - Layout Oficial Consejería de Educación / Gobierno de Canarias */}
+        <div className="border-b-4 border-slate-900 pb-5 pl-1 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            {config.logo_centro && (
+              <div className="h-16 w-auto max-w-[110px] flex items-center justify-center shrink-0">
+                <img 
+                  src={config.logo_centro} 
+                  alt="Logo del Centro" 
+                  className="max-h-16 w-auto object-contain" 
+                />
+              </div>
+            )}
+            <div>
+              <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono">GOBIERNO DE CANARIAS • CONSEJERÍA DE EDUCACIÓN</p>
+              <h1 className="text-xl font-black text-slate-900 uppercase mt-0.5 tracking-tight font-serif">
+                {config.nombre_centro || "IES AGUSTÍN DE BETANCOURT"}
+              </h1>
+              <p className="text-xs text-slate-600 font-bold mt-0.5">{config.nombre_aula || "Aula ATECA de Innovación"}</p>
+            </div>
           </div>
-          <div className="bg-slate-100 border border-slate-200 px-4 py-2.5 rounded-lg text-center font-mono select-none self-end sm:self-auto">
+          <div className="bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-lg text-center font-mono select-none self-end sm:self-auto shrink-0 shadow-2xs">
             <span className="text-[10px] text-slate-400 block font-bold leading-none">CÓDIGO INFORME</span>
             <span className="text-xs font-black text-slate-800 leading-none block mt-1.5">ATECA-{booking.id_reserva.toUpperCase()}</span>
           </div>
