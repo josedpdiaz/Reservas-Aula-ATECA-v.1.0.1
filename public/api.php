@@ -405,7 +405,7 @@ switch ($action) {
 
     case 'request_login_code':
         verifySecurity();
-        $email = strtolower(trim($_POST['email'] ?? $requestData['email'] ?? ''));
+        $email = strtolower(trim($_POST['email'] ?? $requestData['email'] ?? $_GET['email'] ?? ''));
 
         if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             http_response_code(400);
@@ -553,8 +553,8 @@ switch ($action) {
 
     case 'verify_login_code':
         verifySecurity();
-        $email = strtolower(trim($_POST['email'] ?? $requestData['email'] ?? ''));
-        $code = trim($_POST['code'] ?? $requestData['code'] ?? '');
+        $email = strtolower(trim($_POST['email'] ?? $requestData['email'] ?? $_GET['email'] ?? ''));
+        $code = trim($_POST['code'] ?? $requestData['code'] ?? $_GET['code'] ?? '');
 
         if (!$email || !$code) {
             http_response_code(400);

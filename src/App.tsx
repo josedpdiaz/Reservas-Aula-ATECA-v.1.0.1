@@ -487,7 +487,7 @@ export default function App() {
                   <span>Autenticación Oficial del Centro</span>
                 </div>
                 <p className="text-[11px] text-indigo-800">
-                  Para acceder y gestionar reservas en el Aula ATECA, introduce tu cuenta corporativa del Gobierno de Canarias terminada en <strong>@gobiernodecanarias.org</strong> (Google Workspace Educativo).
+                  Para acceder y gestionar reservas en el Aula ATECA, introduce tu cuenta corporativa del Gobierno de Canarias terminada en <strong>@gobiernodecanarias.org</strong>.
                 </p>
               </div>
 

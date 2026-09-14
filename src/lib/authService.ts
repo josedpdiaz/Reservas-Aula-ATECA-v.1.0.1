@@ -33,13 +33,15 @@ export async function requestLoginCode(email: string): Promise<RequestCodeResult
   }
 
   try {
+    const formData = new URLSearchParams();
+    formData.append('email', cleanEmail);
+
     const res = await fetch('/api.php?action=request_login_code', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'X-Ateca-Token': ATECA_SECURITY_TOKEN,
       },
-      body: JSON.stringify({ email: cleanEmail }),
+      body: formData,
     });
 
     const data = await res.json();
@@ -85,16 +87,16 @@ export async function verifyLoginCode(email: string, code: string): Promise<Veri
   }
 
   try {
+    const formData = new URLSearchParams();
+    formData.append('email', cleanEmail);
+    formData.append('code', cleanCode);
+
     const res = await fetch('/api.php?action=verify_login_code', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'X-Ateca-Token': ATECA_SECURITY_TOKEN,
       },
-      body: JSON.stringify({
-        email: cleanEmail,
-        code: cleanCode,
-      }),
+      body: formData,
     });
 
     const data = await res.json();
