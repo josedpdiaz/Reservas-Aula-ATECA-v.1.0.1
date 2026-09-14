@@ -487,14 +487,14 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
 
   const isFP = isFpBooking(reserva);
 
-  // Para Formación Profesional (FP), aprobación directa automática inmediata
+  // Para nivel P1 de Formación Profesional y Tecnológica, aprobación directa automática
   const nuevoEstado = isFP ? 'APROBADA' : 'PENDIENTE';
 
   const observaciones = isFP
-    ? 'Aprobada automáticamente por Formación Profesional (FP).'
+    ? 'Aprobada automáticamente por nivel P1 de Formación Profesional (FP / Prueba técnica).'
     : hasApprovedOverlap 
-      ? 'Aviso: Solapamiento potencial con reserva preexistente. Pendiente de resolución por Coordinación.'
-      : 'Reserva pendiente de revisión por el Coordinador.';
+      ? 'Aviso: Solapamiento potencial con reserva preexistente. Requiere validación de Coordinación o Administración.'
+      : 'Reserva registrada como PENDIENTE. Requiere aprobación de Administrador o Coordinadores (Nivel P2/P3).';
 
   const finalReserva: Reserva = {
     ...reserva,
@@ -516,61 +516,61 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
     reserva: finalReserva,
     conflict: hasApprovedOverlap,
     message: nuevoEstado === 'APROBADA'
-      ? "¡Reserva para Formación Profesional aprobada automáticamente en el calendario!"
+      ? "¡Reserva P1 (FP / Prueba técnica) aprobada automáticamente en el calendario!"
       : hasApprovedOverlap
         ? "Solicitud registrada como PENDIENTE con aviso de solapamiento para revisión de Coordinación."
-        : "Reserva creada de forma PENDIENTE. Un coordinador revisará la solicitud."
+        : "Reserva registrada como PENDIENTE. Requiere aprobación de Administrador o Coordinadores (P2/P3)."
   };
 };
 
-export const isFpBooking = (reserva: Partial<Reserva>, userDept?: string): boolean => {
-  const nivel = (reserva.nivel || '').toUpperCase();
-  const dept = (reserva.departamento || userDept || '').toUpperCase();
-  const prioridad = reserva.prioridad;
+/**
+ * Niveles oficiales de Formación Profesional y Tecnológica (P1 · Preferente ATECA).
+ * Todas estas opciones del Apartado 2 gozan de APROBACIÓN AUTOMÁTICA DIRECTA e inmediata.
+ */
+export const P1_FP_LEVELS = [
+  'Grado Superior FP',
+  'Grado Medio FP',
+  'FP Básica',
+  'Proyecto de Centro de FP',
+  'Prueba técnica / Demostración'
+];
 
-  // Niveles específicos de Formación Profesional
+/**
+ * Determina si una reserva tiene Aprobación Automática Directa (P1 de FP).
+ * Criterio oficial:
+ * - Nivel P1 completo de FP (Grado Superior FP, Grado Medio FP, FP Básica, Proyecto de Centro de FP, Prueba técnica / Demostración): Aprobación Automática.
+ * - Niveles P2 (Proyecto de Centro No FP) y P3 (Bachillerato, ESO): Necesitan aprobación de Administrador o Coordinadores (Estado: PENDIENTE).
+ */
+export const isFpBooking = (reserva: Partial<Reserva>): boolean => {
+  const nivel = (reserva.nivel || '').trim();
+  const upper = nivel.toUpperCase();
+
+  // Exclusión estricta de P2 (No FP) y P3 (Bachillerato, ESO)
   if (
-    nivel.includes('FP') ||
-    nivel.includes('GRADO MEDIO') ||
-    nivel.includes('GRADO SUPERIOR') ||
-    nivel.includes('FORMACIÓN PROFESIONAL') ||
-    nivel.includes('FORMACION PROFESIONAL')
+    upper.includes('NO FP') ||
+    upper.includes('NO-FP') ||
+    upper.includes('BACHILLERATO') ||
+    upper.includes('ESO')
   ) {
+    return false;
+  }
+
+  // Coincidencia exacta con las opciones P1 del selector de Nivel
+  if (P1_FP_LEVELS.some(p1 => p1.toLowerCase() === nivel.toLowerCase())) {
     return true;
   }
 
-  // Prioridad ALTA (definida como Preferente FP)
-  if (prioridad === 'ALTA') {
-    return true;
-  }
-
-  // Departamentos habituales de Formación Profesional
+  // Coincidencia con variantes descriptivas de P1
   if (
-    dept.includes('FP') ||
-    dept.includes('INFORMÁTICA') ||
-    dept.includes('INFORMATICA') ||
-    dept.includes('ELECTRICIDAD') ||
-    dept.includes('ADMINISTRACIÓN') ||
-    dept.includes('ADMINISTRACION') ||
-    dept.includes('OFIMÁTICA') ||
-    dept.includes('OFIMATICA') ||
-    dept.includes('COMERCIO') ||
-    dept.includes('HOSTELERÍA') ||
-    dept.includes('HOSTELERIA') ||
-    dept.includes('IMAGEN Y SONIDO') ||
-    dept.includes('AUTOMOCIÓN') ||
-    dept.includes('AUTOMOCION') ||
-    dept.includes('MANTENIMIENTO') ||
-    dept.includes('TRANSPORTE') ||
-    dept.includes('AGRARIA') ||
-    dept.includes('EDIFICACIÓN') ||
-    dept.includes('EDIFICACION') ||
-    dept.includes('FABRICACIÓN') ||
-    dept.includes('FABRICACION') ||
-    dept.includes('QUÍMICA') ||
-    dept.includes('QUIMICA') ||
-    dept.includes('SANIDAD') ||
-    dept.includes('SERVICIOS SOCIOCULTURALES')
+    upper.includes('GRADO SUPERIOR') ||
+    upper.includes('GRADO MEDIO') ||
+    upper.includes('FP BÁSICA') ||
+    upper.includes('FP BASICA') ||
+    upper.includes('PROYECTO DE CENTRO DE FP') ||
+    upper.includes('PRUEBA TÉCNICA') ||
+    upper.includes('PRUEBA TECNICA') ||
+    upper.includes('DEMOSTRACIÓN') ||
+    upper.includes('DEMOSTRACION')
   ) {
     return true;
   }
@@ -678,15 +678,17 @@ export const updateReserva = (reserva: Reserva): { success: boolean; message?: s
     };
   }
 
-  // Si la reserva editada corresponde a Formación Profesional, queda automáticamente APROBADA
+  // Si la reserva editada corresponde a nivel P1 de Formación Profesional, queda automáticamente APROBADA.
+  // Si corresponde a P2 (Proyecto No FP) o P3 (Bachillerato/ESO), pasa a PENDIENTE para revisión de Coordinación o Administración.
   const isFP = isFpBooking(reserva);
+  const nuevoEstado = isFP ? 'APROBADA' : 'PENDIENTE';
   const updatedReserva: Reserva = {
     ...arr[idx],
     ...reserva,
-    estado: isFP ? 'APROBADA' : reserva.estado,
-    observaciones_coordinador: isFP && (arr[idx].estado === 'PENDIENTE' || reserva.estado === 'PENDIENTE')
-      ? 'Aprobada automáticamente por Formación Profesional (FP).'
-      : (reserva.observaciones_coordinador || arr[idx].observaciones_coordinador),
+    estado: nuevoEstado,
+    observaciones_coordinador: isFP
+      ? 'Aprobada automáticamente por nivel P1 de Formación Profesional (FP / Prueba técnica).'
+      : (reserva.observaciones_coordinador || 'Reserva registrada como PENDIENTE. Requiere aprobación de Administrador o Coordinadores (Nivel P2/P3).'),
   };
 
   arr[idx] = updatedReserva;

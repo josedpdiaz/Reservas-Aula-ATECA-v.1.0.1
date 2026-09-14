@@ -150,7 +150,8 @@ export default function BookingForm({
     }
 
     if (bookingToEdit) {
-      const isFP = isFpBooking({ nivel, departamento, prioridad }, currentUser.departamento);
+      const isFP = isFpBooking({ nivel, prioridad });
+      const nuevoEstado = isFP ? 'APROBADA' : 'PENDIENTE';
       const res = updateReserva({
         ...bookingToEdit,
         profesor,
@@ -169,10 +170,10 @@ export default function BookingForm({
         recursos_necesarios: recursosNecesarios,
         necesita_apoyo: necesitaApoyo,
         prioridad,
-        estado: isFP ? 'APROBADA' : bookingToEdit.estado,
-        observaciones_coordinador: isFP && bookingToEdit.estado === 'PENDIENTE'
-          ? 'Aprobada automáticamente por Formación Profesional (FP).'
-          : bookingToEdit.observaciones_coordinador,
+        estado: nuevoEstado,
+        observaciones_coordinador: isFP
+          ? 'Aprobada automáticamente por nivel P1 de Formación Profesional (FP / Prueba técnica).'
+          : 'Reserva modificada (Nivel P2/P3). Requiere aprobación de Administrador o Coordinadores.',
       });
 
       if (res.success) {
@@ -187,8 +188,10 @@ export default function BookingForm({
             hora_fin: horaFin,
             zona_principal: zonaPrincipal,
             estado: 'APROBADA'
-          }, currentUser, 'Aprobada automáticamente al actualizar reserva de Formación Profesional.');
-          onSuccess('¡Cambios guardados! Reserva de FP APROBADA automáticamente en el calendario.');
+          }, currentUser, 'Aprobada automáticamente por nivel P1 de Formación Profesional (FP / Prueba técnica).');
+          onSuccess('¡Cambios guardados! Reserva P1 de FP APROBADA automáticamente en el calendario.');
+        } else if (!isFP) {
+          onSuccess('Cambios guardados. Reserva en estado PENDIENTE: Requiere aprobación de Administrador o Coordinadores.');
         } else {
           onSuccess('Cambios guardados con éxito en la reserva.');
         }
@@ -218,13 +221,13 @@ export default function BookingForm({
       if (success && nuevaReserva) {
         // Notificaciones por correo electrónico automáticas
         if (nuevaReserva.estado === 'APROBADA') {
-          notifyReservaAprobada(nuevaReserva, currentUser, 'Aprobada automáticamente por prioridad oficial de Formación Profesional.');
+          notifyReservaAprobada(nuevaReserva, currentUser, 'Aprobada automáticamente por nivel P1 de Formación Profesional (FP / Prueba técnica).');
           notifyNuevaSolicitudCoordinacion(nuevaReserva);
-          onSuccess('¡Reserva para Formación Profesional aprobada automáticamente! Aula confirmada en el calendario.');
+          onSuccess('¡Reserva P1 de Formación Profesional aprobada automáticamente! Aula confirmada en el calendario.');
         } else {
           notifySolicitudRecibida(nuevaReserva, currentUser);
           notifyNuevaSolicitudCoordinacion(nuevaReserva);
-          onSuccess(message || 'Reserva registrada como PENDIENTE. Un coordinador la revisará.');
+          onSuccess(message || 'Reserva registrada como PENDIENTE. Requiere aprobación de Administrador o Coordinadores.');
         }
       } else {
         setErrorMsg(message || 'Error al guardar la reserva.');
@@ -424,13 +427,13 @@ export default function BookingForm({
                    prioridad === 'MEDIA' ? 'P2 · Proyectos' :
                    'P3 · Ordinaria'}
                 </span>
-                {isFpBooking({ nivel, departamento, prioridad }, currentUser.departamento) ? (
+                {isFpBooking({ nivel, prioridad }) ? (
                   <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    <Zap className="w-3 h-3 text-emerald-600 fill-emerald-500" /> Aprobación automática directa (FP)
+                    <Zap className="w-3 h-3 text-emerald-600 fill-emerald-500" /> Aprobación automática directa (P1 · FP / Prueba técnica)
                   </span>
                 ) : (
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    {prioridad === 'MEDIA' ? 'Actividad de centro (Revisión ordinaria)' : 'Acceso general (Revisión ordinaria)'}
+                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    <Clock className="w-3 h-3 text-amber-600" /> Requiere aprobación de Administrador o Coordinadores ({prioridad === 'MEDIA' ? 'P2 · Proyectos' : 'P3 · Ordinaria'})
                   </span>
                 )}
               </div>

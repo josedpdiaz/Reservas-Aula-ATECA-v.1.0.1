@@ -542,33 +542,40 @@ export const notifyTestEmail = async (usuario: Usuario) => {
 
 /**
  * 8. Recordatorio automático tras finalizar la sesión para que el docente complete la valoración didáctica
+ * Escrito desde la perspectiva del administrador/coordinación de la plataforma
  */
 export const notifyRecordatorioValoracion = async (reserva: Reserva, usuario: Usuario) => {
   return dispatchNotificationEmail({
     toUser: usuario,
     type: 'RECORDATORIO_VALORACION',
-    subject: `Por favor, completa la valoración didáctica de tu sesión en Aula ATECA (${reserva.fecha_actividad})`,
-    title: 'Tu sesión lectiva ha concluido',
-    badgeText: 'Memoria Pendiente',
-    badgeBg: '#8b5cf6',
+    subject: `Recordatorio de Administración: Valoración y memoria de uso del Aula ATECA (${reserva.fecha_actividad})`,
+    title: 'Aviso del Administrador del Aula ATECA',
+    badgeText: 'Recordatorio',
+    badgeBg: '#4f46e5',
     contentHtml: `
       <p>Hola <strong>${usuario.nombre}</strong>,</p>
-      <p>Tu sesión didáctica en el <strong>Aula ATECA</strong> programada para la franja de <strong>${reserva.hora_inicio} a ${reserva.hora_fin}</strong> ha concluido.</p>
-      <p>Para ayudarnos a recopilar las evidencias del proyecto ATECA y justificar el aprovechamiento tecnológico de los recursos del centro (IES Agustín de Betancourt), te rogamos que entres en la aplicación y completes la breve <strong>valoración didáctica</strong> (toma menos de 1 minuto).</p>
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 14px 0;">
-        <p style="margin: 0; font-size: 13px; color: #334155;"><strong>Módulo / Materia:</strong> ${reserva.modulo_materia_area} (${reserva.grupo})</p>
-        <p style="margin: 4px 0 0 0; font-size: 13px; color: #334155;"><strong>Zona utilizada:</strong> ${reserva.zona_principal}</p>
-        <p style="margin: 4px 0 0 0; font-size: 13px; color: #334155;"><strong>Fecha:</strong> ${reserva.fecha_actividad.split('-').reverse().join('/')}</p>
+      <p>Te escribimos desde la administración de la plataforma del <strong>Aula ATECA</strong>:</p>
+      <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 4px; padding: 14px 18px; margin: 16px 0;">
+        <p style="margin: 0; font-size: 14px; color: #1e293b; line-height: 1.6;">
+          «Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias.»
+        </p>
       </div>
-      <p style="font-size: 13px; color: #64748b;">Accede a tu panel en «Mis Reservas» para indicar si la actividad se realizó según lo previsto y registrar tus observaciones didácticas.</p>
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 14px 0;">
+        <p style="margin: 0; font-size: 13px; color: #475569;"><strong>Módulo / Materia:</strong> ${reserva.modulo_materia_area} (${reserva.grupo})</p>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Zona utilizada:</strong> ${reserva.zona_principal}</p>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Fecha y franja lectiva:</strong> ${reserva.fecha_actividad.split('-').reverse().join('/')} (${reserva.hora_inicio} - ${reserva.hora_fin})</p>
+      </div>
+      <p style="font-size: 13px; color: #64748b;">Puedes acceder cómodamente pulsando el botón a continuación o entrando en tu apartado «Mis Solicitudes» en el gestor.</p>
+      <p style="font-size: 13px; color: #334155; font-weight: bold; margin-top: 16px;">Un cordial saludo,<br/><span style="font-weight: normal; color: #64748b; font-size: 12px;">Equipo de Administración y Coordinación del Aula ATECA · IES Agustín de Betancourt</span></p>
     `,
-    contentText: `Tu sesión en Aula ATECA (${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}) ha finalizado. Por favor, accede para completar la valoración didáctica de la actividad.`,
+    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias. Sesión: ${reserva.modulo_materia_area} (${reserva.grupo}), ${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}.`,
     details: [
+      { label: 'Docente', value: usuario.nombre },
       { label: 'Fecha de sesión', value: reserva.fecha_actividad.split('-').reverse().join('/') },
       { label: 'Horario lectivo', value: `${reserva.hora_inicio} - ${reserva.hora_fin}` },
       { label: 'Módulo / Materia', value: reserva.modulo_materia_area },
       { label: 'Zona utilizada', value: reserva.zona_principal },
     ],
-    buttonText: 'Completar Valoración Didáctica',
+    buttonText: 'Rellenar Formulario de Valoración (2 min)',
   });
 };
