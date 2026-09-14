@@ -607,12 +607,15 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                     {dailyReservations.slice(0, 2).map((res, rIdx) => (
                       <div
                         key={rIdx}
-                        className="text-[9px] px-1.5 py-0.5 rounded-md truncate border leading-tight flex items-center gap-1 font-medium shadow-2xs"
-                        style={{
-                          backgroundColor: res.estado === 'APROBADA' ? '#f0fdf4' : res.estado === 'PENDIENTE' ? '#fffbeb' : '#f8fafc',
-                          borderColor: res.estado === 'APROBADA' ? '#bbf7d0' : res.estado === 'PENDIENTE' ? '#fde68a' : '#e2e8f0',
-                          color: res.estado === 'APROBADA' ? '#166534' : res.estado === 'PENDIENTE' ? '#92400e' : '#475569',
-                        }}
+                        className={`text-[9px] px-1.5 py-0.5 rounded-md truncate border leading-tight flex items-center gap-1 font-medium shadow-2xs ${
+                          res.estado === 'APROBADA'
+                            ? 'bg-emerald-50 border-emerald-200/80 text-emerald-800'
+                            : res.estado === 'PENDIENTE'
+                            ? 'bg-amber-50 border-amber-200/80 text-amber-800'
+                            : res.estado === 'REALIZADA'
+                            ? 'bg-sky-50 border-sky-200/80 text-sky-800'
+                            : 'bg-slate-50 border-slate-200 text-slate-700'
+                        }`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                           res.estado === 'PENDIENTE' ? 'bg-amber-400' :

@@ -87,7 +87,7 @@ export default function App() {
   const handleThemeChange = (newTheme: 'intermediate' | 'dark') => {
     setThemeState(newTheme);
     setTheme(newTheme);
-    triggerToast(`Tema visual cambiado a: ${newTheme === 'dark' ? 'Modo Oscuro (Alto contraste)' : 'Modo Intermedio (Descanso visual)'}`);
+    triggerToast(`Tema visual cambiado a: ${newTheme === 'dark' ? 'Modo Oscuro (Confort visual y elegancia)' : 'Modo Intermedio (Descanso visual)'}`);
   };
 
   // Font Size Zoom State (85% a 130%)
@@ -300,7 +300,7 @@ export default function App() {
             </button>
             <button
               onClick={() => handleThemeChange('dark')}
-              title="Tema Oscuro (Alto contraste / Modo noche)"
+              title="Tema Oscuro (Confort visual / Noche)"
               className={`p-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 theme === 'dark' ? 'bg-white text-slate-900 shadow-xs font-black' : 'text-slate-500 hover:text-slate-800'
               }`}
