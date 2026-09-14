@@ -529,7 +529,7 @@ export const notifyTestEmail = async (usuario: Usuario) => {
       <p>Te escribimos desde la administración de la plataforma del <strong>Aula ATECA</strong>:</p>
       <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 4px; padding: 14px 18px; margin: 16px 0;">
         <p style="margin: 0; font-size: 14px; color: #1e293b; line-height: 1.6;">
-          «Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos.»
+          «Por favor, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos.»
         </p>
       </div>
       <p style="font-size: 13px; color: #334155; font-weight: bold; margin: 14px 0;">Gracias.</p>
@@ -540,7 +540,7 @@ export const notifyTestEmail = async (usuario: Usuario) => {
       </div>
       <p style="font-size: 12px; color: #64748b; margin-top: 10px;"><em>Administradores de la plataforma · Aula ATECA · IES Agustín de Betancourt</em></p>
     `,
-    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias.`,
+    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias.`,
     details: [
       { label: 'Docente', value: usuario.nombre },
       { label: 'Correo destinatario', value: usuario.notificaciones?.email_alternativo || usuario.email },
@@ -568,7 +568,7 @@ export const notifyRecordatorioValoracion = async (reserva: Reserva, usuario: Us
       <p>Te escribimos desde la administración de la plataforma del <strong>Aula ATECA</strong>:</p>
       <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 4px; padding: 14px 18px; margin: 16px 0;">
         <p style="margin: 0; font-size: 14px; color: #1e293b; line-height: 1.6;">
-          «Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos.»
+          «Por favor, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos.»
         </p>
       </div>
       <p style="font-size: 13px; color: #334155; font-weight: bold; margin: 14px 0;">Gracias.</p>
@@ -580,7 +580,7 @@ export const notifyRecordatorioValoracion = async (reserva: Reserva, usuario: Us
       <p style="font-size: 13px; color: #64748b;">Puedes acceder cómodamente pulsando el botón a continuación o entrando en tu apartado «Mis Solicitudes» en el gestor.</p>
       <p style="font-size: 12px; color: #64748b; margin-top: 10px;"><em>Administradores de la plataforma · Aula ATECA · IES Agustín de Betancourt</em></p>
     `,
-    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias. Sesión: ${reserva.modulo_materia_area} (${reserva.grupo}), ${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}.`,
+    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias. Sesión: ${reserva.modulo_materia_area} (${reserva.grupo}), ${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}.`,
     details: [
       { label: 'Docente', value: usuario.nombre },
       { label: 'Fecha de sesión', value: reserva.fecha_actividad.split('-').reverse().join('/') },
