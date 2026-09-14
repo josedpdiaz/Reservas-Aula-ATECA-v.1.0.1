@@ -16,7 +16,8 @@ import {
   initializeStorage, getReservas, getValoraciones, 
   getCurrentUser, setCurrentUser, loginByEmail, getConfig,
   getTheme, setTheme, deleteReserva, cancelReserva,
-  getFontSize, setFontSize, updateReservaEstado, getUsuarios
+  getFontSize, setFontSize, updateReservaEstado, getUsuarios,
+  syncWithServer
 } from './lib/storage';
 import { notifyAulaLiberada, notifyReservaAprobada } from './lib/emailService';
 
@@ -32,14 +33,50 @@ import NotificationSettingsModal from './components/NotificationSettingsModal';
 import EmailLogsModal from './components/EmailLogsModal';
 
 export default function App() {
-  // Initialize App Databases inside localStorage
+  const [tick, setTick] = useState(0);
+  const forceUpdate = () => setTick(p => p + 1);
+
+  // Initialize App Databases inside localStorage and hydrate from central Hostinger server
   useEffect(() => {
     initializeStorage();
     forceUpdate();
-  }, []);
 
-  const [tick, setTick] = useState(0);
-  const forceUpdate = () => setTick(p => p + 1);
+    // Sincronización inmediata al cargar
+    syncWithServer().then((updated) => {
+      if (updated) {
+        forceUpdate();
+        const cur = getCurrentUser();
+        if (cur) setUser(cur);
+      }
+    });
+
+    // Auto-sincronización periódica cada 20 segundos y al volver a enfocar la ventana
+    const timer = setInterval(() => {
+      syncWithServer().then((updated) => {
+        if (updated) {
+          forceUpdate();
+          const cur = getCurrentUser();
+          if (cur) setUser(cur);
+        }
+      });
+    }, 20000);
+
+    const handleFocus = () => {
+      syncWithServer().then((updated) => {
+        if (updated) {
+          forceUpdate();
+          const cur = getCurrentUser();
+          if (cur) setUser(cur);
+        }
+      });
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   // App States
   const [user, setUser] = useState<Usuario | null>(() => getCurrentUser());

@@ -5,6 +5,9 @@
 
 import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil } from '../types';
 import { syncToGoogleSheets } from './syncService';
+import { 
+  syncItemToServer, deleteItemFromServer, saveAllToServer, hydrateFromServer 
+} from './serverSync';
 // Pre-seeded configuration data (Producción Oficial)
 const DEFAULT_CONFIG: Record<string, string> = {
   nombre_centro: "IES Agustín de Betancourt",
@@ -144,6 +147,11 @@ const STORAGE_KEYS = {
   FONT_SIZE: 'ateca_font_size',
 };
 
+// Sincronización explícita con el servidor central de Hostinger
+export const syncWithServer = async (): Promise<boolean> => {
+  return await hydrateFromServer(STORAGE_KEYS);
+};
+
 // Main controller to boot the storage
 export const initializeStorage = (force: boolean = false) => {
   if (force || !localStorage.getItem(STORAGE_KEYS.USERS)) {
@@ -187,16 +195,25 @@ export const initializeStorage = (force: boolean = false) => {
     localStorage.setItem('ateca_ies_betancourt_v3', 'true');
   }
 
-  // Limpieza inicial para producción sin datos mock
+  // Limpieza inicial para producción sin datos mock (solo si el servidor no tiene datos)
   if (localStorage.getItem('ateca_production_clean_v122') !== 'true') {
-    localStorage.setItem(STORAGE_KEYS.RESERVAS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.VALORACIONES, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.BLOQUEOS, JSON.stringify([]));
+    if (!localStorage.getItem(STORAGE_KEYS.RESERVAS)) {
+      localStorage.setItem(STORAGE_KEYS.RESERVAS, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.VALORACIONES)) {
+      localStorage.setItem(STORAGE_KEYS.VALORACIONES, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.BLOQUEOS)) {
+      localStorage.setItem(STORAGE_KEYS.BLOQUEOS, JSON.stringify([]));
+    }
     localStorage.setItem('ateca_production_clean_v122', 'true');
   }
 
   // PURGA INMEDIATA: Elimina cualquier tarea, reserva o bloqueo que se encuentre en sábado o domingo
   purgeWeekendTasks();
+
+  // Sincronización transparente con el servidor central de Hostinger
+  syncWithServer().catch(() => {});
 };
 
 // Reiniciar base de datos a limpia para fase de pruebas / producción
@@ -297,6 +314,7 @@ export const setBloqueos = (bloqueos: Bloqueo[]) => {
 
 export const setConfig = (config: Record<string, string>) => {
   localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
+  syncItemToServer('config', config);
 };
 
 export const setCurrentUser = (usuario: Usuario | null) => {
@@ -409,6 +427,8 @@ export const loginByEmail = (email: string): { success: boolean; user?: Usuario;
     const newUsersList = [...users, defaultUser];
     setUsuarios(newUsersList);
     setCurrentUser(defaultUser);
+    syncItemToServer('usuario', defaultUser);
+    syncToGoogleSheets('save_usuario', defaultUser);
     return { success: true, user: defaultUser };
   }
 
@@ -480,7 +500,8 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
   reservasArr.unshift(finalReserva); // put on top
   setReservas(reservasArr);
 
-  // Sincronización automática en segundo plano con Google Sheets
+  // Sincronización automática con Servidor Central y Google Sheets
+  syncItemToServer('reserva', finalReserva);
   syncToGoogleSheets('save_reserva', finalReserva);
 
   return {
@@ -526,6 +547,7 @@ export const saveValoracion = (val: Omit<Valoracion, 'id_valoracion' | 'fecha_va
     // Turn reservation to REALIZADA if valorated
     updateReservaEstado(val.id_reserva, 'REALIZADA');
 
+    syncItemToServer('valoracion', updated);
     syncToGoogleSheets('save_valoracion', updated);
 
     return updated;
@@ -542,6 +564,7 @@ export const saveValoracion = (val: Omit<Valoracion, 'id_valoracion' | 'fecha_va
     // Turn reservation to REALIZADA if valorated
     updateReservaEstado(val.id_reserva, 'REALIZADA');
 
+    syncItemToServer('valoracion', newVal);
     syncToGoogleSheets('save_valoracion', newVal);
 
     return newVal;
@@ -557,6 +580,7 @@ export const updateReservaEstado = (reservaId: string, nuevoEstado: 'PENDIENTE' 
       arr[idx].observaciones_coordinador = observaciones;
     }
     setReservas(arr);
+    syncItemToServer('reserva', arr[idx]);
     syncToGoogleSheets('save_reserva', arr[idx]);
   }
 };
@@ -592,6 +616,7 @@ export const updateReserva = (reserva: Reserva): { success: boolean; message?: s
 
   arr[idx] = { ...arr[idx], ...reserva };
   setReservas(arr);
+  syncItemToServer('reserva', arr[idx]);
   syncToGoogleSheets('save_reserva', arr[idx]);
   return { success: true };
 };
@@ -601,6 +626,7 @@ export const deleteReserva = (id_reserva: string): boolean => {
   const arr = getReservas();
   const filtered = arr.filter(r => r.id_reserva !== id_reserva);
   setReservas(filtered);
+  deleteItemFromServer('reserva', id_reserva);
   return true;
 };
 
@@ -633,6 +659,7 @@ export const modifyUsuario = (userId: string, updates: Partial<Usuario>) => {
     if (current && (current.id_usuario === userId || current.email.toLowerCase() === users[idx].email.toLowerCase())) {
       setCurrentUser(users[idx]);
     }
+    syncItemToServer('usuario', users[idx]);
     syncToGoogleSheets('save_usuario', users[idx]);
   }
 };
@@ -655,6 +682,7 @@ export const addUsuario = (user: Omit<Usuario, 'id_usuario'>): Usuario => {
   const newUsr: Usuario = { ...user, id_usuario };
   users.push(newUsr);
   setUsuarios(users);
+  syncItemToServer('usuario', newUsr);
   syncToGoogleSheets('save_usuario', newUsr);
   return newUsr;
 };
@@ -666,6 +694,7 @@ export const addBloqueo = (bloq: Omit<Bloqueo, 'id_bloqueo'>): Bloqueo => {
   const newB: Bloqueo = { ...bloq, id_bloqueo };
   bloqs.unshift(newB);
   setBloqueos(bloqs);
+  syncItemToServer('bloqueo', newB);
   syncToGoogleSheets('save_bloqueo', newB);
   return newB;
 };
@@ -675,5 +704,6 @@ export const removeBloqueo = (blockId: string) => {
   const bloqs = getBloqueos();
   const filtered = bloqs.filter(b => b.id_bloqueo !== blockId);
   setBloqueos(filtered);
+  deleteItemFromServer('bloqueo', blockId);
   syncToGoogleSheets('delete_bloqueo', blockId);
 };
