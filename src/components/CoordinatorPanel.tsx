@@ -4,18 +4,19 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, FileCheck, CheckCircle2, Layers } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, FileCheck, CheckCircle2, Layers, Settings } from 'lucide-react';
 import { Reserva, Usuario } from '../types';
 import { getReservas, getValoraciones, updateReservaEstado, getUsuarios } from '../lib/storage';
 import { notifyReservaAprobada, notifyReservaRechazada } from '../lib/emailService';
 
 interface CoordinatorPanelProps {
   onSelectBookingForReport: (booking: Reserva) => void;
+  onSelectBooking?: (booking: Reserva) => void;
   onRefresh: () => void;
   currentUser: Usuario;
 }
 
-export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, currentUser }: CoordinatorPanelProps) {
+export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBooking, onRefresh, currentUser }: CoordinatorPanelProps) {
   const [observacionesInput, setObservacionesInput] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'pending' | 'all' | 'unvalued'>('pending');
 
@@ -350,6 +351,15 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
                         />
                       </div>
                       <div className="flex gap-2 self-end md:self-auto flex-wrap">
+                        {onSelectBooking && (
+                          <button
+                            onClick={() => onSelectBooking(res)}
+                            className="px-3 py-2 border border-indigo-200 hover:bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            title="Ver ficha completa de la reserva"
+                          >
+                            <Settings className="w-4 h-4" /> Ficha
+                          </button>
+                        )}
                         <button
                           onClick={() => handleAction(res.id_reserva, 'CANCELADA', observacionesInput[res.id_reserva] || 'Reserva cancelada por el coordinador.')}
                           className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
@@ -466,10 +476,19 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onRefresh, 
                             {res.estado}
                           </span>
                         </td>
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
+                          {onSelectBooking && (
+                            <button
+                              onClick={() => onSelectBooking(res)}
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold cursor-pointer inline-flex items-center gap-1 shadow-xs transition-colors"
+                              title="Gestionar reserva (cambiar estado, reactivar o eliminar)"
+                            >
+                              <Settings className="w-3.5 h-3.5" /> Gestionar
+                            </button>
+                          )}
                           <button
                             onClick={() => onSelectBookingForReport(res)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white rounded text-[10px] font-bold cursor-pointer inline-flex items-center gap-1 shadow-sm"
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white rounded text-[10px] font-bold cursor-pointer inline-flex items-center gap-1 shadow-sm transition-colors"
                           >
                             <FileText className="w-3.5 h-3.5 text-emerald-400" /> Informe PDF
                           </button>

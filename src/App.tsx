@@ -8,7 +8,8 @@ import {
   BookOpen, Calendar as CalendarIcon, ShieldAlert, CheckCircle, 
   Settings, Award, FileText, LogIn, LogOut, 
   PlusCircle, Activity, BookmarkCheck, ShieldCheck, Mail, Bell, Inbox,
-  Sun, Moon, Sparkles, Edit3, CalendarX, HeartHandshake, Trash2
+  Sun, Moon, Sparkles, Edit3, CalendarX, HeartHandshake, Trash2,
+  RotateCcw, Clock
 } from 'lucide-react';
 
 import { Usuario, Reserva } from './types';
@@ -624,6 +625,7 @@ export default function App() {
                     >
                       Atrás
                     </button>
+                    {/* ACCIONES PARA ESTADO PENDIENTE */}
                     {(user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && selectedBooking.estado === 'PENDIENTE' && (
                       <button
                         onClick={() => {
@@ -648,28 +650,87 @@ export default function App() {
                         <CheckCircle className="w-3.5 h-3.5 text-white" /> Aprobar Reserva
                       </button>
                     )}
-                    {(selectedBooking.email === user.email || user.rol === 'ADMIN') && selectedBooking.estado !== 'CANCELADA' && (
+
+                    {/* ACCIONES PARA ESTADO CANCELADA O RECHAZADA (REACTIVACIÓN Y ELIMINACIÓN) */}
+                    {(user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && (selectedBooking.estado === 'CANCELADA' || selectedBooking.estado === 'RECHAZADA') && (
                       <>
                         <button
                           onClick={() => {
-                            setBookingToEdit(selectedBooking);
-                            setCurrentAction('edit-booking');
+                            updateReservaEstado(selectedBooking.id_reserva, 'APROBADA', 'Reserva reactivada y aprobada por la administración.');
+                            const allUsers = getUsuarios();
+                            const requestingUser = allUsers.find(u => u.email.toLowerCase() === selectedBooking.email.toLowerCase()) || {
+                              id_usuario: 'temp',
+                              nombre: selectedBooking.profesor,
+                              email: selectedBooking.email,
+                              rol: 'PROFESOR' as const,
+                              departamento: selectedBooking.departamento,
+                              turno: 'Ambos' as const,
+                              activo: true,
+                            };
+                            notifyReservaAprobada(selectedBooking, requestingUser, 'Reserva reactivada y confirmada en el calendario.');
+                            triggerToast('¡Reserva reactivada y aprobada con éxito!');
+                            setCurrentAction('view');
+                            handleUpdate();
                           }}
-                          className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs"
+                          title="Reactivar de nuevo esta reserva aprobándola en el calendario"
                         >
-                          <Edit3 className="w-3.5 h-3.5" /> Editar Datos
+                          <RotateCcw className="w-3.5 h-3.5 text-white" /> Reactivar y Aprobar
                         </button>
                         <button
                           onClick={() => {
-                            setDetailReleaseModal(true);
-                            setDetailReleaseMotivo('');
-                            setDetailReleaseMode('cancel');
+                            updateReservaEstado(selectedBooking.id_reserva, 'PENDIENTE', 'Reserva reactivada en estado pendiente.');
+                            triggerToast('Reserva restablecida a estado Pendiente para revisión.');
+                            setCurrentAction('view');
+                            handleUpdate();
+                          }}
+                          className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                          title="Mover a lista de espera pendiente"
+                        >
+                          <Clock className="w-3.5 h-3.5 text-amber-700" /> Reactivar a Pendiente
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`¿Deseas eliminar definitivamente la reserva de ${selectedBooking.profesor} (${selectedBooking.fecha_actividad})? Esta acción borrará la ficha por completo de la base de datos.`)) {
+                              deleteReserva(selectedBooking.id_reserva);
+                              triggerToast('Reserva eliminada permanentemente del sistema.');
+                              setCurrentAction('view');
+                              handleUpdate();
+                            }
                           }}
                           className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                          title="Eliminar de forma permanente de la base de datos"
                         >
-                          <CalendarX className="w-3.5 h-3.5" /> Liberar Aula
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Eliminar Definitivamente
                         </button>
                       </>
+                    )}
+
+                    {/* EDITAR DATOS (DISPONIBLE PARA EL DUEÑO O ADMIN/COORDINADOR EN CUALQUIER ESTADO) */}
+                    {(selectedBooking.email === user.email || user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && (
+                      <button
+                        onClick={() => {
+                          setBookingToEdit(selectedBooking);
+                          setCurrentAction('edit-booking');
+                        }}
+                        className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" /> Editar Datos
+                      </button>
+                    )}
+
+                    {/* LIBERAR AULA (DISPONIBLE PARA RESERVAS ACTIVAS O PENDIENTES) */}
+                    {(selectedBooking.email === user.email || user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && selectedBooking.estado !== 'CANCELADA' && selectedBooking.estado !== 'RECHAZADA' && (
+                      <button
+                        onClick={() => {
+                          setDetailReleaseModal(true);
+                          setDetailReleaseMotivo('');
+                          setDetailReleaseMode('cancel');
+                        }}
+                        className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                      >
+                        <CalendarX className="w-3.5 h-3.5" /> Liberar Aula
+                      </button>
                     )}
                     {selectedBooking.estado === 'REALIZADA' && (
                       <button
@@ -730,6 +791,10 @@ export default function App() {
                       onSelectBookingForReport={(booking) => {
                         setSelectedBooking(booking);
                         setCurrentAction('view-report');
+                      }}
+                      onSelectBooking={(booking) => {
+                        setSelectedBooking(booking);
+                        setCurrentAction('view-booking-detail');
                       }}
                     />
                   )}
