@@ -5,6 +5,7 @@
 
 import { Usuario, Reserva, Bloqueo, NotificationPreferences, EmailLog, TipoNotificacionEmail } from '../types';
 import { getConfig, getUsuarios } from './storage';
+import { ATECA_SECURITY_TOKEN } from './serverSync';
 
 const EMAIL_LOGS_KEY = 'ateca_email_logs';
 
@@ -252,26 +253,55 @@ export const dispatchNotificationEmail = async (payload: SendEmailPayload): Prom
   let enviadoReal = false;
   let errorMsg: string | undefined = undefined;
 
-  // 2. Intentar envío real si hay webhook de Google Apps Script configurado
-  const gsheetUrl = config.google_sheets_url;
-  if (gsheetUrl && gsheetUrl.startsWith('http')) {
-    try {
-      await fetch(gsheetUrl, {
-        method: 'POST',
-        mode: 'no-cors', // Evita bloqueos de CORS con Google Apps Script redirects
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'sendEmail',
-          to: targetEmail,
-          subject,
-          htmlBody: fullHtml,
-          textBody: fullText,
-        }),
-      });
-      enviadoReal = true;
-    } catch (err: any) {
-      errorMsg = err?.message || 'Error de conexión con Google Apps Script';
-      console.warn('Fallo al despachar email vía Apps Script:', err);
+  // 1. Envío prioritario a través del backend oficial Hostinger (/api.php?action=send_email)
+  try {
+    const apiRes = await fetch('/api.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Ateca-Token': ATECA_SECURITY_TOKEN,
+      },
+      body: JSON.stringify({
+        action: 'send_email',
+        to: targetEmail,
+        subject,
+        htmlBody: fullHtml,
+        textBody: fullText,
+      }),
+    });
+
+    if (apiRes.ok) {
+      const apiJson = await apiRes.json();
+      if (apiJson && apiJson.success) {
+        enviadoReal = true;
+      }
+    }
+  } catch (err: any) {
+    console.warn('Envío por api.php no disponible, probando canal alternativo:', err);
+  }
+
+  // 2. Si no se pudo despachar por api.php, intentar webhook directo de Google Apps Script
+  if (!enviadoReal) {
+    const gsheetUrl = config.google_sheets_url;
+    if (gsheetUrl && gsheetUrl.startsWith('http')) {
+      try {
+        await fetch(gsheetUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'sendEmail',
+            to: targetEmail,
+            subject,
+            htmlBody: fullHtml,
+            textBody: fullText,
+          }),
+        });
+        enviadoReal = true;
+      } catch (err: any) {
+        errorMsg = err?.message || 'Error de conexión con servicio de correo';
+        console.warn('Fallo al despachar email vía Apps Script:', err);
+      }
     }
   }
 
@@ -507,5 +537,38 @@ export const notifyTestEmail = async (usuario: Usuario) => {
       { label: 'Fecha de prueba', value: new Date().toLocaleString('es-ES') },
     ],
     buttonText: 'Ir a Gestor ATECA',
+  });
+};
+
+/**
+ * 8. Recordatorio automático tras finalizar la sesión para que el docente complete la valoración didáctica
+ */
+export const notifyRecordatorioValoracion = async (reserva: Reserva, usuario: Usuario) => {
+  return dispatchNotificationEmail({
+    toUser: usuario,
+    type: 'RECORDATORIO_VALORACION',
+    subject: `Por favor, completa la valoración didáctica de tu sesión en Aula ATECA (${reserva.fecha_actividad})`,
+    title: 'Tu sesión lectiva ha concluido',
+    badgeText: 'Memoria Pendiente',
+    badgeBg: '#8b5cf6',
+    contentHtml: `
+      <p>Hola <strong>${usuario.nombre}</strong>,</p>
+      <p>Tu sesión didáctica en el <strong>Aula ATECA</strong> programada para la franja de <strong>${reserva.hora_inicio} a ${reserva.hora_fin}</strong> ha concluido.</p>
+      <p>Para ayudarnos a recopilar las evidencias del proyecto ATECA y justificar el aprovechamiento tecnológico de los recursos del centro (IES Agustín de Betancourt), te rogamos que entres en la aplicación y completes la breve <strong>valoración didáctica</strong> (toma menos de 1 minuto).</p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 14px 0;">
+        <p style="margin: 0; font-size: 13px; color: #334155;"><strong>Módulo / Materia:</strong> ${reserva.modulo_materia_area} (${reserva.grupo})</p>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #334155;"><strong>Zona utilizada:</strong> ${reserva.zona_principal}</p>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #334155;"><strong>Fecha:</strong> ${reserva.fecha_actividad.split('-').reverse().join('/')}</p>
+      </div>
+      <p style="font-size: 13px; color: #64748b;">Accede a tu panel en «Mis Reservas» para indicar si la actividad se realizó según lo previsto y registrar tus observaciones didácticas.</p>
+    `,
+    contentText: `Tu sesión en Aula ATECA (${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}) ha finalizado. Por favor, accede para completar la valoración didáctica de la actividad.`,
+    details: [
+      { label: 'Fecha de sesión', value: reserva.fecha_actividad.split('-').reverse().join('/') },
+      { label: 'Horario lectivo', value: `${reserva.hora_inicio} - ${reserva.hora_fin}` },
+      { label: 'Módulo / Materia', value: reserva.modulo_materia_area },
+      { label: 'Zona utilizada', value: reserva.zona_principal },
+    ],
+    buttonText: 'Completar Valoración Didáctica',
   });
 };

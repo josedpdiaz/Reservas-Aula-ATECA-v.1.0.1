@@ -312,6 +312,72 @@ switch ($action) {
         }
         break;
 
+    case 'send_email':
+        verifySecurity();
+        $input = $requestData ?? json_decode(file_get_contents('php://input'), true);
+        $to = filter_var(trim($input['to'] ?? ''), FILTER_VALIDATE_EMAIL);
+        $subject = trim($input['subject'] ?? '');
+        $htmlBody = $input['htmlBody'] ?? '';
+        $textBody = $input['textBody'] ?? strip_tags($htmlBody);
+
+        if (!$to || !$subject || !$htmlBody) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Parámetros de correo incompletos']);
+            exit;
+        }
+
+        $store = loadStore($dataFile);
+        $config = $store['config'] ?? [];
+        $coordEmail = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+        $centerName = $config['nombre_centro'] ?? 'IES Agustín de Betancourt';
+
+        // 1. Envío directo desde el servidor Hostinger con PHP mail() en UTF-8
+        $fromName = 'Aula ATECA - ' . $centerName;
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'From: =?UTF-8?B?' . base64_encode($fromName) . '?= <ateca@fpapps.es>',
+            'Reply-To: ' . $coordEmail,
+            'X-Mailer: PHP/' . phpversion(),
+            'X-Priority: 1 (Highest)',
+        ];
+
+        $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+        $mailSent = @mail($to, $encodedSubject, $htmlBody, implode("\r\n", $headers));
+
+        // 2. Reenvío secundario mediante Google Apps Script si está configurado
+        $gsheetUrl = $config['google_sheets_url'] ?? '';
+        $gsheetSent = false;
+        if (!empty($gsheetUrl) && filter_var($gsheetUrl, FILTER_VALIDATE_URL)) {
+            $ch = curl_init($gsheetUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain; charset=utf-8']);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+                'action' => 'sendEmail',
+                'to' => $to,
+                'subject' => $subject,
+                'htmlBody' => $htmlBody,
+                'textBody' => $textBody
+            ]));
+            $resp = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($httpCode >= 200 && $httpCode < 400) {
+                $gsheetSent = true;
+            }
+        }
+
+        echo json_encode([
+            'success' => $mailSent || $gsheetSent,
+            'mail_sent' => $mailSent,
+            'gsheet_sent' => $gsheetSent,
+            'recipient' => $to,
+        ]);
+        break;
+
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Acción no reconocida']);

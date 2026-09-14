@@ -784,3 +784,89 @@ export const removeBloqueo = (blockId: string) => {
   deleteItemFromServer('bloqueo', blockId);
   syncToGoogleSheets('delete_bloqueo', blockId);
 };
+
+/**
+ * Comprueba si una fecha y hora de fin ya han vencido respecto a la hora actual
+ */
+export const hasBookingConcluded = (fecha_actividad: string, hora_fin: string): boolean => {
+  try {
+    const now = new Date();
+    const [year, month, day] = fecha_actividad.split('-').map(Number);
+    const [hours, minutes] = hora_fin.split(':').map(Number);
+    const bookingEnd = new Date(year, month - 1, day, hours, minutes, 0);
+    return now.getTime() >= bookingEnd.getTime();
+  } catch {
+    return false;
+  }
+};
+
+const SENT_VALUATION_REMINDERS_KEY = 'ateca_sent_valuation_reminders';
+
+export const getSentValuationReminderIds = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(SENT_VALUATION_REMINDERS_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+export const markValuationReminderSent = (id_reserva: string) => {
+  const set = getSentValuationReminderIds();
+  set.add(id_reserva);
+  const arr = Array.from(set).slice(-200);
+  localStorage.setItem(SENT_VALUATION_REMINDERS_KEY, JSON.stringify(arr));
+};
+
+/**
+ * Revisa reservas que han concluido según horario oficial y no tienen valoración.
+ * Actualiza el estado a REALIZADA si estaba APROBADA y envía recordatorio por correo al docente.
+ */
+export const checkAndTriggerValuationReminders = async (): Promise<boolean> => {
+  const reservas = getReservas();
+  const valoraciones = getValoraciones();
+  const users = getUsuarios();
+  const sentReminders = getSentValuationReminderIds();
+
+  let modified = false;
+
+  for (const r of reservas) {
+    if (r.estado !== 'APROBADA' && r.estado !== 'REALIZADA') continue;
+
+    const hasVal = valoraciones.some(v => v.id_reserva === r.id_reserva);
+    if (hasVal) continue;
+
+    if (hasBookingConcluded(r.fecha_actividad, r.hora_fin)) {
+      if (r.estado === 'APROBADA') {
+        updateReservaEstado(
+          r.id_reserva,
+          'REALIZADA',
+          'Sesión lectiva finalizada según horario oficial. Pendiente de cumplimentar memoria didáctica.'
+        );
+        modified = true;
+      }
+
+      if (!sentReminders.has(r.id_reserva)) {
+        markValuationReminderSent(r.id_reserva);
+        const teacher = users.find(u => u.email.toLowerCase() === r.email.toLowerCase()) || {
+          id_usuario: 'docente',
+          nombre: r.profesor,
+          email: r.email,
+          rol: 'PROFESOR' as const,
+          departamento: r.departamento,
+          turno: 'Ambos' as const,
+          activo: true,
+        };
+
+        try {
+          const { notifyRecordatorioValoracion } = await import('./emailService');
+          await notifyRecordatorioValoracion(r, teacher);
+        } catch (err) {
+          console.warn('No se pudo enviar recordatorio de valoración:', err);
+        }
+      }
+    }
+  }
+
+  return modified;
+};

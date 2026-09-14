@@ -10,7 +10,7 @@ import {
   Edit3, CalendarX, HeartHandshake, Trash2
 } from 'lucide-react';
 import { Reserva, Usuario, Valoracion } from '../types';
-import { updateReserva, deleteReserva, cancelReserva } from '../lib/storage';
+import { updateReserva, deleteReserva, cancelReserva, hasBookingConcluded } from '../lib/storage';
 import { notifyAulaLiberada } from '../lib/emailService';
 
 interface MyBookingsViewProps {
@@ -56,7 +56,8 @@ export default function MyBookingsView({
 
   const myBookingsCount = myAllBookings.length;
   const myPendingValuationsCount = myAllBookings.filter(
-    b => b.estado === 'REALIZADA' && !valoraciones.some(v => v.id_reserva === b.id_reserva)
+    b => (b.estado === 'REALIZADA' || (b.estado === 'APROBADA' && hasBookingConcluded(b.fecha_actividad, b.hora_fin))) && 
+         !valoraciones.some(v => v.id_reserva === b.id_reserva)
   ).length;
 
   // Filtered and sorted bookings
@@ -66,7 +67,8 @@ export default function MyBookingsView({
 
       // Status filter
       if (statusFilter === 'SIN_VALORAR') {
-        if (res.estado !== 'REALIZADA' || val) return false;
+        const isConcluded = res.estado === 'REALIZADA' || (res.estado === 'APROBADA' && hasBookingConcluded(res.fecha_actividad, res.hora_fin));
+        if (!isConcluded || val) return false;
       } else if (statusFilter !== 'TODAS') {
         if (res.estado !== statusFilter) return false;
       }

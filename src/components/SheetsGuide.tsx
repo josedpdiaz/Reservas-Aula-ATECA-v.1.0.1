@@ -114,12 +114,10 @@ function doPost(e) {
     }
     
     return ContentService.createTextOutput(JSON.stringify(result))
-                         .setMimeType(ContentService.MimeType.JSON)
-                         .setHeader("Access-Control-Allow-Origin", "*");
+                         .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({error: err.toString()}))
-                         .setMimeType(ContentService.MimeType.JSON)
-                         .setHeader("Access-Control-Allow-Origin", "*");
+                         .setMimeType(ContentService.MimeType.JSON);
   }
 }
 

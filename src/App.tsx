@@ -18,7 +18,7 @@ import {
   getCurrentUser, setCurrentUser, loginByEmail, getConfig,
   getTheme, setTheme, deleteReserva, cancelReserva,
   getFontSize, setFontSize, updateReservaEstado, getUsuarios,
-  syncWithServer
+  syncWithServer, checkAndTriggerValuationReminders, hasBookingConcluded
 } from './lib/storage';
 import { notifyAulaLiberada, notifyReservaAprobada } from './lib/emailService';
 
@@ -40,36 +40,29 @@ export default function App() {
   // Initialize App Databases inside localStorage and hydrate from central Hostinger server
   useEffect(() => {
     initializeStorage();
+    checkAndTriggerValuationReminders();
     forceUpdate();
 
-    // Sincronización inmediata al cargar
-    syncWithServer().then((updated) => {
-      if (updated) {
+    const runSyncAndReminders = async () => {
+      const updated = await syncWithServer();
+      const remindersTriggered = checkAndTriggerValuationReminders();
+      if (updated || remindersTriggered) {
         forceUpdate();
         const cur = getCurrentUser();
         if (cur) setUser(cur);
       }
-    });
+    };
+
+    // Sincronización inmediata al cargar
+    runSyncAndReminders();
 
     // Auto-sincronización periódica cada 20 segundos y al volver a enfocar la ventana
     const timer = setInterval(() => {
-      syncWithServer().then((updated) => {
-        if (updated) {
-          forceUpdate();
-          const cur = getCurrentUser();
-          if (cur) setUser(cur);
-        }
-      });
+      runSyncAndReminders();
     }, 20000);
 
     const handleFocus = () => {
-      syncWithServer().then((updated) => {
-        if (updated) {
-          forceUpdate();
-          const cur = getCurrentUser();
-          if (cur) setUser(cur);
-        }
-      });
+      runSyncAndReminders();
     };
 
     window.addEventListener('focus', handleFocus);
@@ -231,7 +224,11 @@ export default function App() {
   const config = getConfig();
 
   const myBookingsCount = bookings.filter(b => b.email === user?.email).length;
-  const myPendingValuationsCount = bookings.filter(b => b.email === user?.email && b.estado === 'REALIZADA' && !valoraciones.some(v => v.id_reserva === b.id_reserva)).length;
+  const myPendingValuationsCount = bookings.filter(b => 
+    b.email === user?.email && 
+    (b.estado === 'REALIZADA' || (b.estado === 'APROBADA' && hasBookingConcluded(b.fecha_actividad, b.hora_fin))) && 
+    !valoraciones.some(v => v.id_reserva === b.id_reserva)
+  ).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-indigo-50/20 text-slate-800 flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
