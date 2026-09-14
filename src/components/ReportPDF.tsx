@@ -86,19 +86,25 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 text-xs">
               <div>
                 <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Nombre del Centro</span>
-                <span className="font-bold text-slate-800">{config.nombre_centro || "IES Centro Tecnológico"}</span>
+                <span className="font-bold text-slate-800">{config.nombre_centro || "IES Agustín de Betancourt"}</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Nombre del Aula</span>
                 <span className="font-bold text-slate-800">{config.nombre_aula || "Aula ATECA"}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Profesor Responsable</span>
-                <span className="font-bold text-slate-800">{booking.profesor}</span>
+                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Coordinador del Aula / Administrador</span>
+                <span className="font-bold text-slate-800">{config.nombre_coordinador || "José P. Díaz"}</span>
+                <span className="text-slate-500 block text-[10px]">Coordinador</span>
               </div>
               <div>
-                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Fecha de realización</span>
-                <span className="font-bold text-slate-800">{booking.fecha_actividad.split('-').reverse().join('/')}</span>
+                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Profesor Responsable</span>
+                <span className="font-bold text-slate-800">{booking.profesor}</span>
+                <span className="text-slate-500 block text-[10px]">{booking.email}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Fecha y Franja</span>
+                <span className="font-bold text-slate-800">{booking.fecha_actividad.split('-').reverse().join('/')} ({booking.hora_inicio} - {booking.hora_fin})</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Grupo de Alumnado</span>
@@ -255,16 +261,18 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
         {/* Closing layout & signatures */}
         <div className="mt-16 pt-10 border-t border-slate-100 grid grid-cols-2 gap-8 text-center text-[10px]">
           <div>
-            <p className="font-bold text-slate-400 uppercase tracking-widest text-[8px] mb-8">Firma del Coordinador del Aula</p>
-            <div className="w-28 mx-auto h-0.5 bg-slate-300 mb-1" />
-            <p className="font-bold text-slate-700">{config.email_coordinador || "Firma Autorizada"}</p>
-            <p className="text-slate-400 mt-0.5">D./Dña. María González (Coordinadora)</p>
+            <p className="font-bold text-slate-400 uppercase tracking-widest text-[8px] mb-8">Firma del Coordinador del Aula / Administrador</p>
+            <div className="w-32 mx-auto h-0.5 bg-slate-300 mb-2" />
+            <p className="font-extrabold text-slate-900 text-xs">{config.nombre_coordinador || "José P. Díaz"}</p>
+            <p className="text-slate-600 font-semibold text-[10px] mt-0.5">Coordinador</p>
+            <p className="text-slate-400 text-[9px] mt-0.5">{config.email_coordinador || "jpacdia@gobiernodecanarias.org"}</p>
           </div>
           <div>
             <p className="font-bold text-slate-400 uppercase tracking-widest text-[8px] mb-8">Firma del Profesor/a Responsable</p>
-            <div className="w-28 mx-auto h-0.5 bg-slate-300 mb-1" />
-            <p className="font-bold text-slate-700">{booking.profesor}</p>
-            <p className="text-slate-400 mt-0.5">D./Dña. {booking.profesor}</p>
+            <div className="w-32 mx-auto h-0.5 bg-slate-300 mb-2" />
+            <p className="font-extrabold text-slate-900 text-xs">{booking.profesor}</p>
+            <p className="text-slate-600 font-semibold text-[10px] mt-0.5">{booking.email}</p>
+            <p className="text-slate-500 text-[10px] mt-0.5">Dña. {booking.profesor}</p>
           </div>
         </div>
 

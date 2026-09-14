@@ -17,6 +17,7 @@ const DEFAULT_CONFIG: Record<string, string> = {
   duracion_minima_reserva: "30",
   duracion_maxima_reserva: "360",
   email_coordinador: "jpacdia@gobiernodecanarias.org",
+  nombre_coordinador: "José P. Díaz",
   logo_centro: "/logo_iesb.png", // Logo oficial IES Agustín de Betancourt
 };
 
