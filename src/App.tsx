@@ -120,7 +120,7 @@ export default function App() {
   const handleThemeChange = (newTheme: 'intermediate' | 'dark') => {
     setThemeState(newTheme);
     setTheme(newTheme);
-    triggerToast(`Tema visual cambiado a: ${newTheme === 'dark' ? 'Modo Oscuro (Confort visual y elegancia)' : 'Modo Intermedio (Descanso visual)'}`);
+    triggerToast(`Tema visual cambiado a: ${newTheme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}`);
   };
 
   // Font Size Zoom State (85% a 130%)
@@ -378,16 +378,16 @@ export default function App() {
             </button>
           </div>
 
-          {/* 2-THEME SELECTOR: INTERMEDIATE / DARK (LIGHT MODE REMOVED) */}
+          {/* 2-THEME SELECTOR: CLARO / OSCURO */}
           <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs">
             <button
               onClick={() => handleThemeChange('intermediate')}
-              title="Tema Intermedio (Descanso visual / Tono neutro suave)"
+              title="Tema Claro (Descanso visual / Tono neutro suave)"
               className={`p-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 theme === 'intermediate' ? 'bg-white text-indigo-700 shadow-xs font-black' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" /> <span className="hidden sm:inline text-[11px]">Intermedio</span>
+              <Sun className="w-3.5 h-3.5" /> <span className="hidden sm:inline text-[11px]">Claro</span>
             </button>
             <button
               onClick={() => handleThemeChange('dark')}
