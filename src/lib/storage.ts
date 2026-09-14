@@ -487,11 +487,11 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
 
   const isFP = isFpBooking(reserva);
 
-  // Si es profesor / actividad de Formación Profesional y no hay solapamiento, queda aprobada automáticamente
-  const nuevoEstado = (isFP && !hasApprovedOverlap) ? 'APROBADA' : 'PENDIENTE';
+  // Para Formación Profesional (FP), aprobación directa automática inmediata
+  const nuevoEstado = isFP ? 'APROBADA' : 'PENDIENTE';
 
-  const observaciones = (isFP && !hasApprovedOverlap)
-    ? 'Aprobada automáticamente por prioridad oficial de Formación Profesional (FP).'
+  const observaciones = isFP
+    ? 'Aprobada automáticamente por Formación Profesional (FP).'
     : hasApprovedOverlap 
       ? 'Aviso: Solapamiento potencial con reserva preexistente. Pendiente de resolución por Coordinación.'
       : 'Reserva pendiente de revisión por el Coordinador.';
@@ -678,7 +678,18 @@ export const updateReserva = (reserva: Reserva): { success: boolean; message?: s
     };
   }
 
-  arr[idx] = { ...arr[idx], ...reserva };
+  // Si la reserva editada corresponde a Formación Profesional, queda automáticamente APROBADA
+  const isFP = isFpBooking(reserva);
+  const updatedReserva: Reserva = {
+    ...arr[idx],
+    ...reserva,
+    estado: isFP ? 'APROBADA' : reserva.estado,
+    observaciones_coordinador: isFP && (arr[idx].estado === 'PENDIENTE' || reserva.estado === 'PENDIENTE')
+      ? 'Aprobada automáticamente por Formación Profesional (FP).'
+      : (reserva.observaciones_coordinador || arr[idx].observaciones_coordinador),
+  };
+
+  arr[idx] = updatedReserva;
   setReservas(arr);
   syncItemToServer('reserva', arr[idx]);
   syncToGoogleSheets('save_reserva', arr[idx]);

@@ -150,6 +150,7 @@ export default function BookingForm({
     }
 
     if (bookingToEdit) {
+      const isFP = isFpBooking({ nivel, departamento, prioridad }, currentUser.departamento);
       const res = updateReserva({
         ...bookingToEdit,
         profesor,
@@ -168,10 +169,29 @@ export default function BookingForm({
         recursos_necesarios: recursosNecesarios,
         necesita_apoyo: necesitaApoyo,
         prioridad,
+        estado: isFP ? 'APROBADA' : bookingToEdit.estado,
+        observaciones_coordinador: isFP && bookingToEdit.estado === 'PENDIENTE'
+          ? 'Aprobada automáticamente por Formación Profesional (FP).'
+          : bookingToEdit.observaciones_coordinador,
       });
 
       if (res.success) {
-        onSuccess('Reserva modificada y actualizada con éxito en el calendario.');
+        if (isFP && bookingToEdit.estado === 'PENDIENTE') {
+          notifyReservaAprobada({
+            ...bookingToEdit,
+            nivel,
+            grupo,
+            modulo_materia_area: moduloMateria,
+            fecha_actividad: fecha,
+            hora_inicio: horaInicio,
+            hora_fin: horaFin,
+            zona_principal: zonaPrincipal,
+            estado: 'APROBADA'
+          }, currentUser, 'Aprobada automáticamente al actualizar reserva de Formación Profesional.');
+          onSuccess('¡Cambios guardados! Reserva de FP APROBADA automáticamente en el calendario.');
+        } else {
+          onSuccess('Cambios guardados con éxito en la reserva.');
+        }
       } else {
         setErrorMsg(res.message || 'Error al actualizar la reserva.');
       }
