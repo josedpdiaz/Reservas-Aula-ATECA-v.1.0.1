@@ -128,7 +128,7 @@ const buildHtmlTemplate = ({
   const actionButton = buttonText
     ? `
     <div style="text-align: center; margin: 26px 0 10px 0;">
-      <a href="${buttonUrl || 'http://localhost:3000'}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
+      <a href="${buttonUrl || 'https://ateca.fpapps.es'}" target="_blank" rel="noopener noreferrer" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
         ${buttonText}
       </a>
     </div>`
@@ -538,9 +538,12 @@ export const notifyTestEmail = async (usuario: Usuario) => {
         <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Destinatario comprobado:</strong> ${usuario.notificaciones?.email_alternativo || usuario.email}</p>
         <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Fecha del envío:</strong> ${new Date().toLocaleString('es-ES')}</p>
       </div>
+      <div style="background-color: #f1f5f9; border-left: 4px solid #64748b; border-radius: 6px; padding: 12px 16px; margin: 16px 0; font-size: 13px; color: #334155; line-height: 1.5;">
+        <p style="margin: 0;"><strong>💡 Indicación si el botón no responde:</strong> Si el botón no te funciona, entra de nuevo al gestor de reservas de la ATECA en el que hiciste la reserva en su momento (<a href="https://ateca.fpapps.es" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; text-decoration: underline; font-weight: bold;">https://ateca.fpapps.es</a>), busca la actividad en la sección «Mis Solicitudes» y pulsa en el botón para realizar el breve formulario de valoración de la actividad realizada en nuestra aula ATECA.</p>
+      </div>
       <p style="font-size: 12px; color: #64748b; margin-top: 10px;"><em>Administradores de la plataforma · Aula ATECA · IES Agustín de Betancourt</em></p>
     `,
-    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias.`,
+    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias. Si el botón no te funciona, entra de nuevo al gestor de reservas de la ATECA en el que hiciste la reserva en su momento (https://ateca.fpapps.es), busca la actividad en la sección «Mis Solicitudes» y pulsa en el botón para realizar el breve formulario de valoración de la actividad realizada en nuestra aula ATECA.`,
     details: [
       { label: 'Docente', value: usuario.nombre },
       { label: 'Correo destinatario', value: usuario.notificaciones?.email_alternativo || usuario.email },
@@ -548,6 +551,7 @@ export const notifyTestEmail = async (usuario: Usuario) => {
       { label: 'Estado del sistema', value: 'Notificaciones activas' },
     ],
     buttonText: 'Rellenar Formulario de Valoración (2 min)',
+    buttonUrl: 'https://ateca.fpapps.es',
   });
 };
 
@@ -577,10 +581,12 @@ export const notifyRecordatorioValoracion = async (reserva: Reserva, usuario: Us
         <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Zona utilizada:</strong> ${reserva.zona_principal}</p>
         <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Fecha y franja lectiva:</strong> ${reserva.fecha_actividad.split('-').reverse().join('/')} (${reserva.hora_inicio} - ${reserva.hora_fin})</p>
       </div>
-      <p style="font-size: 13px; color: #64748b;">Puedes acceder cómodamente pulsando el botón a continuación o entrando en tu apartado «Mis Solicitudes» en el gestor.</p>
+      <div style="background-color: #f1f5f9; border-left: 4px solid #64748b; border-radius: 6px; padding: 12px 16px; margin: 16px 0; font-size: 13px; color: #334155; line-height: 1.5;">
+        <p style="margin: 0;"><strong>💡 Indicación si el botón no responde:</strong> Si el botón no te funciona, entra de nuevo al gestor de reservas de la ATECA en el que hiciste la reserva en su momento (<a href="https://ateca.fpapps.es" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; text-decoration: underline; font-weight: bold;">https://ateca.fpapps.es</a>), busca la actividad en la sección «Mis Solicitudes» y pulsa en el botón para realizar el breve formulario de valoración de la actividad realizada en nuestra aula ATECA.</p>
+      </div>
       <p style="font-size: 12px; color: #64748b; margin-top: 10px;"><em>Administradores de la plataforma · Aula ATECA · IES Agustín de Betancourt</em></p>
     `,
-    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias. Sesión: ${reserva.modulo_materia_area} (${reserva.grupo}), ${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}.`,
+    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias. Sesión: ${reserva.modulo_materia_area} (${reserva.grupo}), ${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}. Indicación: Si el botón no te funciona, entra de nuevo al gestor de reservas de la ATECA en el que hiciste la reserva en su momento (https://ateca.fpapps.es), busca la actividad en la sección «Mis Solicitudes» y pulsa en el botón para realizar el breve formulario de valoración de la actividad realizada en nuestra aula ATECA.`,
     details: [
       { label: 'Docente', value: usuario.nombre },
       { label: 'Fecha de sesión', value: reserva.fecha_actividad.split('-').reverse().join('/') },
@@ -589,5 +595,6 @@ export const notifyRecordatorioValoracion = async (reserva: Reserva, usuario: Us
       { label: 'Zona utilizada', value: reserva.zona_principal },
     ],
     buttonText: 'Rellenar Formulario de Valoración (2 min)',
+    buttonUrl: 'https://ateca.fpapps.es',
   });
 };
