@@ -307,7 +307,7 @@ export default function MyBookingsView({
                         onClick={() => onValuateBooking(res)}
                         className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-all shadow-xs"
                       >
-                        <Award className="w-3.5 h-3.5 text-amber-400" /> Valorar clase
+                        <Award className="w-3.5 h-3.5 text-amber-400" /> Completar Valoración
                       </button>
                     )}
                   </div>
@@ -419,7 +419,7 @@ export default function MyBookingsView({
                             onClick={() => onValuateBooking(res)}
                             className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
                           >
-                            Valorar
+                            Completar Valoración
                           </button>
                         )}
                       </td>
