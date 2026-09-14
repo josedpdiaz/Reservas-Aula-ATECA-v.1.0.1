@@ -514,42 +514,53 @@ export const notifyBloqueoTecnico = async (bloqueo: Bloqueo) => {
 };
 
 /**
- * 7. Correo de prueba para verificar configuración del docente
+ * 7. Correo de prueba para verificar configuración del docente y mostrar el recordatorio de administración
  */
 export const notifyTestEmail = async (usuario: Usuario) => {
   return dispatchNotificationEmail({
     toUser: usuario,
     type: 'TEST',
-    subject: `Prueba de conectividad y avisos Aula ATECA: ${usuario.nombre}`,
-    title: '¡Tu sistema de avisos por correo está listo!',
-    badgeText: 'Prueba Exitosa',
-    badgeBg: '#10b981',
+    subject: `Correo de prueba: Recordatorio de Administración Aula ATECA`,
+    title: 'Aviso de los Administradores de la Plataforma ATECA',
+    badgeText: 'Prueba de Recordatorio',
+    badgeBg: '#4f46e5',
     contentHtml: `
       <p>Hola <strong>${usuario.nombre}</strong>,</p>
-      <p>Este es un correo de prueba generado automáticamente para comprobar que tus preferencias de notificación y la dirección de envío están funcionando a la perfección.</p>
-      <p>A partir de este momento, recibirás avisos puntuales sobre el estado de tus reservas, recordatorios de tus clases y memorias pedagógicas según los interruptores que hayas activado.</p>
+      <p>Te escribimos desde la administración de la plataforma del <strong>Aula ATECA</strong>:</p>
+      <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 4px; padding: 14px 18px; margin: 16px 0;">
+        <p style="margin: 0; font-size: 14px; color: #1e293b; line-height: 1.6;">
+          «Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos.»
+        </p>
+      </div>
+      <p style="font-size: 13px; color: #334155; font-weight: bold; margin: 14px 0;">Gracias.</p>
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 14px 0;">
+        <p style="margin: 0; font-size: 13px; color: #475569;"><strong>Comprobación técnica:</strong> Recepción y avisos por correo operativos al 100%.</p>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Destinatario comprobado:</strong> ${usuario.notificaciones?.email_alternativo || usuario.email}</p>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Fecha del envío:</strong> ${new Date().toLocaleString('es-ES')}</p>
+      </div>
+      <p style="font-size: 12px; color: #64748b; margin-top: 10px;"><em>Administradores de la plataforma · Aula ATECA · IES Agustín de Betancourt</em></p>
     `,
-    contentText: `Hola ${usuario.nombre}. Esta es una prueba de envío exitosa del Gestor Aula ATECA.`,
+    contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias.`,
     details: [
       { label: 'Docente', value: usuario.nombre },
       { label: 'Correo destinatario', value: usuario.notificaciones?.email_alternativo || usuario.email },
       { label: 'Rol en el sistema', value: usuario.rol },
-      { label: 'Fecha de prueba', value: new Date().toLocaleString('es-ES') },
+      { label: 'Estado del sistema', value: 'Notificaciones activas' },
     ],
-    buttonText: 'Ir a Gestor ATECA',
+    buttonText: 'Rellenar Formulario de Valoración (2 min)',
   });
 };
 
 /**
  * 8. Recordatorio automático tras finalizar la sesión para que el docente complete la valoración didáctica
- * Escrito desde la perspectiva del administrador/coordinación de la plataforma
+ * Escrito desde la perspectiva de los administradores de la plataforma
  */
 export const notifyRecordatorioValoracion = async (reserva: Reserva, usuario: Usuario) => {
   return dispatchNotificationEmail({
     toUser: usuario,
     type: 'RECORDATORIO_VALORACION',
-    subject: `Recordatorio de Administración: Valoración y memoria de uso del Aula ATECA (${reserva.fecha_actividad})`,
-    title: 'Aviso del Administrador del Aula ATECA',
+    subject: `Recordatorio de los Administradores: Valoración y memoria de uso del Aula ATECA (${reserva.fecha_actividad})`,
+    title: 'Aviso de los Administradores de la Plataforma ATECA',
     badgeText: 'Recordatorio',
     badgeBg: '#4f46e5',
     contentHtml: `
@@ -557,16 +568,17 @@ export const notifyRecordatorioValoracion = async (reserva: Reserva, usuario: Us
       <p>Te escribimos desde la administración de la plataforma del <strong>Aula ATECA</strong>:</p>
       <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 4px; padding: 14px 18px; margin: 16px 0;">
         <p style="margin: 0; font-size: 14px; color: #1e293b; line-height: 1.6;">
-          «Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias.»
+          «Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos.»
         </p>
       </div>
+      <p style="font-size: 13px; color: #334155; font-weight: bold; margin: 14px 0;">Gracias.</p>
       <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 14px 0;">
         <p style="margin: 0; font-size: 13px; color: #475569;"><strong>Módulo / Materia:</strong> ${reserva.modulo_materia_area} (${reserva.grupo})</p>
         <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Zona utilizada:</strong> ${reserva.zona_principal}</p>
         <p style="margin: 4px 0 0 0; font-size: 13px; color: #475569;"><strong>Fecha y franja lectiva:</strong> ${reserva.fecha_actividad.split('-').reverse().join('/')} (${reserva.hora_inicio} - ${reserva.hora_fin})</p>
       </div>
       <p style="font-size: 13px; color: #64748b;">Puedes acceder cómodamente pulsando el botón a continuación o entrando en tu apartado «Mis Solicitudes» en el gestor.</p>
-      <p style="font-size: 13px; color: #334155; font-weight: bold; margin-top: 16px;">Un cordial saludo,<br/><span style="font-weight: normal; color: #64748b; font-size: 12px;">Equipo de Administración y Coordinación del Aula ATECA · IES Agustín de Betancourt</span></p>
+      <p style="font-size: 12px; color: #64748b; margin-top: 10px;"><em>Administradores de la plataforma · Aula ATECA · IES Agustín de Betancourt</em></p>
     `,
     contentText: `Hola ${usuario.nombre}. Te escribimos desde la administración de la plataforma del Aula ATECA: Por favor, no olvides que, dado que tu sesión ha finalizado, no olvides rellenar el formulario para cumplimentar la valoración didáctica y la memoria de uso. Es un pequeño formulario para rellenar en dos minutos. Gracias. Sesión: ${reserva.modulo_materia_area} (${reserva.grupo}), ${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}.`,
     details: [
