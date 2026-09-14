@@ -9,7 +9,7 @@ import {
   Settings, Award, FileText, LogIn, LogOut, 
   PlusCircle, Activity, BookmarkCheck, ShieldCheck, Mail, Bell, Inbox,
   Sun, Moon, Sparkles, Edit3, CalendarX, HeartHandshake, Trash2,
-  RotateCcw, Clock
+  RotateCcw, Clock, KeyRound, ArrowLeft, RefreshCw
 } from 'lucide-react';
 
 import { Usuario, Reserva } from './types';
@@ -21,6 +21,7 @@ import {
   syncWithServer, checkAndTriggerValuationReminders, hasBookingConcluded
 } from './lib/storage';
 import { notifyAulaLiberada, notifyReservaAprobada } from './lib/emailService';
+import { requestLoginCode, verifyLoginCode } from './lib/authService';
 
 import CalendarView from './components/CalendarView';
 import BookingForm from './components/BookingForm';
@@ -76,6 +77,38 @@ export default function App() {
   const [user, setUser] = useState<Usuario | null>(() => getCurrentUser());
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  // 2FA OTP Login States
+  const [loginStep, setLoginStep] = useState<'email' | 'otp'>('email');
+  const [loginCode, setLoginCode] = useState('');
+  const [isRequestingCode, setIsRequestingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [countdownSeconds, setCountdownSeconds] = useState(300);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Countdown timer for 5 minutes (300 seconds)
+  useEffect(() => {
+    if (loginStep !== 'otp' || countdownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCountdownSeconds(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loginStep, countdownSeconds]);
+
+  // Resend cooldown timer (30 seconds)
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  const formatCountdown = (totalSecs: number) => {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // 2-Theme State (intermediate, dark) - Modo Claro Eliminado
   const [theme, setThemeState] = useState<'intermediate' | 'dark'>(() => getTheme());
@@ -185,36 +218,94 @@ export default function App() {
     }
   };
 
-  const handleManualLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRequestCode = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoginError('');
-    
-    if (!loginEmail.trim()) {
+
+    const emailClean = loginEmail.trim().toLowerCase();
+    if (!emailClean) {
       setLoginError('Suministra una dirección de correo válida.');
       return;
     }
 
-    const res = loginByEmail(loginEmail.trim());
-    if (res.success) {
-      setUser(res.user || null);
-      triggerToast(`Identificación exitosa docente: ${res.user?.nombre}`);
-      if (res.user?.rol === 'ADMIN') {
-        setActiveTab('admin');
-      } else if (res.user?.rol === 'COORDINADOR') {
-        setActiveTab('coordinator');
-      } else {
-        setActiveTab('calendar');
-      }
-      setCurrentAction('view');
-    } else {
-      setLoginError(res.error || 'Hubo un inconveniente para ingresar.');
+    if (!emailClean.endsWith('@gobiernodecanarias.org')) {
+      setLoginError('Acceso restringido: Debes identificarte con tu cuenta oficial del Gobierno de Canarias (@gobiernodecanarias.org).');
+      return;
     }
+
+    setIsRequestingCode(true);
+    try {
+      const res = await requestLoginCode(emailClean);
+      if (res.success) {
+        setLoginStep('otp');
+        setCountdownSeconds(res.expiresIn || 300);
+        setResendCooldown(30);
+        setLoginCode('');
+        triggerToast('Código de seguridad enviado a tu correo corporativo.');
+      } else {
+        setLoginError(res.error || 'No se pudo enviar el código de seguridad.');
+      }
+    } catch {
+      setLoginError('Error de comunicación con el servidor central.');
+    } finally {
+      setIsRequestingCode(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    if (countdownSeconds <= 0) {
+      setLoginError('El código de seguridad ha caducado (venció a los 5 minutos). Por favor, pulsa en "Reenviar código".');
+      return;
+    }
+
+    const cleanCode = loginCode.trim();
+    if (cleanCode.length < 6) {
+      setLoginError('Introduce el código de 6 dígitos completo.');
+      return;
+    }
+
+    setIsVerifyingCode(true);
+    try {
+      const res = await verifyLoginCode(loginEmail.trim().toLowerCase(), cleanCode);
+      if (res.success && res.user) {
+        setUser(res.user);
+        setLoginStep('email');
+        setLoginCode('');
+        setLoginEmail('');
+        triggerToast(`Identificación exitosa: ${res.user.nombre}`);
+        if (res.user.rol === 'ADMIN') {
+          setActiveTab('admin');
+        } else if (res.user.rol === 'COORDINADOR') {
+          setActiveTab('coordinator');
+        } else {
+          setActiveTab('calendar');
+        }
+        setCurrentAction('view');
+      } else {
+        setLoginError(res.error || 'Código incorrecto. Inténtalo de nuevo.');
+      }
+    } catch {
+      setLoginError('Error al validar el código.');
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const handleBackToEmail = () => {
+    setLoginStep('email');
+    setLoginError('');
+    setLoginCode('');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     setUser(null);
     setLoginEmail('');
+    setLoginCode('');
+    setLoginStep('email');
     triggerToast('Has cerrado la sesión de la plataforma.');
   };
 
@@ -407,29 +498,129 @@ export default function App() {
                 </div>
               )}
 
-              <form onSubmit={handleManualLogin} className="space-y-4">
-                <div className="text-left">
-                  <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1 flex items-center gap-1.5 leading-none">
-                    <Mail className="w-3.5 h-3.5 text-indigo-600" /> Cuenta oficial docente (@gobiernodecanarias.org)
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="ej: tu_nombre@gobiernodecanarias.org"
-                    className="w-full px-3 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs md:text-sm outline-none transition-all"
-                  />
-                </div>
+              {/* PASO 1: INTRODUCIR EMAIL Y SOLICITAR CÓDIGO */}
+              {loginStep === 'email' ? (
+                <form onSubmit={handleRequestCode} className="space-y-4">
+                  <div className="text-left">
+                    <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1 flex items-center gap-1.5 leading-none">
+                      <Mail className="w-3.5 h-3.5 text-indigo-600" /> Cuenta oficial docente (@gobiernodecanarias.org)
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="ej: tu_nombre@gobiernodecanarias.org"
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs md:text-sm outline-none transition-all"
+                    />
+                  </div>
 
-                <button
-                  type="submit"
-                  id="btn_login_submit"
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 font-bold text-xs rounded-xl cursor-pointer hover:shadow transition-all flex items-center justify-center gap-2"
-                >
-                  <LogIn className="w-4 h-4" /> Autenticarse con cuenta Google (@gobiernodecanarias.org)
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    id="btn_request_code"
+                    disabled={isRequestingCode}
+                    className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white py-2.5 font-bold text-xs rounded-xl cursor-pointer hover:shadow transition-all flex items-center justify-center gap-2"
+                  >
+                    {isRequestingCode ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Enviando código al correo...
+                      </>
+                    ) : (
+                      <>
+                        <KeyRound className="w-4 h-4 text-indigo-300" /> Enviar Código de Acceso (5 min)
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* PASO 2: INTRODUCIR CÓDIGO OTP DE 6 DÍGITOS CON CONTADOR REGRESIVO */
+                <form onSubmit={handleVerifyCode} className="space-y-4 animate-fade-in">
+                  <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-left space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código enviado a:</span>
+                      <button
+                        type="button"
+                        onClick={handleBackToEmail}
+                        className="text-[11px] text-indigo-600 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <ArrowLeft className="w-3 h-3" /> Cambiar correo
+                      </button>
+                    </div>
+                    <p className="text-xs font-black text-slate-800 break-all">{loginEmail}</p>
+                  </div>
+
+                  {/* TEMPORIZADOR REGRESIVO DE 5 MINUTOS */}
+                  <div className={`flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-mono font-bold transition-all border ${
+                    countdownSeconds > 60
+                      ? 'bg-indigo-50/80 border-indigo-200 text-indigo-900'
+                      : countdownSeconds > 0
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-red-50 border-red-200 text-red-700'
+                  }`}>
+                    <Clock className={`w-4 h-4 shrink-0 ${countdownSeconds > 0 ? 'animate-pulse' : ''}`} />
+                    <span>
+                      {countdownSeconds > 0
+                        ? `Válido durante: ${formatCountdown(countdownSeconds)}`
+                        : 'Código caducado (venció a los 5 min)'}
+                    </span>
+                  </div>
+
+                  <div className="text-left space-y-1">
+                    <label className="block text-slate-500 font-bold text-[10px] uppercase flex items-center gap-1.5 leading-none">
+                      <KeyRound className="w-3.5 h-3.5 text-indigo-600" /> Introduce el código de 6 dígitos
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      autoFocus
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={loginCode}
+                      onChange={(e) => setLoginCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000"
+                      className="w-full px-3 py-2.5 text-center text-2xl font-black font-mono tracking-[0.4em] bg-white border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl outline-none transition-all placeholder:tracking-normal placeholder:font-sans placeholder:text-base placeholder:text-slate-300"
+                    />
+                    <p className="text-[10px] text-slate-400 text-center">Revisa tu bandeja de entrada o spam si no lo ves de inmediato.</p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    id="btn_verify_code"
+                    disabled={loginCode.length < 6 || isVerifyingCode || countdownSeconds <= 0}
+                    className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-2.5 font-bold text-xs rounded-xl cursor-pointer hover:shadow transition-all flex items-center justify-center gap-2"
+                  >
+                    {isVerifyingCode ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Verificando código...
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="w-4 h-4" /> Verificar e Iniciar Sesión
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={handleBackToEmail}
+                      className="text-xs text-slate-500 hover:text-slate-800 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" /> Volver
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRequestCode()}
+                      disabled={resendCooldown > 0 || isRequestingCode}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 disabled:text-slate-400 font-bold flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRequestingCode ? 'animate-spin' : ''}`} />
+                      {resendCooldown > 0 ? `Reenviar en (${resendCooldown}s)` : 'Reenviar código'}
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {/* Canary priorities warning msg */}
               <div className="bg-slate-50 p-4 border border-slate-100 rounded-xl text-left text-[11px] leading-relaxed text-slate-500">

@@ -51,9 +51,37 @@ function verifySecurity() {
 // Directorio y archivo de almacenamiento seguro
 $dataDir = __DIR__ . '/data';
 $dataFile = $dataDir . '/store.json';
+$authCodesFile = $dataDir . '/auth_codes.json';
 
 if (!is_dir($dataDir)) {
     @mkdir($dataDir, 0755, true);
+}
+
+// Cargar y guardar códigos temporales de autenticación (OTP 5 min)
+function loadAuthCodes($file) {
+    if (!file_exists($file)) return [];
+    $fp = @fopen($file, 'r');
+    if (!$fp) return [];
+    flock($fp, LOCK_SH);
+    $content = stream_get_contents($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    $data = json_decode($content, true);
+    return is_array($data) ? $data : [];
+}
+
+function saveAuthCodes($file, $data) {
+    $content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    if ($content === false) return false;
+    $tmpFile = $file . '.tmp.' . uniqid();
+    if (@file_put_contents($tmpFile, $content, LOCK_EX) === false) {
+        return false;
+    }
+    if (!@rename($tmpFile, $file)) {
+        @unlink($tmpFile);
+        return @file_put_contents($file, $content, LOCK_EX) !== false;
+    }
+    return true;
 }
 
 // Función para obtener la plantilla base por defecto
@@ -136,19 +164,16 @@ function saveStore($dataFile, $data) {
     return true;
 }
 
-// Determinación de la acción solicitada
+// Determinación de la acción solicitada y lectura del payload
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
+$rawInput = file_get_contents('php://input');
+$requestData = !empty($rawInput) ? json_decode($rawInput, true) : [];
+if (!is_array($requestData)) {
+    $requestData = [];
+}
 
-// Si no viene por parámetro, verificar JSON payload
-if (empty($action)) {
-    $rawInput = file_get_contents('php://input');
-    if (!empty($rawInput)) {
-        $parsedInput = json_decode($rawInput, true);
-        if (is_array($parsedInput) && isset($parsedInput['action'])) {
-            $action = $parsedInput['action'];
-            $requestData = $parsedInput;
-        }
-    }
+if (empty($action) && isset($requestData['action'])) {
+    $action = $requestData['action'];
 }
 
 switch ($action) {
@@ -375,6 +400,248 @@ switch ($action) {
             'mail_sent' => $mailSent,
             'gsheet_sent' => $gsheetSent,
             'recipient' => $to,
+        ]);
+        break;
+
+    case 'request_login_code':
+        verifySecurity();
+        $email = strtolower(trim($_POST['email'] ?? $requestData['email'] ?? ''));
+
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Introduce una dirección de correo válida.']);
+            exit;
+        }
+
+        if (!str_ends_with($email, '@gobiernodecanarias.org')) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Acceso restringido: Debes identificarte con tu cuenta oficial del Gobierno de Canarias (@gobiernodecanarias.org).']);
+            exit;
+        }
+
+        $store = loadStore($dataFile);
+        $usuarios = $store['usuarios'] ?? [];
+        $existingUser = null;
+        foreach ($usuarios as $u) {
+            if (strtolower(trim($u['email'] ?? '')) === $email) {
+                $existingUser = $u;
+                break;
+            }
+        }
+
+        if ($existingUser && empty($existingUser['activo'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Tu usuario existe pero se encuentra DESACTIVADO. Contacta con la Coordinación o Administración del centro.']);
+            exit;
+        }
+
+        // Generar código aleatorio de 6 dígitos
+        $code = (string) random_int(100000, 999999);
+        $expiresIn = 300; // 5 minutos exactos
+        $expiresAt = time() + $expiresIn;
+
+        // Cargar códigos y purgar los vencidos
+        $authCodes = loadAuthCodes($authCodesFile);
+        $now = time();
+        foreach ($authCodes as $k => $item) {
+            if (($item['expires_at'] ?? 0) < $now) {
+                unset($authCodes[$k]);
+            }
+        }
+
+        $authCodes[$email] = [
+            'code' => $code,
+            'expires_at' => $expiresAt,
+            'attempts' => 0,
+            'created_at' => $now
+        ];
+        saveAuthCodes($authCodesFile, $authCodes);
+
+        // Preparar plantilla institucional de correo
+        $config = $store['config'] ?? [];
+        $centerName = $config['nombre_centro'] ?? 'IES Agustín de Betancourt';
+        $coordEmail = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+
+        $subject = '🔐 Código de acceso Gestor ATECA: ' . $code;
+        $htmlBody = '<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Código de Acceso</title></head>
+<body style="margin:0;padding:24px;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;color:#f1f5f9;">
+  <div style="max-width:540px;margin:0 auto;background:#1e293b;border-radius:16px;border:1px solid #334155;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.4);">
+    <div style="background:#0f172a;padding:24px;border-bottom:1px solid #334155;text-align:center;">
+      <h1 style="margin:0;font-size:18px;color:#e2e8f0;font-weight:800;letter-spacing:0.5px;">' . htmlspecialchars($centerName) . '</h1>
+      <p style="margin:4px 0 0 0;font-size:13px;color:#818cf8;font-weight:600;">Aula ATECA • Gestor de Reservas</p>
+    </div>
+    <div style="padding:28px 24px;text-align:center;">
+      <div style="display:inline-block;padding:6px 14px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:20px;font-size:12px;color:#a5b4fc;font-weight:700;margin-bottom:16px;">
+        Autenticación Oficial Docente (2FA)
+      </div>
+      <h2 style="margin:0 0 8px 0;font-size:20px;color:#f8fafc;font-weight:700;">Tu Código de Verificación</h2>
+      <p style="margin:0 0 24px 0;font-size:13px;color:#94a3b8;line-height:1.5;">
+        Introduce el siguiente código en la pantalla de acceso del Gestor ATECA para verificar tu identidad:
+      </p>
+      
+      <div style="background:#0f172a;border:2px dashed #6366f1;border-radius:12px;padding:18px;margin:0 auto 24px auto;max-width:280px;">
+        <span style="font-family:\'Courier New\',Courier,monospace;font-size:38px;font-weight:900;letter-spacing:8px;color:#38bdf8;">' . $code . '</span>
+      </div>
+
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px;margin-bottom:20px;text-align:left;">
+        <p style="margin:0;font-size:12px;color:#fcd34d;line-height:1.4;">
+          ⏳ <strong>Caducidad estricta:</strong> Este código vence en <strong>5 minutos</strong>. Pasado ese tiempo deberás solicitar uno nuevo.
+        </p>
+      </div>
+
+      <p style="margin:0;font-size:11px;color:#64748b;line-height:1.4;">
+        🔒 Si no has solicitado este acceso, puedes ignorar este mensaje de forma segura. Nadie podrá acceder a tu cuenta sin introducir este código numérico.
+      </p>
+    </div>
+    <div style="background:#0f172a;padding:14px;border-top:1px solid #334155;text-align:center;">
+      <p style="margin:0;font-size:10px;color:#64748b;">
+        Gestor de Reservas Aula ATECA • ' . htmlspecialchars($centerName) . '
+      </p>
+    </div>
+  </div>
+</body>
+</html>';
+        $textBody = "Tu código de verificación para el Gestor ATECA es: " . $code . "\n\nVálido durante 5 minutos.";
+
+        $fromName = 'Aula ATECA - ' . $centerName;
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'From: =?UTF-8?B?' . base64_encode($fromName) . '?= <ateca@fpapps.es>',
+            'Reply-To: ' . $coordEmail,
+            'X-Mailer: PHP/' . phpversion(),
+            'X-Priority: 1 (Highest)',
+        ];
+        $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+        $mailSent = @mail($email, $encodedSubject, $htmlBody, implode("\r\n", $headers));
+
+        // Copia a Google Sheets si está configurado
+        $gsheetUrl = $config['google_sheets_url'] ?? '';
+        $gsheetSent = false;
+        if (!empty($gsheetUrl) && filter_var($gsheetUrl, FILTER_VALIDATE_URL)) {
+            $ch = curl_init($gsheetUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain; charset=utf-8']);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+                'action' => 'sendEmail',
+                'to' => $email,
+                'subject' => $subject,
+                'htmlBody' => $htmlBody,
+                'textBody' => $textBody
+            ]));
+            $resp = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($httpCode >= 200 && $httpCode < 400) {
+                $gsheetSent = true;
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'email' => $email,
+            'expires_in' => $expiresIn,
+            'mail_sent' => $mailSent,
+            'gsheet_sent' => $gsheetSent
+        ]);
+        break;
+
+    case 'verify_login_code':
+        verifySecurity();
+        $email = strtolower(trim($_POST['email'] ?? $requestData['email'] ?? ''));
+        $code = trim($_POST['code'] ?? $requestData['code'] ?? '');
+
+        if (!$email || !$code) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Debes proporcionar correo y código de verificación.']);
+            exit;
+        }
+
+        $authCodes = loadAuthCodes($authCodesFile);
+        if (!isset($authCodes[$email])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'No hay ningún código activo para este correo. Por favor, solicita uno nuevo.']);
+            exit;
+        }
+
+        $entry = $authCodes[$email];
+        $now = time();
+
+        // Comprobar caducidad de 5 minutos
+        if ($now > ($entry['expires_at'] ?? 0)) {
+            unset($authCodes[$email]);
+            saveAuthCodes($authCodesFile, $authCodes);
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'El código de seguridad ha caducado (venció a los 5 minutos). Solicita uno nuevo.']);
+            exit;
+        }
+
+        // Comprobar límite de 5 intentos
+        if (($entry['attempts'] ?? 0) >= 5) {
+            unset($authCodes[$email]);
+            saveAuthCodes($authCodesFile, $authCodes);
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Has superado el límite de 5 intentos fallidos. Solicita un nuevo código por seguridad.']);
+            exit;
+        }
+
+        // Comprobar coincidencia exacta del código
+        if ($code !== (string) ($entry['code'] ?? '')) {
+            $authCodes[$email]['attempts'] = ($entry['attempts'] ?? 0) + 1;
+            saveAuthCodes($authCodesFile, $authCodes);
+            $remaining = 5 - $authCodes[$email]['attempts'];
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => "Código incorrecto. Te quedan {$remaining} intentos.",
+                'remaining_attempts' => $remaining
+            ]);
+            exit;
+        }
+
+        // Código válido -> Eliminarlo de inmediato para evitar reutilización
+        unset($authCodes[$email]);
+        saveAuthCodes($authCodesFile, $authCodes);
+
+        // Obtener o registrar usuario en store
+        $store = loadStore($dataFile);
+        $usuarios = $store['usuarios'] ?? [];
+        $targetUser = null;
+        foreach ($usuarios as $u) {
+            if (strtolower(trim($u['email'] ?? '')) === $email) {
+                $targetUser = $u;
+                break;
+            }
+        }
+
+        if (!$targetUser) {
+            $nameParts = explode('@', $email)[0];
+            $cleanName = ucwords(str_replace('.', ' ', $nameParts));
+            $targetUser = [
+                'id_usuario' => 'u-' . substr(md5(uniqid($email, true)), 0, 8),
+                'nombre' => $cleanName,
+                'email' => $email,
+                'rol' => 'PROFESOR',
+                'departamento' => 'General',
+                'turno' => 'Ambos',
+                'activo' => true
+            ];
+            $store['usuarios'][] = $targetUser;
+            saveStore($dataFile, $store);
+        } else if (empty($targetUser['activo'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Tu usuario existe pero se encuentra DESACTIVADO. Contacta con la Coordinación o Administración del centro.']);
+            exit;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'user' => $targetUser
         ]);
         break;
 
