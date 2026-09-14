@@ -77,6 +77,24 @@ export const syncItemToServer = async (
   }
 };
 
+const DELETED_RESERVAS_KEY = 'ateca_deleted_reservas';
+
+export const getDeletedReservaIds = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(DELETED_RESERVAS_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+export const markReservaAsDeleted = (id: string) => {
+  const set = getDeletedReservaIds();
+  set.add(id);
+  const arr = Array.from(set).slice(-200);
+  localStorage.setItem(DELETED_RESERVAS_KEY, JSON.stringify(arr));
+};
+
 /**
  * Elimina un elemento del servidor central de forma asíncrona
  */
@@ -84,6 +102,9 @@ export const deleteItemFromServer = async (
   itemType: 'reserva' | 'bloqueo',
   id: string
 ): Promise<boolean> => {
+  if (itemType === 'reserva') {
+    markReservaAsDeleted(id);
+  }
   try {
     const res = await fetch(API_BASE_URL, {
       method: 'POST',
@@ -130,7 +151,7 @@ export const saveAllToServer = async (store: ServerStore): Promise<boolean> => {
 };
 
 /**
- * Sincroniza bidireccionalmente el localStorage del navegador con el servidor central
+ * Sincroniza el localStorage del navegador con el servidor central (servidor como fuente de verdad)
  */
 export const hydrateFromServer = async (
   storageKeys: {
@@ -148,100 +169,49 @@ export const hydrateFromServer = async (
   }
 
   const serverData = result.data;
-  let shouldUploadMerged = false;
+  const deletedSet = getDeletedReservaIds();
 
   // 1. CONFIG
   const localConfigRaw = localStorage.getItem(storageKeys.CONFIG);
   const localConfig = localConfigRaw ? JSON.parse(localConfigRaw) : {};
   const mergedConfig = { ...localConfig, ...serverData.config };
 
-  // Si local tiene google_sheets_url pero servidor no, conservamos la local y la subimos
+  let shouldUploadConfig = false;
   if (localConfig.google_sheets_url && !serverData.config.google_sheets_url) {
     mergedConfig.google_sheets_url = localConfig.google_sheets_url;
-    shouldUploadMerged = true;
+    shouldUploadConfig = true;
   }
   if (localConfig.google_sheets_doc_url && !serverData.config.google_sheets_doc_url) {
     mergedConfig.google_sheets_doc_url = localConfig.google_sheets_doc_url;
-    shouldUploadMerged = true;
+    shouldUploadConfig = true;
   }
   localStorage.setItem(storageKeys.CONFIG, JSON.stringify(mergedConfig));
-
-  // 2. USUARIOS: Unir por email
-  const localUsersRaw = localStorage.getItem(storageKeys.USERS);
-  const localUsers: Usuario[] = localUsersRaw ? JSON.parse(localUsersRaw) : [];
-  const serverUsers: Usuario[] = serverData.usuarios || [];
-
-  const userMap = new Map<string, Usuario>();
-  // Primero locales
-  localUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
-  // Sobrescribir o añadir con servidores
-  serverUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
-
-  // Si local tenía usuarios que el servidor no tiene, marcar para subir
-  if (localUsers.some(lu => !serverUsers.some(su => su.email.toLowerCase() === lu.email.toLowerCase()))) {
-    shouldUploadMerged = true;
+  if (shouldUploadConfig) {
+    syncItemToServer('config', mergedConfig);
   }
-  const mergedUsers = Array.from(userMap.values());
-  localStorage.setItem(storageKeys.USERS, JSON.stringify(mergedUsers));
 
-  // 3. RESERVAS: Unir por id_reserva
-  const localReservasRaw = localStorage.getItem(storageKeys.RESERVAS);
-  const localReservas: Reserva[] = localReservasRaw ? JSON.parse(localReservasRaw) : [];
-  const serverReservas: Reserva[] = serverData.reservas || [];
-
-  const reservaMap = new Map<string, Reserva>();
-  localReservas.forEach(r => reservaMap.set(r.id_reserva, r));
-  serverReservas.forEach(r => reservaMap.set(r.id_reserva, r));
-
-  if (localReservas.some(lr => !serverReservas.some(sr => sr.id_reserva === lr.id_reserva))) {
-    shouldUploadMerged = true;
+  // 2. USUARIOS: El servidor es la fuente central
+  if (serverData.usuarios && serverData.usuarios.length > 0) {
+    localStorage.setItem(storageKeys.USERS, JSON.stringify(serverData.usuarios));
   }
-  const mergedReservas = Array.from(reservaMap.values());
-  localStorage.setItem(storageKeys.RESERVAS, JSON.stringify(mergedReservas));
 
-  // 4. VALORACIONES
-  const localValRaw = localStorage.getItem(storageKeys.VALORACIONES);
-  const localVal: Valoracion[] = localValRaw ? JSON.parse(localValRaw) : [];
-  const serverVal: Valoracion[] = serverData.valoraciones || [];
+  // 3. RESERVAS: El servidor es la fuente central, respetando los borrados
+  const serverReservas: Reserva[] = (serverData.reservas || []).filter(r => !deletedSet.has(r.id_reserva));
+  localStorage.setItem(storageKeys.RESERVAS, JSON.stringify(serverReservas));
 
-  const valMap = new Map<string, Valoracion>();
-  localVal.forEach(v => valMap.set(v.id_valoracion, v));
-  serverVal.forEach(v => valMap.set(v.id_valoracion, v));
-  if (localVal.some(lv => !serverVal.some(sv => sv.id_valoracion === lv.id_valoracion))) {
-    shouldUploadMerged = true;
+  // 4. VALORACIONES: El servidor es la fuente central
+  if (serverData.valoraciones) {
+    localStorage.setItem(storageKeys.VALORACIONES, JSON.stringify(serverData.valoraciones));
   }
-  const mergedVal = Array.from(valMap.values());
-  localStorage.setItem(storageKeys.VALORACIONES, JSON.stringify(mergedVal));
 
-  // 5. BLOQUEOS
-  const localBloqRaw = localStorage.getItem(storageKeys.BLOQUEOS);
-  const localBloq: Bloqueo[] = localBloqRaw ? JSON.parse(localBloqRaw) : [];
-  const serverBloq: Bloqueo[] = serverData.bloqueos || [];
-
-  const bloqMap = new Map<string, Bloqueo>();
-  localBloq.forEach(b => bloqMap.set(b.id_bloqueo, b));
-  serverBloq.forEach(b => bloqMap.set(b.id_bloqueo, b));
-  if (localBloq.some(lb => !serverBloq.some(sb => sb.id_bloqueo === lb.id_bloqueo))) {
-    shouldUploadMerged = true;
+  // 5. BLOQUEOS: El servidor es la fuente central
+  if (serverData.bloqueos) {
+    localStorage.setItem(storageKeys.BLOQUEOS, JSON.stringify(serverData.bloqueos));
   }
-  const mergedBloq = Array.from(bloqMap.values());
-  localStorage.setItem(storageKeys.BLOQUEOS, JSON.stringify(mergedBloq));
 
-  // 6. DÍAS NO HÁBILES
+  // 6. DÍAS NO HÁBILES: El servidor es la fuente central
   if (serverData.dias_no_habiles && serverData.dias_no_habiles.length > 0) {
     localStorage.setItem(storageKeys.DIAS_NO_HABILES, JSON.stringify(serverData.dias_no_habiles));
-  }
-
-  // Si local tenía datos iniciales que el servidor no tenía, sincronizar hacia arriba
-  if (shouldUploadMerged) {
-    saveAllToServer({
-      config: mergedConfig,
-      usuarios: mergedUsers,
-      reservas: mergedReservas,
-      valoraciones: mergedVal,
-      bloqueos: mergedBloq,
-      dias_no_habiles: serverData.dias_no_habiles || [],
-    });
   }
 
   return true;

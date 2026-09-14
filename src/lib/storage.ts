@@ -6,7 +6,7 @@
 import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil } from '../types';
 import { syncToGoogleSheets } from './syncService';
 import { 
-  syncItemToServer, deleteItemFromServer, saveAllToServer, hydrateFromServer 
+  syncItemToServer, deleteItemFromServer, saveAllToServer, hydrateFromServer, markReservaAsDeleted 
 } from './serverSync';
 // Pre-seeded configuration data (Producción Oficial)
 const DEFAULT_CONFIG: Record<string, string> = {
@@ -485,16 +485,23 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
     return checkTimeOverlap(r.hora_inicio, r.hora_fin, reserva.hora_inicio, reserva.hora_fin);
   });
 
-  const nuevoEstado = 'PENDIENTE';
+  const isFP = isFpBooking(reserva);
+
+  // Si es profesor / actividad de Formación Profesional y no hay solapamiento, queda aprobada automáticamente
+  const nuevoEstado = (isFP && !hasApprovedOverlap) ? 'APROBADA' : 'PENDIENTE';
+
+  const observaciones = (isFP && !hasApprovedOverlap)
+    ? 'Aprobada automáticamente por prioridad oficial de Formación Profesional (FP).'
+    : hasApprovedOverlap 
+      ? 'Aviso: Solapamiento potencial con reserva preexistente. Pendiente de resolución por Coordinación.'
+      : 'Reserva pendiente de revisión por el Coordinador.';
 
   const finalReserva: Reserva = {
     ...reserva,
     id_reserva,
     fecha_creacion,
     estado: nuevoEstado,
-    observaciones_coordinador: hasApprovedOverlap 
-      ? 'Aviso: Solapamiento potencial con reserva aprobada preexistente. Pendiente de resolución por Coordinación.'
-      : 'Reserva pendiente de revisión por el Coordinador.',
+    observaciones_coordinador: observaciones,
   };
 
   reservasArr.unshift(finalReserva); // put on top
@@ -508,10 +515,67 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
     success: true,
     reserva: finalReserva,
     conflict: hasApprovedOverlap,
-    message: hasApprovedOverlap
-      ? "Solicitud registrada como PENDIENTE con aviso de solapamiento para revisión de Coordinación."
-      : "Reserva creada de forma PENDIENTE. Un coordinador revisará la solicitud."
+    message: nuevoEstado === 'APROBADA'
+      ? "¡Reserva para Formación Profesional aprobada automáticamente en el calendario!"
+      : hasApprovedOverlap
+        ? "Solicitud registrada como PENDIENTE con aviso de solapamiento para revisión de Coordinación."
+        : "Reserva creada de forma PENDIENTE. Un coordinador revisará la solicitud."
   };
+};
+
+export const isFpBooking = (reserva: Partial<Reserva>, userDept?: string): boolean => {
+  const nivel = (reserva.nivel || '').toUpperCase();
+  const dept = (reserva.departamento || userDept || '').toUpperCase();
+  const prioridad = reserva.prioridad;
+
+  // Niveles específicos de Formación Profesional
+  if (
+    nivel.includes('FP') ||
+    nivel.includes('GRADO MEDIO') ||
+    nivel.includes('GRADO SUPERIOR') ||
+    nivel.includes('FORMACIÓN PROFESIONAL') ||
+    nivel.includes('FORMACION PROFESIONAL')
+  ) {
+    return true;
+  }
+
+  // Prioridad ALTA (definida como Preferente FP)
+  if (prioridad === 'ALTA') {
+    return true;
+  }
+
+  // Departamentos habituales de Formación Profesional
+  if (
+    dept.includes('FP') ||
+    dept.includes('INFORMÁTICA') ||
+    dept.includes('INFORMATICA') ||
+    dept.includes('ELECTRICIDAD') ||
+    dept.includes('ADMINISTRACIÓN') ||
+    dept.includes('ADMINISTRACION') ||
+    dept.includes('OFIMÁTICA') ||
+    dept.includes('OFIMATICA') ||
+    dept.includes('COMERCIO') ||
+    dept.includes('HOSTELERÍA') ||
+    dept.includes('HOSTELERIA') ||
+    dept.includes('IMAGEN Y SONIDO') ||
+    dept.includes('AUTOMOCIÓN') ||
+    dept.includes('AUTOMOCION') ||
+    dept.includes('MANTENIMIENTO') ||
+    dept.includes('TRANSPORTE') ||
+    dept.includes('AGRARIA') ||
+    dept.includes('EDIFICACIÓN') ||
+    dept.includes('EDIFICACION') ||
+    dept.includes('FABRICACIÓN') ||
+    dept.includes('FABRICACION') ||
+    dept.includes('QUÍMICA') ||
+    dept.includes('QUIMICA') ||
+    dept.includes('SANIDAD') ||
+    dept.includes('SERVICIOS SOCIOCULTURALES')
+  ) {
+    return true;
+  }
+
+  return false;
 };
 
 export const checkTimeOverlap = (start1: string, end1: string, start2: string, end2: string): boolean => {
@@ -623,6 +687,7 @@ export const updateReserva = (reserva: Reserva): { success: boolean; message?: s
 
 // Permanently remove reservation (leaves slot free for other teachers)
 export const deleteReserva = (id_reserva: string): boolean => {
+  markReservaAsDeleted(id_reserva);
   const arr = getReservas();
   const filtered = arr.filter(r => r.id_reserva !== id_reserva);
   setReservas(filtered);
@@ -640,6 +705,7 @@ export const cancelReserva = (id_reserva: string, motivo?: string): boolean => {
       arr[idx].observaciones_coordinador = `Cancelada: ${motivo}`;
     }
     setReservas(arr);
+    syncItemToServer('reserva', arr[idx]);
     syncToGoogleSheets('save_reserva', arr[idx]);
     return true;
   }

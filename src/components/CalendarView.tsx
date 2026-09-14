@@ -349,12 +349,12 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                   <p className="text-[11px] text-slate-400 mt-0.5">El Aula ATECA se encuentra libre en todas sus zonas para esta fecha.</p>
                 </div>
               </div>
-              {canCreateBookings && onRequestNewBookingWithDate && (
+              {canCreateBookings && (
                 <button
-                  onClick={() => onRequestNewBookingWithDate(selectedDayStr)}
+                  onClick={() => setViewMode('day-sheet')}
                   className="text-xs font-bold bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white cursor-pointer px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Reservar en esta fecha
+                  <Plus className="w-3.5 h-3.5" /> Seleccionar sesión lectiva
                 </button>
               )}
             </div>
@@ -401,14 +401,14 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                 </div>
               ))}
 
-              {canCreateBookings && onRequestNewBookingWithDate && (
+              {canCreateBookings && (
                 <button
-                  onClick={() => onRequestNewBookingWithDate(selectedDayStr)}
+                  onClick={() => setViewMode('day-sheet')}
                   className={`border border-dashed border-slate-300 hover:border-indigo-400 hover:text-indigo-600 text-slate-600 rounded-xl font-bold text-xs cursor-pointer transition-all bg-white hover:bg-indigo-50/30 flex items-center justify-center gap-1.5 ${
                     isTopLayout ? 'p-4 min-h-[100px]' : 'w-full py-2.5'
                   }`}
                 >
-                  <Plus className="w-4 h-4" /> Solicitar otra reserva en este día
+                  <Plus className="w-4 h-4" /> Seleccionar sesión lectiva para reservar
                 </button>
               )}
 

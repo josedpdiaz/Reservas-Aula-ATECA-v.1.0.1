@@ -289,6 +289,12 @@ switch ($action) {
         $store = loadStore($dataFile);
 
         if ($itemType === 'reserva') {
+            if (!isset($store['deleted_reservas']) || !is_array($store['deleted_reservas'])) {
+                $store['deleted_reservas'] = [];
+            }
+            if (!in_array($id, $store['deleted_reservas'])) {
+                $store['deleted_reservas'][] = $id;
+            }
             $store['reservas'] = array_values(array_filter($store['reservas'], function($r) use ($id) {
                 return ($r['id_reserva'] ?? '') !== $id;
             }));
