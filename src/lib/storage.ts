@@ -596,6 +596,22 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
   };
 
   reservasArr.unshift(finalReserva); // put on top
+
+  // Si la nueva reserva es aprobada automáticamente (FP), desplazar reservas en standby que ocupen esa franja
+  if (nuevoEstado === 'APROBADA') {
+    reservasArr.forEach(other => {
+      if (other.id_reserva !== finalReserva.id_reserva && other.estado === 'PENDIENTE' && other.fecha_actividad === finalReserva.fecha_actividad) {
+        if (checkTimeOverlap(other.hora_inicio, other.hora_fin, finalReserva.hora_inicio, finalReserva.hora_fin)) {
+          if (other.en_standby_por_no_confirmar) {
+            other.observaciones_coordinador = `Desplazada por nueva reserva prioritaria de FP (${finalReserva.profesor} - ${finalReserva.modulo_materia_area}). Franja concedida a FP.`;
+            syncItemToServer('reserva', other);
+            syncToGoogleSheets('save_reserva', other);
+          }
+        }
+      }
+    });
+  }
+
   setReservas(reservasArr);
 
   // Sincronización automática con Servidor Central y Google Sheets
@@ -743,6 +759,23 @@ export const updateReservaEstado = (reservaId: string, nuevoEstado: 'PENDIENTE' 
     if (observaciones !== undefined) {
       arr[idx].observaciones_coordinador = observaciones;
     }
+
+    // Si la reserva es aprobada por administración o coordinación, comprobar si desplaza reservas en standby
+    if (nuevoEstado === 'APROBADA') {
+      const approved = arr[idx];
+      arr.forEach((other, oIdx) => {
+        if (oIdx !== idx && other.estado === 'PENDIENTE' && other.fecha_actividad === approved.fecha_actividad) {
+          if (checkTimeOverlap(other.hora_inicio, other.hora_fin, approved.hora_inicio, approved.hora_fin)) {
+            if (other.en_standby_por_no_confirmar) {
+              other.observaciones_coordinador = `Desplazada por decisión administrativa: franja horaria reasignada a ${approved.profesor} (${approved.modulo_materia_area} - ${approved.grupo}).`;
+              syncItemToServer('reserva', other);
+              syncToGoogleSheets('save_reserva', other);
+            }
+          }
+        }
+      });
+    }
+
     setReservas(arr);
     syncItemToServer('reserva', arr[idx]);
     syncToGoogleSheets('save_reserva', arr[idx]);
@@ -1099,17 +1132,111 @@ export const checkAndTriggerWeeklyReminders = async (): Promise<boolean> => {
 };
 
 /**
+ * 48 Horas de espera tras el recordatorio semanal:
+ * Si el docente no confirma su asistencia en 48 horas desde el envío del recordatorio semanal,
+ * la reserva pasa automáticamente a estado 'PENDIENTE' (Standby).
+ * La franja horaria queda libre para que la Administración o Coordinación pueda reasignarla
+ * a otra solicitud (por ejemplo, con prioridad FP o necesidad justificada), desplazando la reserva no confirmada.
+ */
+export const checkAndTriggerStandbyReservas = async (): Promise<boolean> => {
+  const reservas = getReservas();
+  const users = getUsuarios();
+  let modified = false;
+  const now = Date.now();
+  const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
+
+  for (const r of reservas) {
+    // Aplica a reservas autorizadas que recibieron el recordatorio semanal y NO han sido confirmadas
+    if (
+      r.estado === 'APROBADA' &&
+      r.recordatorio_semanal_enviado &&
+      !r.confirmada_por_docente &&
+      r.fecha_recordatorio_semanal
+    ) {
+      const sentTime = new Date(r.fecha_recordatorio_semanal).getTime();
+      if (!isNaN(sentTime) && (now - sentTime >= FORTY_EIGHT_HOURS_MS)) {
+        // Solo si la actividad aún no ha concluido
+        if (!hasBookingConcluded(r.fecha_actividad, r.hora_fin)) {
+          r.estado = 'PENDIENTE';
+          r.en_standby_por_no_confirmar = true;
+          r.fecha_pase_a_standby = new Date().toISOString();
+          const motivoStandby = 'Pase a STANDBY (PENDIENTE): No confirmada en 48h tras el recordatorio semanal. Franja disponible para reasignación o desplazamiento.';
+          r.observaciones_coordinador = r.observaciones_coordinador 
+            ? `${r.observaciones_coordinador} | ${motivoStandby}`
+            : motivoStandby;
+          
+          modified = true;
+
+          const teacher = users.find(u => u.email.toLowerCase() === r.email.toLowerCase()) || {
+            id_usuario: 'docente',
+            nombre: r.profesor,
+            email: r.email,
+            rol: 'PROFESOR' as const,
+            departamento: r.departamento,
+            turno: 'Ambos' as const,
+            activo: true,
+          };
+
+          try {
+            const { notifyReservaStandbyAdmin, notifyReservaStandbyDocente } = await import('./emailService');
+            await notifyReservaStandbyAdmin(r);
+            await notifyReservaStandbyDocente(r, teacher);
+          } catch (err) {
+            console.warn('Error al notificar pase a standby de reserva:', err);
+          }
+
+          syncItemToServer('reserva', r);
+          syncToGoogleSheets('save_reserva', r);
+        }
+      }
+    }
+  }
+
+  if (modified) {
+    setReservas(reservas);
+  }
+
+  return modified;
+};
+
+/**
  * Confirmación expresa de asistencia por parte del docente
  */
-export const confirmReservaDocente = (id_reserva: string): boolean => {
+export const confirmReservaDocente = (id_reserva: string): { success: boolean; message: string } => {
   const arr = getReservas();
   const idx = arr.findIndex(r => r.id_reserva === id_reserva);
   if (idx >= 0) {
-    arr[idx].confirmada_por_docente = true;
+    const res = arr[idx];
+
+    // Verificar si la franja ya fue ocupada por otra reserva autorizada durante el standby
+    const isOccupied = arr.some((other, oIdx) => {
+      if (oIdx === idx) return false;
+      if (other.estado !== 'APROBADA' && other.estado !== 'REALIZADA') return false;
+      if (other.fecha_actividad !== res.fecha_actividad) return false;
+      return checkTimeOverlap(other.hora_inicio, other.hora_fin, res.hora_inicio, res.hora_fin);
+    });
+
+    if (isOccupied && res.estado === 'PENDIENTE') {
+      return {
+        success: false,
+        message: 'No es posible confirmar: la franja horaria ya ha sido reasignada a otra solicitud tras expirar las 48h de reserva.'
+      };
+    }
+
+    res.confirmada_por_docente = true;
+    // Si estaba en standby y la franja sigue libre, reactivar a APROBADA
+    if (res.en_standby_por_no_confirmar && res.estado === 'PENDIENTE') {
+      res.estado = 'APROBADA';
+      res.observaciones_coordinador = (res.observaciones_coordinador || '') + ' | Asistencia confirmada por el docente tras standby. Reserva reactivada.';
+    }
+
     setReservas(arr);
-    syncItemToServer('reserva', arr[idx]);
-    syncToGoogleSheets('save_reserva', arr[idx]);
-    return true;
+    syncItemToServer('reserva', res);
+    syncToGoogleSheets('save_reserva', res);
+    return {
+      success: true,
+      message: '¡Asistencia confirmada con éxito! Tu reserva se mantiene activa en el Aula ATECA.'
+    };
   }
-  return false;
+  return { success: false, message: 'Reserva no encontrada.' };
 };

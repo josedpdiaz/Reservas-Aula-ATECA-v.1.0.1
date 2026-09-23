@@ -238,9 +238,16 @@ export default function MyBookingsView({
                       <Calendar className="w-3 h-3 text-emerald-400" />
                       {res.fecha_actividad.split('-').reverse().join('/')}
                     </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getBadgeStyle(res.estado)}`}>
-                      {res.estado}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {res.en_standby_por_no_confirmar && res.estado === 'PENDIENTE' && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider bg-amber-50 text-amber-800 border-amber-300">
+                          ⏳ Standby (48h)
+                        </span>
+                      )}
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getBadgeStyle(res.estado)}`}>
+                        {res.estado}
+                      </span>
+                    </div>
                   </div>
 
                   <div>
@@ -288,17 +295,27 @@ export default function MyBookingsView({
                         >
                           <Edit3 className="w-3.5 h-3.5" /> Editar
                         </button>
-                        <button
-                          onClick={() => {
-                            setBookingToRelease(res);
-                            setReleaseMotivo('');
-                            setReleaseMode('cancel');
-                          }}
-                          title="Liberar aula para que otros compañeros puedan reservar"
-                          className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1 border border-rose-200/60"
-                        >
-                          <CalendarX className="w-3.5 h-3.5" /> Liberar
-                        </button>
+                        {hasBookingConcluded(res.fecha_actividad, res.hora_fin) ? (
+                          <button
+                            disabled
+                            title="No disponible: el horario de esta reserva ya ha transcurrido"
+                            className="px-2.5 py-1.5 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold cursor-not-allowed flex items-center gap-1 border border-slate-200 opacity-60"
+                          >
+                            <CalendarX className="w-3.5 h-3.5" /> Liberar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setBookingToRelease(res);
+                              setReleaseMotivo('');
+                              setReleaseMode('cancel');
+                            }}
+                            title="Liberar aula para que otros compañeros puedan reservar"
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1 border border-rose-200/60"
+                          >
+                            <CalendarX className="w-3.5 h-3.5" /> Liberar
+                          </button>
+                        )}
                       </>
                     )}
 
@@ -365,9 +382,16 @@ export default function MyBookingsView({
                       </td>
 
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getBadgeStyle(res.estado)}`}>
-                          {res.estado}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {res.en_standby_por_no_confirmar && res.estado === 'PENDIENTE' && (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider bg-amber-50 text-amber-800 border-amber-300">
+                              ⏳ Standby
+                            </span>
+                          )}
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getBadgeStyle(res.estado)}`}>
+                            {res.estado}
+                          </span>
+                        </div>
                       </td>
 
                       <td className="py-3 px-4 whitespace-nowrap">
@@ -401,17 +425,27 @@ export default function MyBookingsView({
                             >
                               Editar
                             </button>
-                            <button
-                              onClick={() => {
-                                setBookingToRelease(res);
-                                setReleaseMotivo('');
-                                setReleaseMode('cancel');
-                              }}
-                              title="Liberar aula para que otros compañeros puedan reservar"
-                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold cursor-pointer transition-colors border border-rose-200/50"
-                            >
-                              Liberar
-                            </button>
+                            {hasBookingConcluded(res.fecha_actividad, res.hora_fin) ? (
+                              <button
+                                disabled
+                                title="No disponible: el horario de esta reserva ya ha transcurrido"
+                                className="px-2.5 py-1 bg-slate-100 text-slate-400 rounded-lg text-xs font-bold cursor-not-allowed border border-slate-200 opacity-60"
+                              >
+                                Liberar
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setBookingToRelease(res);
+                                  setReleaseMotivo('');
+                                  setReleaseMode('cancel');
+                                }}
+                                title="Liberar aula para que otros compañeros puedan reservar"
+                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold cursor-pointer transition-colors border border-rose-200/50"
+                              >
+                                Liberar
+                              </button>
+                            )}
                           </>
                         )}
                         {(res.estado === 'APROBADA' || (res.estado === 'REALIZADA' && !val)) && (

@@ -5,6 +5,29 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.9] - 2026-09-23
+### ⏳ Pase Automático a Standby tras 48h sin Confirmación, Reasignación de Franjas y Desactivación de Liberación Post-Sesión
+* **Objetivo**: Implementar la regla de expiración de 48 horas tras el recordatorio semanal para pasar reservas no confirmadas a estado *Standby* (`PENDIENTE`), permitiendo a la Administración o Coordinación reasignar el espacio o desplazar la reserva con solicitudes prioritarias (como FP), y desactivar automáticamente la acción de «Liberar Aula» una vez que el horario de la reserva ha concluido.
+* **Mejoras clave**:
+  * **Pase Automático a Standby tras 48 Horas sin Confirmar**:
+    * Al remitir el recordatorio semanal preventivo (lunes 08:00 AM), el docente dispone de 48 horas para ratificar su asistencia.
+    * Si transcurren 48 horas sin confirmación (`!confirmada_por_docente`), la reserva pasa automáticamente de `APROBADA` a `PENDIENTE` (Standby).
+    * Notificación por correo a la Administración (`jpacdia@gobiernodecanarias.org`) y Coordinación informando de la reserva en standby y la disponibilidad de la franja.
+    * Notificación por correo al docente explicando que su franja horaria pasa a standby por no confirmar y queda provisionalmente abierta a reasignación.
+  * **Reasignación Administrativa y Desplazamiento Prioritario**:
+    * Al encontrarse la reserva no confirmada en estado `PENDIENTE`, la franja horaria queda libre en el cómputo de solapamientos del calendario.
+    * Cualquier nueva solicitud prioritaria de FP es aprobada directamente, o bien el Administrador/Coordinador puede autorizar otra solicitud de cualquier nivel formativo, desplazando automáticamente la reserva que no fue confirmada a tiempo.
+    * Si la franja aún continúa libre y el docente accede a confirmar posteriormente, el sistema le permite reactivarla a `APROBADA`. Si la franja ya fue ocupada, se le informa de que expiró su plazo y la franja fue concedida a otra solicitud.
+  * **Desactivación del Botón «Liberar Aula» tras Vencer el Tiempo**:
+    * El botón de «Liberar Aula» (tanto en la ficha de detalle como en las tarjetas y la tabla de *Mis Actividades*) se desactiva automáticamente con estilo atenuado y cursor bloqueado una vez que la fecha y hora de fin de la sesión han transcurrido (`hasBookingConcluded`).
+    * Protección complementaria en la recepción de enlaces por URL (`?release_booking=...`), impidiendo liberar reservas cuyo horario ya concluyó.
+  * **Distintivo Visual de Standby**:
+    * Muestra de distintivos visuales claros `⏳ Standby (48h)` en las tarjetas, tabla y ficha de detalle de la reserva.
+  * **Sincronización en las 3 Capas (v1.3.9)**:
+    * Actualización a `1.3.9` en `types.ts`, `package.json`, pie de página institucional, GitHub (`main`, `backup/v1.3.9`, tag `v1.3.9`), zip local y producción Hostinger.
+
+---
+
 ## [v1.3.8] - 2026-09-23
 ### 🧪 Habilitación Excepcional de Cuentas de Prueba Autorizadas (2FA OTP)
 * **Objetivo**: Autorizar exclusivamente de forma interna y restringida dos cuentas de correo electrónico para pruebas de verificación y control pedagógico (`josedpdiaz@gmail.com` y `phopsys@gmail.com`), manteniendo el principio rector de acceso exclusivo a cuentas institucionales de Canarias Educación (`@gobiernodecanarias.org`) y preservando la portada institucional al 100%.

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = '1.3.8';
+export const APP_VERSION = '1.3.9';
 
 export interface NotificationPreferences {
   reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
@@ -126,6 +126,8 @@ export type TipoNotificacionEmail =
   | 'RECORDATORIO_24H'
   | 'RECORDATORIO_SEMANAL'
   | 'RECORDATORIO_VALORACION'
+  | 'RESERVA_STANDBY_ADMIN'
+  | 'RESERVA_STANDBY_DOCENTE'
   | 'NUEVA_SOLICITUD_COORD'
   | 'AULA_LIBERADA_COORD'
   | 'BLOQUEO_TECNICO'
@@ -172,6 +174,8 @@ export interface Reserva {
   recordatorio_semanal_enviado?: boolean;
   fecha_recordatorio_semanal?: string;
   confirmada_por_docente?: boolean;
+  en_standby_por_no_confirmar?: boolean;
+  fecha_pase_a_standby?: string;
 }
 
 export interface Valoracion {

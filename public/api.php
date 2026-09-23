@@ -575,6 +575,45 @@ switch ($action) {
             }
         }
 
+        // Comprobación de pase a STANDBY tras 48h sin confirmación docente
+        $standbyCount = 0;
+        foreach ($reservas as &$r) {
+            if (($r['estado'] ?? '') !== 'APROBADA') continue;
+            if (empty($r['recordatorio_semanal_enviado'])) continue;
+            if (!empty($r['confirmada_por_docente'])) continue;
+            if (empty($r['fecha_recordatorio_semanal'])) continue;
+
+            try {
+                $remDate = new DateTime($r['fecha_recordatorio_semanal']);
+                $diffHours = ($now->getTimestamp() - $remDate->getTimestamp()) / 3600;
+                if ($diffHours >= 48) {
+                    $r['estado'] = 'PENDIENTE';
+                    $r['en_standby_por_no_confirmar'] = true;
+                    $r['fecha_pase_a_standby'] = $now->format(DateTime::ATOM);
+                    $motivo = 'Pase automático a STANDBY (PENDIENTE): Sin confirmación en 48h tras recordatorio semanal. Franja libre para reasignación o desplazamiento.';
+                    $r['observaciones_coordinador'] = !empty($r['observaciones_coordinador'])
+                        ? $r['observaciones_coordinador'] . ' | ' . $motivo
+                        : $motivo;
+                    $standbyCount++;
+                    $modified = true;
+
+                    // Enviar aviso a coordinación / administración
+                    $admSubject = "⚠️ Reserva en Standby (sin confirmar 48h): " . ($r['profesor'] ?? '') . " ({$r['fecha_actividad']})";
+                    $admHtml = "<p>La reserva de <strong>" . htmlspecialchars($r['profesor'] ?? '') . "</strong> para el {$r['fecha_actividad']} ({$r['hora_inicio']}-{$r['hora_fin']}) ha pasado a STANDBY (PENDIENTE) tras vencer el plazo de 48h sin confirmación. La franja queda libre para reasignación o desplazamiento por parte de la administración.</p>";
+                    $headers = [
+                        'MIME-Version: 1.0',
+                        'Content-Type: text/html; charset=UTF-8',
+                        'From: =?UTF-8?B?' . base64_encode('Aula ATECA - ' . $centerName) . '?= <ateca@fpapps.es>',
+                        'Reply-To: ' . $coordEmail,
+                        'X-Mailer: PHP/' . phpversion(),
+                    ];
+                    @mail($coordEmail, '=?UTF-8?B?' . base64_encode($admSubject) . '?=', $admHtml, implode("\r\n", $headers));
+                }
+            } catch (Exception $e) {
+                // omitir error de parseo de fecha
+            }
+        }
+
         if ($modified) {
             saveStore($dataFile, $store);
         }
@@ -582,6 +621,7 @@ switch ($action) {
         echo json_encode([
             'success' => true,
             'reminders_sent' => $sentCount,
+            'standby_transferred' => $standbyCount,
             'timestamp' => $now->format(DateTime::ATOM)
         ]);
         break;

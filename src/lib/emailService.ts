@@ -66,6 +66,9 @@ export const shouldSendNotification = (user: Usuario, type: TipoNotificacionEmai
       return prefs.recordatorio_previo;
     case 'RECORDATORIO_SEMANAL':
       return prefs.recordatorio_semanal ?? true;
+    case 'RESERVA_STANDBY_ADMIN':
+    case 'RESERVA_STANDBY_DOCENTE':
+      return true;
     case 'RECORDATORIO_VALORACION':
       return prefs.recordatorio_valoracion;
     case 'NUEVA_SOLICITUD_COORD':
@@ -493,6 +496,130 @@ export const notifyRecordatorioSemanalConfirmacion = async (reserva: Reserva, us
       { label: 'Docente responsable', value: reserva.profesor },
     ],
     buttonText: 'Gestionar mi reserva en el Gestor ATECA',
+    buttonUrl: 'https://ateca.fpapps.es',
+  });
+};
+
+/**
+ * 3c. Notificación a Administración y Coordinación cuando una reserva pasa a STANDBY
+ * por no haber sido confirmada en las 48h posteriores al recordatorio semanal.
+ */
+export const notifyReservaStandbyAdmin = async (reserva: Reserva) => {
+  const users = getUsuarios();
+  let coords = users.filter((u) => (u.rol === 'COORDINADOR' || u.rol === 'ADMIN') && u.activo);
+  
+  if (coords.length === 0) {
+    coords = [{
+      id_usuario: 'admin-default',
+      nombre: 'Administración ATECA',
+      email: 'jpacdia@gobiernodecanarias.org',
+      rol: 'ADMIN',
+      departamento: 'Tecnología',
+      turno: 'Ambos',
+      activo: true,
+    }];
+  }
+
+  const parts = reserva.fecha_actividad.split('-');
+  const fechaFormateada = `${parts[2]}/${parts[1]}/${parts[0]}`;
+
+  for (const coord of coords) {
+    await dispatchNotificationEmail({
+      toUser: coord,
+      type: 'RESERVA_STANDBY_ADMIN',
+      subject: `⚠️ Reserva en Standby (sin confirmar 48h): ${reserva.profesor} • ${fechaFormateada} (${reserva.hora_inicio}-${reserva.hora_fin})`,
+      title: 'Reserva colocada en Standby por falta de confirmación',
+      badgeText: 'Standby / Pendiente',
+      badgeBg: '#d97706',
+      contentHtml: `
+        <p>Hola <strong>${coord.nombre}</strong>,</p>
+        <p>Te informamos de que la siguiente reserva ha pasado automáticamente a estado <strong>STANDBY (PENDIENTE DE AUTORIZAR)</strong> tras haber transcurrido más de <strong>48 horas</strong> desde el envío del recordatorio semanal sin que el docente confirmara su asistencia:</p>
+        
+        <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 18px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0; font-size: 14px; color: #b45309; font-weight: 700;">
+            ⏳ Reserva en Standby: ${reserva.profesor}
+          </p>
+          <p style="margin: 6px 0 0 0; font-size: 13px; color: #92400e;">
+            <strong>Fecha:</strong> ${fechaFormateada} • <strong>Horario:</strong> ${reserva.hora_inicio} a ${reserva.hora_fin}
+          </p>
+          <p style="margin: 4px 0 0 0; font-size: 13px; color: #92400e;">
+            <strong>Materia / Grupo:</strong> ${reserva.modulo_materia_area} (${reserva.grupo}) • Prioridad: ${reserva.prioridad}
+          </p>
+        </div>
+
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 16px 0; font-size: 13px; color: #334155; line-height: 1.6;">
+          <p style="margin: 0 0 6px 0; font-weight: 700; color: #0f172a;">⚡ Acción Administrativa y Reasignación de Espacio:</p>
+          <p style="margin: 0;">
+            Al estar en estado <em>PENDIENTE</em>, la franja horaria queda libre en el calendario para atender otras solicitudes. Como Administrador/a o Coordinador/a, si otro profesor/a (por ejemplo, con prioridad FP o cualquier necesidad docente) requiere el espacio en esta hora, <strong>puedes concederle el aula desplazando automáticamente la reserva no confirmada</strong>, o bien reactivarla si el docente justifica su asistencia.
+          </p>
+        </div>
+      `,
+      contentText: `Aviso Admin/Coordinación: La reserva de ${reserva.profesor} para el ${fechaFormateada} (${reserva.hora_inicio}-${reserva.hora_fin}, ${reserva.modulo_materia_area}) ha pasado a STANDBY (PENDIENTE) tras no ser confirmada en 48 horas tras el recordatorio. La franja queda disponible para reasignación o desplazamiento por parte de la administración.`,
+      details: [
+        { label: 'Docente', value: reserva.profesor },
+        { label: 'Email docente', value: reserva.email },
+        { label: 'Fecha actividad', value: fechaFormateada },
+        { label: 'Horario', value: `${reserva.hora_inicio} - ${reserva.hora_fin}` },
+        { label: 'Grupo / Nivel', value: `${reserva.grupo} (${reserva.nivel})` },
+        { label: 'Nuevo Estado', value: 'PENDIENTE (Standby)' },
+      ],
+      buttonText: 'Gestionar Reservas y Reasignaciones',
+      buttonUrl: 'https://ateca.fpapps.es',
+    });
+  }
+};
+
+/**
+ * 3d. Notificación al docente cuando su reserva pasa a STANDBY por no confirmar en 48h
+ */
+export const notifyReservaStandbyDocente = async (reserva: Reserva, usuario: Usuario) => {
+  const parts = reserva.fecha_actividad.split('-');
+  const fechaFormateada = `${parts[2]}/${parts[1]}/${parts[0]}`;
+
+  return dispatchNotificationEmail({
+    toUser: usuario,
+    type: 'RESERVA_STANDBY_DOCENTE',
+    subject: `⏳ Tu reserva del Aula ATECA para el ${fechaFormateada} ha pasado a Standby`,
+    title: 'Tu reserva se encuentra en Standby (Pendiente de Autorizar)',
+    badgeText: 'Standby / Sin Confirmar',
+    badgeBg: '#f59e0b',
+    contentHtml: `
+      <p>Hola <strong>${usuario.nombre}</strong>,</p>
+      <p>Te comunicamos que, al no haber recibido confirmación de asistencia en las <strong>48 horas posteriores</strong> al recordatorio semanal para tu reserva del <strong>${fechaFormateada}</strong> (${reserva.hora_inicio} a ${reserva.hora_fin}), tu reserva ha sido colocada en <strong>STANDBY (PENDIENTE DE AUTORIZACIÓN)</strong>.</p>
+      
+      <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 18px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0; font-size: 14px; color: #b45309; font-weight: 700;">
+          Franja en Standby: ${fechaFormateada} (${reserva.hora_inicio} - ${reserva.hora_fin})
+        </p>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #92400e;">
+          Módulo / Materia: ${reserva.modulo_materia_area} • Grupo: ${reserva.grupo}
+        </p>
+      </div>
+
+      <p style="font-size: 13.5px; color: #334155; line-height: 1.6;">
+        Conforme a las normas del Aula ATECA para garantizar el máximo aprovechamiento del espacio:
+      </p>
+      <ul style="font-size: 13px; color: #334155; line-height: 1.6; padding-left: 20px; margin: 10px 0 18px 0;">
+        <li>La franja horaria queda provisionalmente abierta para atender solicitudes de otros compañeros o departamentos con necesidades docentes.</li>
+        <li>Si otro profesor/a requiere el aula y la administración lo autoriza, dicha solicitud prioritaria podría ocupar el espacio.</li>
+        <li>Si todavía deseas realizar tu actividad, por favor ponte en contacto con la Coordinación o accede a la plataforma para regularizar la solicitud.</li>
+      </ul>
+
+      <div style="text-align: center; margin: 24px 0 10px 0;">
+        <a href="https://ateca.fpapps.es/?confirm_booking=${reserva.id_reserva}" target="_blank" rel="noopener noreferrer" style="background-color: #059669; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);">
+          ✅ Confirmar Asistencia Ahora
+        </a>
+      </div>
+    `,
+    contentText: `Hola ${usuario.nombre}. Al no haber confirmado en 48 horas tu reserva del ${fechaFormateada} (${reserva.hora_inicio}-${reserva.hora_fin}), ha pasado a STANDBY (PENDIENTE). La franja horaria queda disponible para reasignación por parte de la coordinación o administración si otro docente lo requiere. Si aún la necesitas, confirma en https://ateca.fpapps.es/?confirm_booking=${reserva.id_reserva}.`,
+    details: [
+      { label: 'Fecha actividad', value: fechaFormateada },
+      { label: 'Horario', value: `${reserva.hora_inicio} - ${reserva.hora_fin}` },
+      { label: 'Módulo / Materia', value: reserva.modulo_materia_area },
+      { label: 'Grupo', value: reserva.grupo },
+      { label: 'Estado actual', value: 'PENDIENTE (Standby por no confirmación en 48h)' },
+    ],
+    buttonText: 'Acceder a la Plataforma ATECA',
     buttonUrl: 'https://ateca.fpapps.es',
   });
 };

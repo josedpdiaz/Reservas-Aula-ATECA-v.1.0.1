@@ -19,7 +19,8 @@ import {
   getTheme, setTheme, deleteReserva, cancelReserva,
   getFontSize, setFontSize, updateReservaEstado, getUsuarios,
   syncWithServer, checkAndTriggerValuationReminders, hasBookingConcluded,
-  checkAndTriggerWeeklyReminders, confirmReservaDocente, isAllowedLoginEmail
+  checkAndTriggerWeeklyReminders, checkAndTriggerStandbyReservas,
+  confirmReservaDocente, isAllowedLoginEmail
 } from './lib/storage';
 import { notifyAulaLiberada, notifyReservaAprobada } from './lib/emailService';
 import { requestLoginCode, verifyLoginCode } from './lib/authService';
@@ -44,13 +45,15 @@ export default function App() {
     initializeStorage();
     checkAndTriggerValuationReminders();
     checkAndTriggerWeeklyReminders();
+    checkAndTriggerStandbyReservas();
     forceUpdate();
 
     const runSyncAndReminders = async () => {
       const updated = await syncWithServer();
       const remindersTriggered = await checkAndTriggerValuationReminders();
       const weeklyTriggered = await checkAndTriggerWeeklyReminders();
-      if (updated || remindersTriggered || weeklyTriggered) {
+      const standbyTriggered = await checkAndTriggerStandbyReservas();
+      if (updated || remindersTriggered || weeklyTriggered || standbyTriggered) {
         forceUpdate();
         const cur = getCurrentUser();
         if (cur) setUser(cur);
@@ -210,18 +213,26 @@ export default function App() {
         const reservas = getReservas();
         const booking = reservas.find(r => r.id_reserva === confirmId);
         if (booking) {
-          confirmReservaDocente(confirmId);
-          triggerToast(`✅ ¡Asistencia confirmada para ${booking.modulo_materia_area} (${booking.fecha_actividad.split('-').reverse().join('/')})!`);
+          const res = confirmReservaDocente(confirmId);
+          if (res.success) {
+            triggerToast(res.message);
+          } else {
+            triggerToast(`⚠️ ${res.message}`);
+          }
           forceUpdate();
         }
         window.history.replaceState({}, '', window.location.pathname);
       } else if (releaseId) {
         const reservas = getReservas();
         const booking = reservas.find(r => r.id_reserva === releaseId);
-        if (booking && booking.estado === 'APROBADA') {
-          setSelectedBooking(booking);
-          setDetailReleaseModal(true);
-          triggerToast(`ℹ️ Has solicitado liberar la reserva de ${booking.modulo_materia_area}. Elige una opción y confirma.`);
+        if (booking) {
+          if (hasBookingConcluded(booking.fecha_actividad, booking.hora_fin)) {
+            triggerToast('⚠️ No es posible liberar: el tiempo de esta reserva ya ha transcurrido.');
+          } else if (booking.estado === 'APROBADA' || booking.estado === 'PENDIENTE') {
+            setSelectedBooking(booking);
+            setDetailReleaseModal(true);
+            triggerToast(`ℹ️ Has solicitado liberar la reserva de ${booking.modulo_materia_area}. Elige una opción y confirma.`);
+          }
         }
         window.history.replaceState({}, '', window.location.pathname);
       }
@@ -839,6 +850,18 @@ export default function App() {
                     <p>🛠️ <strong>Recursos y material:</strong><br /><span className="text-slate-600 block mt-1">{selectedBooking.recursos_necesarios || "Ninguno especificado"}</span></p>
                   </div>
 
+                  {selectedBooking.en_standby_por_no_confirmar && selectedBooking.estado === 'PENDIENTE' && (
+                    <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-2.5 text-xs text-amber-900 leading-normal">
+                      <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-bold text-amber-950">Reserva en Standby (Sin confirmar tras 48h del recordatorio semanal)</p>
+                        <p className="mt-0.5 text-amber-800">
+                          Esta franja horaria se encuentra provisionalmente disponible para reasignación o desplazamiento por parte de la Coordinación/Administración si otro docente o ciclo de FP lo solicita.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedBooking.observaciones_coordinador && (
                     <div className="p-3 bg-indigo-50 border border-indigo-100 text-indigo-900 rounded-lg text-xs leading-normal">
                       💬 <strong>Indicación de Coordinación:</strong><br />
@@ -948,18 +971,28 @@ export default function App() {
                       </button>
                     )}
 
-                    {/* LIBERAR AULA (DISPONIBLE PARA RESERVAS ACTIVAS O PENDIENTES) */}
+                    {/* LIBERAR AULA (DISPONIBLE PARA RESERVAS ACTIVAS O PENDIENTES SI NO HAN CONCLUIDO) */}
                     {(selectedBooking.email === user.email || user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && selectedBooking.estado !== 'CANCELADA' && selectedBooking.estado !== 'RECHAZADA' && (
-                      <button
-                        onClick={() => {
-                          setDetailReleaseModal(true);
-                          setDetailReleaseMotivo('');
-                          setDetailReleaseMode('cancel');
-                        }}
-                        className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
-                      >
-                        <CalendarX className="w-3.5 h-3.5" /> Liberar Aula
-                      </button>
+                      hasBookingConcluded(selectedBooking.fecha_actividad, selectedBooking.hora_fin) ? (
+                        <button
+                          disabled
+                          title="No disponible: el horario de esta reserva ya ha concluido"
+                          className="px-3.5 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg font-bold cursor-not-allowed flex items-center gap-1.5 opacity-60"
+                        >
+                          <CalendarX className="w-3.5 h-3.5" /> Liberar Aula
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setDetailReleaseModal(true);
+                            setDetailReleaseMotivo('');
+                            setDetailReleaseMode('cancel');
+                          }}
+                          className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                        >
+                          <CalendarX className="w-3.5 h-3.5" /> Liberar Aula
+                        </button>
+                      )
                     )}
                     {selectedBooking.estado === 'REALIZADA' && (
                       <button
