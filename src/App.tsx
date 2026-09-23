@@ -19,7 +19,7 @@ import {
   getTheme, setTheme, deleteReserva, cancelReserva,
   getFontSize, setFontSize, updateReservaEstado, getUsuarios,
   syncWithServer, checkAndTriggerValuationReminders, hasBookingConcluded,
-  checkAndTriggerWeeklyReminders, confirmReservaDocente
+  checkAndTriggerWeeklyReminders, confirmReservaDocente, isAllowedLoginEmail
 } from './lib/storage';
 import { notifyAulaLiberada, notifyReservaAprobada } from './lib/emailService';
 import { requestLoginCode, verifyLoginCode } from './lib/authService';
@@ -262,7 +262,7 @@ export default function App() {
       return;
     }
 
-    if (!emailClean.endsWith('@gobiernodecanarias.org')) {
+    if (!isAllowedLoginEmail(emailClean)) {
       setLoginError('Acceso restringido: Debes identificarte con tu cuenta oficial del Gobierno de Canarias (@gobiernodecanarias.org).');
       return;
     }

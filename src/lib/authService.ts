@@ -1,6 +1,6 @@
 import { Usuario } from '../types';
 import { ATECA_SECURITY_TOKEN } from './serverSync';
-import { setCurrentUser, setUsuarios, getUsuarios } from './storage';
+import { setCurrentUser, setUsuarios, getUsuarios, isAllowedLoginEmail } from './storage';
 
 export interface RequestCodeResult {
   success: boolean;
@@ -25,7 +25,7 @@ export async function requestLoginCode(email: string): Promise<RequestCodeResult
     return { success: false, error: 'Introduce una dirección de correo válida.' };
   }
 
-  if (!cleanEmail.endsWith('@gobiernodecanarias.org')) {
+  if (!isAllowedLoginEmail(cleanEmail)) {
     return {
       success: false,
       error: 'Acceso restringido: Debes identificarte con tu cuenta oficial del Gobierno de Canarias (@gobiernodecanarias.org).'

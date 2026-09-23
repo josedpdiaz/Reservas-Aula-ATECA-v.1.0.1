@@ -108,6 +108,24 @@ function getDefaultStore() {
                 'departamento' => 'Administración y Gestión',
                 'turno' => 'Ambos',
                 'activo' => true
+            ],
+            [
+                'id_usuario' => 'u-test-fp',
+                'nombre' => 'José Díaz (Pruebas FP)',
+                'email' => 'josedpdiaz@gmail.com',
+                'rol' => 'PROFESOR',
+                'departamento' => 'Administración y Gestión',
+                'turno' => 'Ambos',
+                'activo' => true
+            ],
+            [
+                'id_usuario' => 'u-test-sec',
+                'nombre' => 'Usuario Pruebas (Secundaria)',
+                'email' => 'phopsys@gmail.com',
+                'rol' => 'PROFESOR',
+                'departamento' => 'Tecnología',
+                'turno' => 'Ambos',
+                'activo' => true
             ]
         ],
         'reservas' => [],
@@ -164,6 +182,41 @@ function loadStore($dataFile) {
             }
         }
         unset($u);
+
+        // Asegurar que las cuentas excepcionales de prueba estén presentes
+        $testAccounts = [
+            [
+                'id_usuario' => 'u-test-fp',
+                'nombre' => 'José Díaz (Pruebas FP)',
+                'email' => 'josedpdiaz@gmail.com',
+                'rol' => 'PROFESOR',
+                'departamento' => 'Administración y Gestión',
+                'turno' => 'Ambos',
+                'activo' => true
+            ],
+            [
+                'id_usuario' => 'u-test-sec',
+                'nombre' => 'Usuario Pruebas (Secundaria)',
+                'email' => 'phopsys@gmail.com',
+                'rol' => 'PROFESOR',
+                'departamento' => 'Tecnología',
+                'turno' => 'Ambos',
+                'activo' => true
+            ]
+        ];
+        foreach ($testAccounts as $tAcc) {
+            $exists = false;
+            foreach ($json['usuarios'] as $u) {
+                if (strtolower(trim($u['email'] ?? '')) === $tAcc['email']) {
+                    $exists = true;
+                    break;
+                }
+            }
+            if (!$exists) {
+                $json['usuarios'][] = $tAcc;
+                $migrated = true;
+            }
+        }
     }
     if ($migrated) {
         saveStore($dataFile, $json);
@@ -543,7 +596,11 @@ switch ($action) {
             exit;
         }
 
-        if (!str_ends_with($email, '@gobiernodecanarias.org')) {
+        $allowedTestAccounts = ['josedpdiaz@gmail.com', 'phopsys@gmail.com'];
+        $isGobCan = str_ends_with($email, '@gobiernodecanarias.org');
+        $isTestAccount = in_array($email, $allowedTestAccounts, true);
+
+        if (!$isGobCan && !$isTestAccount) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Acceso restringido: Debes identificarte con tu cuenta oficial del Gobierno de Canarias (@gobiernodecanarias.org).']);
             exit;

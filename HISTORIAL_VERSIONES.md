@@ -5,6 +5,23 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.8] - 2026-09-23
+### 🧪 Habilitación Excepcional de Cuentas de Prueba Autorizadas (2FA OTP)
+* **Objetivo**: Autorizar exclusivamente de forma interna y restringida dos cuentas de correo electrónico para pruebas de verificación y control pedagógico (`josedpdiaz@gmail.com` y `phopsys@gmail.com`), manteniendo el principio rector de acceso exclusivo a cuentas institucionales de Canarias Educación (`@gobiernodecanarias.org`) y preservando la portada institucional al 100%.
+* **Mejoras clave**:
+  * **Excepción de Cuentas de Prueba Controladas**:
+    * Admisión estricta de `josedpdiaz@gmail.com` asignada al departamento de `Administración y Gestión` (FP, prioridad P1 con auto-aprobación directa).
+    * Admisión estricta de `phopsys@gmail.com` asignada al departamento de `Tecnología` (Secundaria, prioridad P2/P3 con aprobación requerida).
+    * Bloqueo tajante de cualquier otra cuenta externa de Gmail, Hotmail, Yahoo u otros dominios públicos.
+  * **Mismo Protocolo de Seguridad 2FA OTP**:
+    * Las cuentas de prueba operan bajo el idéntico sistema de código aleatorio de 6 dígitos remitido por correo, con caducidad estricta de 5 minutos (300 s) y control de 5 intentos fallidos.
+  * **Integridad Total de la Portada Institucional**:
+    * Se preserva íntegramente la portada oficial con los textos, diseño corporativo y aviso institucional del Gobierno de Canarias para el IES Agustín de Betancourt.
+  * **Sincronización en las 3 Capas (v1.3.8)**:
+    * Actualización a la versión `1.3.8` en el pie de página, git, zip y servidor de producción en Hostinger.
+
+---
+
 ## [v1.3.7] - 2026-09-23
 ### 🔔 Confirmación Inmediata de Reserva Autorizada y Recordatorio Semanal Preventivo (Lunes 08:00 AM) con Liberación Anticipada
 * **Objetivo**: Garantizar la notificación instantánea al docente en cuanto su reserva queda autorizada y fijada en el calendario, e implementar un sistema proactivo de recordatorio semanal preventivo (lunes 08:00 AM) para reservas programadas con antelación previa a la semana lectiva, permitiendo confirmar asistencia o liberar la franja horaria con un solo clic para mantener el aula optimizada y accesible para todo el claustro.

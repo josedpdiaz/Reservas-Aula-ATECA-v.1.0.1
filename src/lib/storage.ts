@@ -21,7 +21,19 @@ const DEFAULT_CONFIG: Record<string, string> = {
   logo_centro: "/logo_iesb.png", // Logo oficial IES Agustín de Betancourt
 };
 
-// Pre-seeded users (Solo el Administrador oficial del centro en Producción)
+// Cuentas excepcionales autorizadas exclusivamente para pruebas
+export const ALLOWED_TEST_ACCOUNTS: string[] = ['josedpdiaz@gmail.com', 'phopsys@gmail.com'];
+
+/**
+ * Valida si un correo electrónico está autorizado para acceder al sistema
+ * (Exclusivamente cuentas oficiales @gobiernodecanarias.org y las 2 cuentas de prueba)
+ */
+export const isAllowedLoginEmail = (email: string): boolean => {
+  const clean = (email || '').trim().toLowerCase();
+  return clean.endsWith('@gobiernodecanarias.org') || ALLOWED_TEST_ACCOUNTS.includes(clean);
+};
+
+// Pre-seeded users (Administrador oficial del centro y usuarios de prueba autorizados)
 const DEFAULT_USERS: Usuario[] = [
   {
     id_usuario: "u-1",
@@ -29,6 +41,24 @@ const DEFAULT_USERS: Usuario[] = [
     email: "jpacdia@gobiernodecanarias.org",
     rol: "ADMIN",
     departamento: "Administración y Gestión",
+    turno: "Ambos",
+    activo: true,
+  },
+  {
+    id_usuario: "u-test-fp",
+    nombre: "José Díaz (Pruebas FP)",
+    email: "josedpdiaz@gmail.com",
+    rol: "PROFESOR",
+    departamento: "Administración y Gestión", // Prioridad P1 (Auto-aprobada directa)
+    turno: "Ambos",
+    activo: true,
+  },
+  {
+    id_usuario: "u-test-sec",
+    nombre: "Usuario Pruebas (Secundaria)",
+    email: "phopsys@gmail.com",
+    rol: "PROFESOR",
+    departamento: "Tecnología", // Prioridad P2/P3 (Requiere aprobación de Coordinación/Admin)
     turno: "Ambos",
     activo: true,
   }
@@ -255,6 +285,24 @@ export const initializeStorage = (force: boolean = false) => {
     console.error('Error en migración de departamentos:', e);
   }
 
+  // Asegurar que las cuentas excepcionales de prueba estén registradas
+  try {
+    const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    const usersList = rawUsers ? safeParse<Usuario[]>(rawUsers, []) : [];
+    let updatedUsers = false;
+    for (const testUser of DEFAULT_USERS) {
+      if (!usersList.some(u => u.email.toLowerCase() === testUser.email.toLowerCase())) {
+        usersList.push(testUser);
+        updatedUsers = true;
+      }
+    }
+    if (updatedUsers) {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(usersList));
+    }
+  } catch (e) {
+    console.error('Error al asegurar cuentas de prueba:', e);
+  }
+
   // Sincronización transparente con el servidor central de Hostinger
   syncWithServer().catch(() => {});
 };
@@ -445,8 +493,8 @@ export const isNonWorkingDay = (dateStr: string): { isNonWorking: boolean; reaso
 export const loginByEmail = (email: string): { success: boolean; user?: Usuario; error?: string } => {
   const emailLower = email.trim().toLowerCase();
 
-  // En producción oficial se exige la terminación oficial @gobiernodecanarias.org.
-  if (!emailLower.endsWith('@gobiernodecanarias.org')) {
+  // En producción oficial se exige la terminación oficial @gobiernodecanarias.org (salvo cuentas de prueba excepcionales)
+  if (!isAllowedLoginEmail(emailLower)) {
     return {
       success: false,
       error: "Acceso restringido: Debes identificarte con tu cuenta oficial del Gobierno de Canarias (@gobiernodecanarias.org)."

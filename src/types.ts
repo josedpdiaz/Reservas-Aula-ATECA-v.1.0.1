@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = '1.3.7';
+export const APP_VERSION = '1.3.8';
 
 export interface NotificationPreferences {
   reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
