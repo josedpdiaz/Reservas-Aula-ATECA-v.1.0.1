@@ -5,6 +5,28 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.7] - 2026-09-23
+### 🔔 Confirmación Inmediata de Reserva Autorizada y Recordatorio Semanal Preventivo (Lunes 08:00 AM) con Liberación Anticipada
+* **Objetivo**: Garantizar la notificación instantánea al docente en cuanto su reserva queda autorizada y fijada en el calendario, e implementar un sistema proactivo de recordatorio semanal preventivo (lunes 08:00 AM) para reservas programadas con antelación previa a la semana lectiva, permitiendo confirmar asistencia o liberar la franja horaria con un solo clic para mantener el aula optimizada y accesible para todo el claustro.
+* **Mejoras clave**:
+  * **Confirmación Inmediata de Reserva Autorizada**:
+    * Notificación instantánea y enriquecida remitida al docente tanto en aprobaciones automáticas directas (P1 de FP) como en autorizaciones concedidas por Coordinación o Administración.
+    * Ficha oficial con denominación del IES Agustín de Betancourt, fecha, franja lectiva, módulo formativo, grupo y zona asignada.
+  * **Recordatorio Semanal Preventivo (Lunes a las 08:00 AM)**:
+    * Detección algorítmica de reservas agendadas con antelación previa a la semana de la actividad (de una semana para otra, a 2 o 3 semanas vista).
+    * Disparo automático el lunes de la semana lectiva a las 08:00 AM recordando la sesión programada (día específico, horas, materia y grupo).
+  * **Interacción Directa en el Correo (Confirmación o Liberación en 1 Clic)**:
+    * Botón verde **«✅ Confirmar Asistencia / Mantener Reserva»**: Registra formalmente la confirmación en el sistema y muestra el distintivo *Asistencia Confirmada* en la ficha de detalle.
+    * Botón rojo **«🚪 Liberar Franja Horaria (No la usaré)»**: Si el docente tiene algún cambio de programación o no va a usar el espacio, abre directamente el diálogo de liberación para dejar la franja horaria inmediatamente disponible para otros compañeros y notificar a Coordinación.
+  * **Automatización Dual Robusta (Frontend + Backend PHP 8.1)**:
+    * **Frontend**: Chequeo en segundo plano periódico integrado en el ciclo de auto-sincronización de `App.tsx`.
+    * **Backend**: Endpoint desatendido en `public/api.php?action=check_weekly_reminders` para ejecución autónoma programable vía cron server-side.
+    * Idempotencia garantizada: marcas persistentes `recordatorio_semanal_enviado` y registro histórico en base de datos atómica `store.json`.
+  * **Sincronización Global de Versión**:
+    * Actualización a `v1.3.7` en `types.ts`, `package.json`, pie de página institucional e historial de versiones.
+
+---
+
 ## [v1.3.6] - 2026-09-23
 ### ⏱️ Ajuste Oficial de Horarios Lectivos a Franjas de 55 Minutos (Mañana y Tarde-Noche)
 * **Objetivo**: Calibración exacta de las franjas horarias de reserva en la hoja diaria (`DayScheduleSheet`) adaptándolas a la duración lectiva oficial de 55 minutos del IES Agustín de Betancourt, incluyendo los tiempos exactos de recreo y descanso para los turnos de mañana y tarde-noche.

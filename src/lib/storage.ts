@@ -924,3 +924,144 @@ export const checkAndTriggerValuationReminders = async (): Promise<boolean> => {
 
   return modified;
 };
+
+/**
+ * Devuelve la fecha del lunes correspondiente a la semana de una fecha dada (YYYY-MM-DD)
+ */
+export const getMondayOfWeek = (dateStr: string): string => {
+  try {
+    const parts = dateStr.split('-');
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const day = d.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const date = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${date}`;
+  } catch {
+    return dateStr;
+  }
+};
+
+const SENT_WEEKLY_REMINDERS_KEY = 'ateca_sent_weekly_reminders';
+
+export const getSentWeeklyReminderIds = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(SENT_WEEKLY_REMINDERS_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+export const markWeeklyReminderSent = (id_reserva: string) => {
+  const set = getSentWeeklyReminderIds();
+  set.add(id_reserva);
+  const arr = Array.from(set).slice(-200);
+  localStorage.setItem(SENT_WEEKLY_REMINDERS_KEY, JSON.stringify(arr));
+};
+
+/**
+ * Determina si una reserva es elegible para el recordatorio semanal preventivo (lunes 08:00 AM)
+ * Reglas:
+ * 1. Estado APROBADA
+ * 2. No haber sido notificada previamente de forma semanal
+ * 3. Creada con antelación previa a la semana de la actividad (fecha_creacion < lunes_semana_actividad)
+ * 4. La fecha/hora actual es >= al lunes de la semana de la actividad a las 08:00 AM
+ * 5. La actividad aún no ha comenzado (no está en el pasado)
+ */
+export const isWeeklyReminderDue = (reserva: Reserva, now = new Date()): boolean => {
+  if (reserva.estado !== 'APROBADA') return false;
+  if (reserva.recordatorio_semanal_enviado) return false;
+
+  const sentSet = getSentWeeklyReminderIds();
+  if (sentSet.has(reserva.id_reserva)) return false;
+
+  const mondayOfActivity = getMondayOfWeek(reserva.fecha_actividad);
+
+  // Comprobar que fue creada antes del lunes de la semana lectiva de la reserva
+  const fechaCreacion = reserva.fecha_creacion || (reserva as any).created_at?.slice(0, 10);
+  if (fechaCreacion && fechaCreacion >= mondayOfActivity) {
+    // Si se creó durante la misma semana de la actividad, no aplica aviso semanal
+    return false;
+  }
+
+  // Comprobar momento actual
+  const todayStr = formatDateToYMD(now);
+  const currentHours = String(now.getHours()).padStart(2, '0');
+  const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+  const currentTime = `${currentHours}:${currentMinutes}`;
+
+  // Si hoy es anterior al lunes de la semana, todavía no toca
+  if (todayStr < mondayOfActivity) return false;
+
+  // Si hoy es el mismo lunes, debe ser a partir de las 08:00
+  if (todayStr === mondayOfActivity && currentTime < '08:00') return false;
+
+  // Comprobar que la actividad no haya pasado ni haya empezado
+  if (todayStr > reserva.fecha_actividad) return false;
+  if (todayStr === reserva.fecha_actividad && currentTime >= reserva.hora_inicio) return false;
+
+  return true;
+};
+
+/**
+ * Escanea reservas autorizadas y envía el recordatorio semanal preventivo con confirmación/liberación
+ */
+export const checkAndTriggerWeeklyReminders = async (): Promise<boolean> => {
+  const reservas = getReservas();
+  const users = getUsuarios();
+  let modified = false;
+
+  for (const r of reservas) {
+    if (isWeeklyReminderDue(r)) {
+      r.recordatorio_semanal_enviado = true;
+      r.fecha_recordatorio_semanal = new Date().toISOString();
+      markWeeklyReminderSent(r.id_reserva);
+      modified = true;
+
+      const teacher = users.find(u => u.email.toLowerCase() === r.email.toLowerCase()) || {
+        id_usuario: 'docente',
+        nombre: r.profesor,
+        email: r.email,
+        rol: 'PROFESOR' as const,
+        departamento: r.departamento,
+        turno: 'Ambos' as const,
+        activo: true,
+      };
+
+      try {
+        const { notifyRecordatorioSemanalConfirmacion } = await import('./emailService');
+        await notifyRecordatorioSemanalConfirmacion(r, teacher);
+      } catch (err) {
+        console.warn('No se pudo enviar recordatorio semanal preventivo:', err);
+      }
+
+      // Sincronizar actualización de la reserva
+      syncItemToServer('reserva', r);
+    }
+  }
+
+  if (modified) {
+    setReservas(reservas);
+  }
+
+  return modified;
+};
+
+/**
+ * Confirmación expresa de asistencia por parte del docente
+ */
+export const confirmReservaDocente = (id_reserva: string): boolean => {
+  const arr = getReservas();
+  const idx = arr.findIndex(r => r.id_reserva === id_reserva);
+  if (idx >= 0) {
+    arr[idx].confirmada_por_docente = true;
+    setReservas(arr);
+    syncItemToServer('reserva', arr[idx]);
+    syncToGoogleSheets('save_reserva', arr[idx]);
+    return true;
+  }
+  return false;
+};

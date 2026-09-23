@@ -430,6 +430,109 @@ switch ($action) {
         ]);
         break;
 
+    case 'check_weekly_reminders':
+        verifySecurity();
+        $store = loadStore($dataFile);
+        $reservas = &$store['reservas'];
+        $config = $store['config'] ?? [];
+        $centerName = $config['nombre_centro'] ?? 'IES Agustín de Betancourt';
+        $coordEmail = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+
+        $now = new DateTime('now', new DateTimeZone('Atlantic/Canary'));
+        $todayStr = $now->format('Y-m-d');
+        $currentTime = $now->format('H:i');
+
+        $sentCount = 0;
+        $modified = false;
+
+        foreach ($reservas as &$r) {
+            if (($r['estado'] ?? '') !== 'APROBADA') continue;
+            if (!empty($r['recordatorio_semanal_enviado'])) continue;
+
+            $fechaActividad = $r['fecha_actividad'] ?? '';
+            if (empty($fechaActividad)) continue;
+
+            // Calcular lunes de la semana de la actividad
+            try {
+                $actDate = new DateTime($fechaActividad, new DateTimeZone('Atlantic/Canary'));
+                $dayOfWeek = (int)$actDate->format('N'); // 1 = Lunes, 7 = Domingo
+                $diff = $dayOfWeek - 1;
+                $mondayDate = clone $actDate;
+                $mondayDate->modify("-{$diff} days");
+                $mondayOfActivity = $mondayDate->format('Y-m-d');
+            } catch (Exception $e) {
+                continue;
+            }
+
+            // Comprobar que fue creada con antelación previa al lunes de esa semana
+            $fechaCreacion = $r['fecha_creacion'] ?? substr($r['created_at'] ?? '', 0, 10);
+            if (!empty($fechaCreacion) && $fechaCreacion >= $mondayOfActivity) {
+                continue; // Creada en la misma semana de la actividad
+            }
+
+            // Comprobar momento actual
+            if ($todayStr < $mondayOfActivity) continue; // Semana anterior
+            if ($todayStr === $mondayOfActivity && $currentTime < '08:00') continue; // Lunes antes de las 08:00
+
+            // Comprobar que no haya pasado
+            if ($todayStr > $fechaActividad) continue;
+            $horaInicio = $r['hora_inicio'] ?? '00:00';
+            if ($todayStr === $fechaActividad && $currentTime >= $horaInicio) continue;
+
+            // Enviar correo
+            $toEmail = $r['email'] ?? '';
+            if (!empty($toEmail) && filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+                $dias = ['1' => 'Lunes', '2' => 'Martes', '3' => 'Miércoles', '4' => 'Jueves', '5' => 'Viernes', '6' => 'Sábado', '7' => 'Domingo'];
+                $diaNombre = $dias[$actDate->format('N')] ?? '';
+                $fechaFmt = $actDate->format('d/m/Y');
+                $idReserva = $r['id_reserva'] ?? '';
+
+                $subject = "🔔 Recordatorio semanal: Reserva Aula ATECA para este {$diaNombre} {$fechaFmt} ({$horaInicio} - {$r['hora_fin']})";
+                $html = "<!DOCTYPE html><html><body style='font-family: sans-serif; background-color: #f1f5f9; padding: 20px;'>";
+                $html .= "<div style='max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;'>";
+                $html .= "<div style='background: #0f172a; padding: 20px; color: #fff;'>";
+                $html .= "<span style='color: #38bdf8; font-size: 11px; font-weight: bold; text-transform: uppercase;'>{$centerName}</span>";
+                $html .= "<h2 style='margin: 4px 0 0 0; font-size: 18px;'>Aula ATECA • Recordatorio Semanal</h2></div>";
+                $html .= "<div style='padding: 24px; color: #334155;'>";
+                $html .= "<p>Hola <strong>" . htmlspecialchars($r['profesor'] ?? 'docente') . "</strong>,</p>";
+                $html .= "<p>Te recordamos que tienes una reserva autorizada en el <strong>Aula ATECA</strong> para esta semana:</p>";
+                $html .= "<div style='background: #f0f9ff; border-left: 4px solid #0284c7; padding: 12px 16px; border-radius: 6px; margin: 16px 0;'>";
+                $html .= "<p style='margin: 0; font-size: 14px; color: #0369a1; font-weight: bold;'>📅 {$diaNombre} {$fechaFmt} • {$horaInicio} a {$r['hora_fin']}</p>";
+                $html .= "<p style='margin: 4px 0 0 0; font-size: 13px; color: #0284c7;'>Módulo: <strong>" . htmlspecialchars($r['modulo_materia_area'] ?? '') . "</strong> (" . htmlspecialchars($r['grupo'] ?? '') . ")</p></div>";
+                $html .= "<p style='font-size: 13px; line-height: 1.5;'>Si vas a usar el aula, confirma tu asistencia con el botón verde. Si por algún imprevisto ya no la necesitas, te rogamos que pulses en <em>«Liberar franja horaria»</em> para que otro compañero pueda utilizarla.</p>";
+                $html .= "<div style='text-align: center; margin: 24px 0;'>";
+                $html .= "<a href='https://ateca.fpapps.es/?confirm_booking={$idReserva}' style='background: #059669; color: #fff; text-decoration: none; padding: 12px 22px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 8px;'>✅ Confirmar Asistencia</a><br/>";
+                $html .= "<a href='https://ateca.fpapps.es/?release_booking={$idReserva}' style='background: #f43f5e; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 12px; display: inline-block;'>🚪 Liberar Franja Horaria (No la usaré)</a></div>";
+                $html .= "</div></div></body></html>";
+
+                $headers = [
+                    'MIME-Version: 1.0',
+                    'Content-Type: text/html; charset=UTF-8',
+                    'From: =?UTF-8?B?' . base64_encode('Aula ATECA - ' . $centerName) . '?= <ateca@fpapps.es>',
+                    'Reply-To: ' . $coordEmail,
+                    'X-Mailer: PHP/' . phpversion(),
+                ];
+                $encSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+                @mail($toEmail, $encSubject, $html, implode("\r\n", $headers));
+
+                $r['recordatorio_semanal_enviado'] = true;
+                $r['fecha_recordatorio_semanal'] = $now->format(DateTime::ATOM);
+                $sentCount++;
+                $modified = true;
+            }
+        }
+
+        if ($modified) {
+            saveStore($dataFile, $store);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'reminders_sent' => $sentCount,
+            'timestamp' => $now->format(DateTime::ATOM)
+        ]);
+        break;
+
     case 'request_login_code':
         verifySecurity();
         $email = strtolower(trim($_POST['email'] ?? $requestData['email'] ?? $_GET['email'] ?? ''));

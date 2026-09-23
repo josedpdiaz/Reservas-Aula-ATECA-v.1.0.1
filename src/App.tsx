@@ -18,7 +18,8 @@ import {
   getCurrentUser, setCurrentUser, loginByEmail, getConfig,
   getTheme, setTheme, deleteReserva, cancelReserva,
   getFontSize, setFontSize, updateReservaEstado, getUsuarios,
-  syncWithServer, checkAndTriggerValuationReminders, hasBookingConcluded
+  syncWithServer, checkAndTriggerValuationReminders, hasBookingConcluded,
+  checkAndTriggerWeeklyReminders, confirmReservaDocente
 } from './lib/storage';
 import { notifyAulaLiberada, notifyReservaAprobada } from './lib/emailService';
 import { requestLoginCode, verifyLoginCode } from './lib/authService';
@@ -42,12 +43,14 @@ export default function App() {
   useEffect(() => {
     initializeStorage();
     checkAndTriggerValuationReminders();
+    checkAndTriggerWeeklyReminders();
     forceUpdate();
 
     const runSyncAndReminders = async () => {
       const updated = await syncWithServer();
-      const remindersTriggered = checkAndTriggerValuationReminders();
-      if (updated || remindersTriggered) {
+      const remindersTriggered = await checkAndTriggerValuationReminders();
+      const weeklyTriggered = await checkAndTriggerWeeklyReminders();
+      if (updated || remindersTriggered || weeklyTriggered) {
         forceUpdate();
         const cur = getCurrentUser();
         if (cur) setUser(cur);
@@ -195,6 +198,37 @@ export default function App() {
     setToastMsg({ text, type });
     setTimeout(() => setToastMsg(null), 5000);
   };
+
+  // Procesar enlaces de confirmación de asistencia o liberación de reserva recibidos por correo electrónico
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const confirmId = params.get('confirm_booking');
+      const releaseId = params.get('release_booking');
+
+      if (confirmId) {
+        const reservas = getReservas();
+        const booking = reservas.find(r => r.id_reserva === confirmId);
+        if (booking) {
+          confirmReservaDocente(confirmId);
+          triggerToast(`✅ ¡Asistencia confirmada para ${booking.modulo_materia_area} (${booking.fecha_actividad.split('-').reverse().join('/')})!`);
+          forceUpdate();
+        }
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (releaseId) {
+        const reservas = getReservas();
+        const booking = reservas.find(r => r.id_reserva === releaseId);
+        if (booking && booking.estado === 'APROBADA') {
+          setSelectedBooking(booking);
+          setDetailReleaseModal(true);
+          triggerToast(`ℹ️ Has solicitado liberar la reserva de ${booking.modulo_materia_area}. Elige una opción y confirma.`);
+        }
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch (err) {
+      console.warn('Error al procesar parámetros de URL:', err);
+    }
+  }, []);
 
   // Switch logins simulation with single click!
   const handleProfileSwitch = (emailAddr: string) => {
@@ -756,15 +790,22 @@ export default function App() {
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">ID RESERVA: {selectedBooking.id_reserva}</span>
                       <h3 className="text-lg font-black text-slate-800 mt-0.5">Detalle de Solicitud ATECA</h3>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                      selectedBooking.estado === 'APROBADA' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                      selectedBooking.estado === 'PENDIENTE' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                      selectedBooking.estado === 'REALIZADA' ? 'bg-sky-50 text-sky-700 border-sky-100' :
-                      selectedBooking.estado === 'RECHAZADA' ? 'bg-red-50 text-red-700 border-red-100' :
-                      'bg-slate-50 text-slate-700'
-                    }`}>
-                      {selectedBooking.estado}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {selectedBooking.confirmada_por_docente && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1" title="El docente ratificó formalmente su asistencia mediante el recordatorio semanal">
+                          <CheckCircle className="w-3 h-3 text-emerald-600" /> Asistencia Confirmada
+                        </span>
+                      )}
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                        selectedBooking.estado === 'APROBADA' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                        selectedBooking.estado === 'PENDIENTE' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                        selectedBooking.estado === 'REALIZADA' ? 'bg-sky-50 text-sky-700 border-sky-100' :
+                        selectedBooking.estado === 'RECHAZADA' ? 'bg-red-50 text-red-700 border-red-100' :
+                        'bg-slate-50 text-slate-700'
+                      }`}>
+                        {selectedBooking.estado}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Summary grid */}
@@ -1122,7 +1163,16 @@ export default function App() {
                     triggerToast('Reserva cancelada. Franja horaria liberada para el claustro.');
                   }
                   // Notificar por correo a Coordinación
-                  notifyAulaLiberada(selectedBooking, user, detailReleaseMotivo);
+                  const releasingUser = user || {
+                    id_usuario: 'docente',
+                    nombre: selectedBooking.profesor,
+                    email: selectedBooking.email,
+                    rol: 'PROFESOR' as const,
+                    departamento: selectedBooking.departamento,
+                    turno: 'Ambos' as const,
+                    activo: true,
+                  };
+                  notifyAulaLiberada(selectedBooking, releasingUser, detailReleaseMotivo);
                   setDetailReleaseModal(false);
                   setCurrentAction('view');
                   handleUpdate();

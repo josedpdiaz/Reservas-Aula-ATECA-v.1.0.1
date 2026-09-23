@@ -15,6 +15,7 @@ const EMAIL_LOGS_KEY = 'ateca_email_logs';
 export const getDefaultNotificationPreferences = (rol: 'PROFESOR' | 'COORDINADOR' | 'ADMIN'): NotificationPreferences => ({
   reserva_estado: true,
   recordatorio_previo: true,
+  recordatorio_semanal: true,
   recordatorio_valoracion: true,
   nueva_solicitud_coord: rol === 'COORDINADOR' || rol === 'ADMIN',
   reserva_liberada_coord: rol === 'COORDINADOR' || rol === 'ADMIN',
@@ -63,6 +64,8 @@ export const shouldSendNotification = (user: Usuario, type: TipoNotificacionEmai
       return prefs.reserva_estado;
     case 'RECORDATORIO_24H':
       return prefs.recordatorio_previo;
+    case 'RECORDATORIO_SEMANAL':
+      return prefs.recordatorio_semanal ?? true;
     case 'RECORDATORIO_VALORACION':
       return prefs.recordatorio_valoracion;
     case 'NUEVA_SOLICITUD_COORD':
@@ -392,32 +395,105 @@ export const notifyNuevaSolicitudCoordinacion = async (reserva: Reserva) => {
 };
 
 /**
- * 3. Notificación de reserva APROBADA al profesor
+ * 3. Notificación de reserva AUTORIZADA y reservada al profesor
  */
 export const notifyReservaAprobada = async (reserva: Reserva, usuario: Usuario, observaciones?: string) => {
+  const parts = reserva.fecha_actividad.split('-');
+  const dateObj = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const diaSemana = diasSemana[dateObj.getDay()] || '';
+  const fechaFormateada = `${parts[2]}/${parts[1]}/${parts[0]}`;
+
   return dispatchNotificationEmail({
     toUser: usuario,
     type: 'APROBADA',
-    subject: `¡Reserva APROBADA! Aula ATECA para ${reserva.grupo} (${reserva.fecha_actividad})`,
-    title: '¡Tu reserva ha sido aprobada!',
-    badgeText: 'Aprobada',
+    subject: `¡Reserva AUTORIZADA! Aula ATECA para ${reserva.grupo} (${diaSemana} ${fechaFormateada})`,
+    title: '¡Tu reserva en el Aula ATECA ha sido autorizada!',
+    badgeText: 'Reserva Autorizada',
     badgeBg: '#10b981',
     contentHtml: `
       <p>Hola <strong>${usuario.nombre}</strong>,</p>
-      <p>Nos complace informarte de que tu reserva para el Aula ATECA ha sido <strong>APROBADA</strong> satisfactoriamente por la Coordinación.</p>
-      ${observaciones ? `<div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 6px; margin: 12px 0;"><strong style="color: #065f46;">Indicaciones del Coordinador:</strong><p style="margin: 4px 0 0 0; color: #047857; font-size: 13px;">${observaciones}</p></div>` : ''}
-      <p style="font-size: 13px; color: #64748b;">Recuerda dejar el espacio y los recursos tecnológicos recogidos y apagados al finalizar la sesión.</p>
+      <p>Te confirmamos que tu solicitud de reserva para el <strong>Aula ATECA</strong> ha sido <strong>AUTORIZADA</strong> satisfactoriamente y ha quedado fijada en el calendario oficial del centro.</p>
+      ${observaciones ? `<div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 6px; margin: 12px 0;"><strong style="color: #065f46;">Indicaciones de validación:</strong><p style="margin: 4px 0 0 0; color: #047857; font-size: 13px;">${observaciones}</p></div>` : ''}
+      <p style="font-size: 13px; color: #475569; margin: 12px 0;">El espacio y los recursos tecnológicos solicitados estarán reservados para tu sesión. Recuerda que si por algún imprevisto docente no pudieras acudir, puedes liberar la reserva con antelación desde la plataforma para que otros compañeros puedan aprovechar la franja horaria.</p>
     `,
-    contentText: `¡Tu reserva para el Aula ATECA ha sido APROBADA! Fecha: ${reserva.fecha_actividad} de ${reserva.hora_inicio} a ${reserva.hora_fin}.`,
+    contentText: `¡Tu reserva para el Aula ATECA ha sido AUTORIZADA! Día: ${diaSemana} ${fechaFormateada} de ${reserva.hora_inicio} a ${reserva.hora_fin}. Módulo: ${reserva.modulo_materia_area} (${reserva.grupo}).`,
     details: [
-      { label: 'Fecha confirmada', value: reserva.fecha_actividad.split('-').reverse().join('/') },
+      { label: 'Día y Fecha', value: `${diaSemana}, ${fechaFormateada}` },
       { label: 'Horario reservado', value: `${reserva.hora_inicio} - ${reserva.hora_fin}` },
-      { label: 'Grupo', value: reserva.grupo },
-      { label: 'Módulo', value: reserva.modulo_materia_area },
-      { label: 'Zona', value: reserva.zona_principal },
+      { label: 'Grupo / Nivel', value: `${reserva.grupo} (${reserva.nivel})` },
+      { label: 'Módulo / Materia', value: reserva.modulo_materia_area },
+      { label: 'Zona didáctica', value: reserva.zona_principal },
       { label: 'Apoyo técnico', value: reserva.necesita_apoyo ? 'Solicitado' : 'Autónomo' },
     ],
-    buttonText: 'Consultar Reserva',
+    buttonText: 'Ver mi reserva en el Gestor ATECA',
+    buttonUrl: 'https://ateca.fpapps.es',
+  });
+};
+
+/**
+ * 3b. Notificación preventiva semanal de recordatorio y confirmación (Lunes 08:00 AM)
+ * Para reservas realizadas con antelación previa a la semana lectiva
+ */
+export const notifyRecordatorioSemanalConfirmacion = async (reserva: Reserva, usuario: Usuario) => {
+  const parts = reserva.fecha_actividad.split('-');
+  const dateObj = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const diaSemana = diasSemana[dateObj.getDay()] || 'este día';
+  const fechaFormateada = `${parts[2]}/${parts[1]}/${parts[0]}`;
+
+  return dispatchNotificationEmail({
+    toUser: usuario,
+    type: 'RECORDATORIO_SEMANAL',
+    subject: `🔔 Recordatorio semanal: Reserva Aula ATECA para este ${diaSemana} ${fechaFormateada} (${reserva.hora_inicio} - ${reserva.hora_fin})`,
+    title: 'Recordatorio de reserva programada para esta semana',
+    badgeText: 'Recordatorio Semanal',
+    badgeBg: '#0284c7',
+    contentHtml: `
+      <p>Hola <strong>${usuario.nombre}</strong>,</p>
+      <p>Te recordamos que tienes una reserva autorizada en el <strong>Aula ATECA</strong> programada para esta semana:</p>
+      
+      <div style="background-color: #f0f9ff; border-left: 4px solid #0284c7; padding: 14px 18px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0; font-size: 15px; color: #0369a1; font-weight: 700;">
+          📅 ${diaSemana} ${fechaFormateada} • ${reserva.hora_inicio} a ${reserva.hora_fin}
+        </p>
+        <p style="margin: 6px 0 0 0; font-size: 13px; color: #0284c7;">
+          Módulo / Materia: <strong>${reserva.modulo_materia_area}</strong> • Grupo: <strong>${reserva.grupo}</strong> (${reserva.nivel})
+        </p>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #0284c7;">
+          Zona de trabajo: <strong>${reserva.zona_principal}</strong>
+        </p>
+      </div>
+
+      <p style="font-size: 13.5px; color: #334155; line-height: 1.6;">
+        Por favor, revisa tu planificación docente para estos días:
+      </p>
+      <ul style="font-size: 13px; color: #334155; line-height: 1.6; padding-left: 20px; margin: 10px 0 18px 0;">
+        <li><strong>Si vas a realizar la actividad:</strong> ¡Perfecto! Pulsa en el botón verde inferior para confirmar tu asistencia o accede directamente con tu grupo el día programado.</li>
+        <li><strong>Si ya no necesitas el espacio:</strong> Te rogamos que pulses en <em>«Liberar franja horaria»</em> para cancelarla con antelación. Así, el aula quedará libre al instante para que otro compañero/a docente pueda aprovechar ese horario.</li>
+      </ul>
+
+      <div style="text-align: center; margin: 26px 0 12px 0;">
+        <a href="https://ateca.fpapps.es/?confirm_booking=${reserva.id_reserva}" target="_blank" rel="noopener noreferrer" style="background-color: #059669; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25); margin-bottom: 10px;">
+          ✅ Confirmar Asistencia / Mantener Reserva
+        </a>
+        <br/>
+        <a href="https://ateca.fpapps.es/?release_booking=${reserva.id_reserva}" target="_blank" rel="noopener noreferrer" style="background-color: #f43f5e; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 13px; display: inline-block; box-shadow: 0 2px 4px rgba(244, 63, 94, 0.2);">
+          🚪 Liberar Franja Horaria (No la usaré)
+        </a>
+      </div>
+    `,
+    contentText: `Hola ${usuario.nombre}. Recordatorio: Tienes reserva en el Aula ATECA para este ${diaSemana} ${fechaFormateada} de ${reserva.hora_inicio} a ${reserva.hora_fin}. Módulo: ${reserva.modulo_materia_area} (${reserva.grupo}). Si vas a usarla, confirma en https://ateca.fpapps.es/?confirm_booking=${reserva.id_reserva}. Si ya no la necesitas, por favor libérala en https://ateca.fpapps.es/?release_booking=${reserva.id_reserva} para que otro compañero pueda utilizar el aula.`,
+    details: [
+      { label: 'Día y Fecha', value: `${diaSemana}, ${fechaFormateada}` },
+      { label: 'Franja Horaria', value: `${reserva.hora_inicio} - ${reserva.hora_fin}` },
+      { label: 'Grupo / Nivel', value: `${reserva.grupo} (${reserva.nivel})` },
+      { label: 'Módulo / Materia', value: reserva.modulo_materia_area },
+      { label: 'Zona didáctica', value: reserva.zona_principal },
+      { label: 'Docente responsable', value: reserva.profesor },
+    ],
+    buttonText: 'Gestionar mi reserva en el Gestor ATECA',
+    buttonUrl: 'https://ateca.fpapps.es',
   });
 };
 

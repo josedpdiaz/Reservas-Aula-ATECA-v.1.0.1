@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = '1.3.6';
+export const APP_VERSION = '1.3.7';
 
 export interface NotificationPreferences {
   reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
   recordatorio_previo: boolean;     // Recordatorio 24h antes del uso del aula
+  recordatorio_semanal?: boolean;   // Recordatorio semanal preventivo (lunes 08:00) con confirmación/liberación
   recordatorio_valoracion: boolean; // Recordatorio tras la clase para valorar
   nueva_solicitud_coord: boolean;   // (Coordinación) Aviso de nueva solicitud
   reserva_liberada_coord: boolean;  // (Coordinación) Aviso de aula liberada/cancelada
@@ -123,6 +124,7 @@ export type TipoNotificacionEmail =
   | 'APROBADA'
   | 'RECHAZADA'
   | 'RECORDATORIO_24H'
+  | 'RECORDATORIO_SEMANAL'
   | 'RECORDATORIO_VALORACION'
   | 'NUEVA_SOLICITUD_COORD'
   | 'AULA_LIBERADA_COORD'
@@ -167,6 +169,9 @@ export interface Reserva {
   prioridad: 'ALTA' | 'MEDIA' | 'NORMAL' | 'BAJA';
   estado: EstadoReserva;
   observaciones_coordinador: string;
+  recordatorio_semanal_enviado?: boolean;
+  fecha_recordatorio_semanal?: string;
+  confirmada_por_docente?: boolean;
 }
 
 export interface Valoracion {
