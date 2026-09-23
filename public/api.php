@@ -105,7 +105,7 @@ function getDefaultStore() {
                 'nombre' => 'José Díaz',
                 'email' => 'jpacdia@gobiernodecanarias.org',
                 'rol' => 'ADMIN',
-                'departamento' => 'Departamento de Administración y Gestión',
+                'departamento' => 'Administración y Gestión',
                 'turno' => 'Ambos',
                 'activo' => true
             ]
@@ -144,18 +144,22 @@ function loadStore($dataFile) {
     $json = json_decode($content, true);
     if (!is_array($json)) return getDefaultStore();
 
-    // Migración automática de departamentos Informática / Ofimática a Departamento de Administración y Gestión
+    // Migración automática de departamentos: Informática / Ofimática -> Administración y Gestión, y limpieza de prefijo "Departamento de "
     $migrated = false;
     if (isset($json['usuarios']) && is_array($json['usuarios'])) {
         foreach ($json['usuarios'] as &$u) {
-            $dept = mb_strtoupper($u['departamento'] ?? '', 'UTF-8');
+            $dept = trim($u['departamento'] ?? '');
+            $deptUpper = mb_strtoupper($dept, 'UTF-8');
             if (
-                strpos($dept, 'INFORMÁTICA') !== false ||
-                strpos($dept, 'INFORMATICA') !== false ||
-                strpos($dept, 'OFIMÁTICA') !== false ||
-                strpos($dept, 'OFIMATICA') !== false
+                strpos($deptUpper, 'INFORMÁTICA') !== false ||
+                strpos($deptUpper, 'INFORMATICA') !== false ||
+                strpos($deptUpper, 'OFIMÁTICA') !== false ||
+                strpos($deptUpper, 'OFIMATICA') !== false
             ) {
-                $u['departamento'] = 'Departamento de Administración y Gestión';
+                $u['departamento'] = 'Administración y Gestión';
+                $migrated = true;
+            } elseif (preg_match('/^departamento\s+(de\s+)?/ui', $dept)) {
+                $u['departamento'] = preg_replace('/^departamento\s+(de\s+)?/ui', '', $dept);
                 $migrated = true;
             }
         }

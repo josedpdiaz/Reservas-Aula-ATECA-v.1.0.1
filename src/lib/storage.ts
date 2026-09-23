@@ -28,7 +28,7 @@ const DEFAULT_USERS: Usuario[] = [
     nombre: "José Díaz",
     email: "jpacdia@gobiernodecanarias.org",
     rol: "ADMIN",
-    departamento: "Departamento de Administración y Gestión",
+    departamento: "Administración y Gestión",
     turno: "Ambos",
     activo: true,
   }
@@ -213,19 +213,23 @@ export const initializeStorage = (force: boolean = false) => {
   // PURGA INMEDIATA: Elimina cualquier tarea, reserva o bloqueo que se encuentre en sábado o domingo
   purgeWeekendTasks();
 
-  // Migración automática de Informática / Ofimática hacia 'Departamento de Administración y Gestión'
+  // Migración automática de Informática / Ofimática hacia 'Administración y Gestión' y limpieza de prefijo 'Departamento de'
   try {
     const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
     if (rawUsers) {
       const usersList = safeParse<Usuario[]>(rawUsers, []);
       let changed = false;
       const migrated = usersList.map(u => {
-        const dUpper = (u.departamento || '').toUpperCase();
+        let d = (u.departamento || '').trim();
+        const dUpper = d.toUpperCase();
         if (dUpper.includes('INFORMÁTICA') || dUpper.includes('INFORMATICA') || dUpper.includes('OFIMÁTICA') || dUpper.includes('OFIMATICA')) {
+          d = 'Administración y Gestión';
           changed = true;
-          return { ...u, departamento: 'Departamento de Administración y Gestión' };
+        } else if (/^departamento\s+(de\s+)?/i.test(d)) {
+          d = d.replace(/^departamento\s+(de\s+)?/i, '').trim();
+          changed = true;
         }
-        return u;
+        return { ...u, departamento: d };
       });
       if (changed) {
         localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(migrated));
@@ -233,9 +237,18 @@ export const initializeStorage = (force: boolean = false) => {
     }
     const current = getCurrentUser();
     if (current) {
-      const cUpper = (current.departamento || '').toUpperCase();
+      let cd = (current.departamento || '').trim();
+      const cUpper = cd.toUpperCase();
+      let changedCurrent = false;
       if (cUpper.includes('INFORMÁTICA') || cUpper.includes('INFORMATICA') || cUpper.includes('OFIMÁTICA') || cUpper.includes('OFIMATICA')) {
-        setCurrentUser({ ...current, departamento: 'Departamento de Administración y Gestión' });
+        cd = 'Administración y Gestión';
+        changedCurrent = true;
+      } else if (/^departamento\s+(de\s+)?/i.test(cd)) {
+        cd = cd.replace(/^departamento\s+(de\s+)?/i, '').trim();
+        changedCurrent = true;
+      }
+      if (changedCurrent) {
+        setCurrentUser({ ...current, departamento: cd });
       }
     }
   } catch (e) {

@@ -1014,7 +1014,7 @@ export default function App() {
           <span className="text-slate-700 select-none">•</span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[10px]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            Versión 1.3.4
+            Versión 1.3.5
           </span>
         </div>
         <p className="text-slate-500 font-bold font-mono uppercase text-[9px] tracking-widest pt-1">

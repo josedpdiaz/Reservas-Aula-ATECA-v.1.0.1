@@ -37,7 +37,10 @@ export default function BookingForm({
   // Form fields (prefilled with existing booking if in edit mode)
   const [profesor] = useState(() => bookingToEdit ? bookingToEdit.profesor : currentUser.nombre);
   const [email] = useState(() => bookingToEdit ? bookingToEdit.email : currentUser.email);
-  const [departamento] = useState(() => bookingToEdit ? bookingToEdit.departamento : (currentUser.departamento || ''));
+  const [departamento] = useState(() => {
+    const d = bookingToEdit ? bookingToEdit.departamento : (currentUser.departamento || '');
+    return d.replace(/^departamento\s+(de\s+)?/i, '').trim();
+  });
   const [nivel, setNivel] = useState(() => bookingToEdit ? bookingToEdit.nivel : (isTeacherFP ? 'Grado Superior FP' : 'Bachillerato'));
   const [grupo, setGrupo] = useState(() => bookingToEdit ? bookingToEdit.grupo : '');
   const [moduloMateria, setModuloMateria] = useState(() => bookingToEdit ? bookingToEdit.modulo_materia_area : '');

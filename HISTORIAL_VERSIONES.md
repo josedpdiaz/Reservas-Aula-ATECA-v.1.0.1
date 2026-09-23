@@ -5,6 +5,29 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.5] - 2026-09-23
+### 🔐 Seguridad 2FA por Correo, Departamentos Oficiales Simplificados y Lógica Condicionada P1/P2/P3
+* **Objetivo**: Refuerzo integral de seguridad mediante autenticación de doble factor con código aleatorio por email oficial, estandarización de la nomenclatura de departamentos didácticos, bloqueo en modo solo lectura del campo en reservas y asignación automatizada de prioridades P1, P2 y P3.
+* **Mejoras clave**:
+  * **Autenticación con Código de Seguridad OTP por Correo (2FA)**:
+    * Generación de código criptoseguro de 6 dígitos con validez máxima de 5 minutos (300 s) y control de 5 intentos máximos.
+    * Envío oficial con formato corporativo a la cuenta `@gobiernodecanarias.org`.
+    * Temporizador regresivo en pantalla, reenvío controlado e invalidación tras uso exitoso o expiración.
+  * **Nomenclatura Oficial de Departamentos**:
+    * Supresión del prefijo redundante «Departamento de», adoptando nombres directos y limpios: `Administración y Gestión`, `Formación y Orientación Laboral`, `Comercio`, `Tecnología`, `Física y Química`, `Matemáticas`, `Inglés`, `Geografía e Historia`, `Lengua Castellana y Literatura`, `Literatura e Historia` y `Otro`.
+    * Migración automática tanto en backend como en cliente de las cuentas de `Informática` y `Ofimática` hacia `Administración y Gestión`.
+  * **Selectores Tipados e Insignias en Gestión de Usuarios**:
+    * Reemplazo de campos de texto libre por menús desplegables agrupados con indicadores visuales de auto-aprobación directa (P1) vs revisión obligatoria (P2/P3).
+  * **Ficha de Reserva (`BookingForm`) Blindada**:
+    * Campo «Departamento Didáctico» fijado en modo `readOnly`, sincronizado con la ficha oficial del docente.
+    * Asignación automática de P1 (`ALTA`) y estado `APROBADA` para docentes de FP en ciclos de FP.
+    * Regla estricta: si un docente de FP reserva para niveles de ESO o Bachillerato, la solicitud pasa automáticamente a estado `PENDIENTE` para revisión de Coordinación o Administración.
+  * **Ajustes de Accesibilidad Visual**:
+    * Optimización del modo oscuro para reducir contrastes agresivos y suavizar la legibilidad.
+    * Indicador superior de conmutación «Claro / Oscuro».
+
+---
+
 ## [v1.3.4] - 2026-09-13
 ### 🏛️ Producción Oficial IES Agustín de Betancourt (ateca.fpapps.es) y Arquitectura Simplificada de 3 Capas
 * **Objetivo**: Puesta en marcha definitiva del sistema en producción para el **IES Agustín de Betancourt** en el dominio oficial `https://ateca.fpapps.es`, suprimiendo definitivamente el entorno de pruebas para operar en un modelo unificado y robusto de 3 capas (Guardado Local, Git GitHub y Producción Oficial), con autenticación corporativa mediante cuentas Google del Gobierno de Canarias (`@gobiernodecanarias.org`) y el administrador oficial `jpacdia@gobiernodecanarias.org`.

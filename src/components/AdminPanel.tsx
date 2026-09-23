@@ -48,7 +48,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [newUsrName, setNewUsrName] = useState('');
   const [newUsrEmail, setNewUsrEmail] = useState('');
   const [newUsrRol, setNewUsrRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
-  const [newUsrDept, setNewUsrDept] = useState('Departamento de Administración y Gestión');
+  const [newUsrDept, setNewUsrDept] = useState('Administración y Gestión');
 
   // User search, edit and deactivate modal states (Opción A)
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -125,7 +125,8 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     setEditEmail(u.email);
     const currentDept = u.departamento ? u.departamento.trim() : '';
     const isOldInformatica = /informática|informatica|ofimática|ofimatica/i.test(currentDept);
-    setEditDept(isOldInformatica || !currentDept ? 'Departamento de Administración y Gestión' : currentDept);
+    const cleanDept = currentDept.replace(/^departamento\s+(de\s+)?/i, '').trim();
+    setEditDept(isOldInformatica || !cleanDept ? 'Administración y Gestión' : cleanDept);
     setEditRol(u.rol);
     setEditTurno(u.turno || 'Ambos');
     setEditActivo(u.activo);
@@ -170,7 +171,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
 
     setNewUsrName('');
     setNewUsrEmail('');
-    setNewUsrDept('Departamento de Administración y Gestión');
+    setNewUsrDept('Administración y Gestión');
     onRefresh();
   };
 

@@ -33,19 +33,19 @@ export interface OfficialDepartment {
 
 export const OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
   // Ciclos Formativos de Formación Profesional (Prioridad P1 · Aprobación Automática)
-  { id: 'admon', name: 'Departamento de Administración y Gestión', isFP: true, category: 'FP' },
-  { id: 'fol', name: 'Departamento de Formación y Orientación Laboral', isFP: true, category: 'FP' },
-  { id: 'comercio', name: 'Departamento de Comercio', isFP: true, category: 'FP' },
+  { id: 'admon', name: 'Administración y Gestión', isFP: true, category: 'FP' },
+  { id: 'fol', name: 'Formación y Orientación Laboral', isFP: true, category: 'FP' },
+  { id: 'comercio', name: 'Comercio', isFP: true, category: 'FP' },
 
   // Enseñanzas Generales / Secundaria / No FP (Prioridad P2/P3 · Requieren Aprobación)
-  { id: 'tecno', name: 'Departamento de Tecnología', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'fq', name: 'Departamento de Física y Química', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'mates', name: 'Departamento de Matemáticas', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'ingles', name: 'Departamento de Inglés', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'geohist', name: 'Departamento de Geografía e Historia', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'lengua', name: 'Departamento de Lengua Castellana y Literatura', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'litehist', name: 'Departamento de Literatura e Historia', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'otro', name: 'Otro Departamento', isFP: false, category: 'OTROS' },
+  { id: 'tecno', name: 'Tecnología', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'fq', name: 'Física y Química', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'mates', name: 'Matemáticas', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'ingles', name: 'Inglés', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'geohist', name: 'Geografía e Historia', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'lengua', name: 'Lengua Castellana y Literatura', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'litehist', name: 'Literatura e Historia', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'otro', name: 'Otro', isFP: false, category: 'OTROS' },
 ];
 
 export const isFpDepartment = (departamento?: string): boolean => {
