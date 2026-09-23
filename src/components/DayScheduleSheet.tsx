@@ -22,27 +22,26 @@ interface DayScheduleSheetProps {
   canCreateBookings?: boolean;
 }
 
-// Horarios lectivos según normativa:
-// Mañana: 6 sesiones de 50 min con recreo de 10:30 a 11:00
+// Horarios lectivos oficiales IES Agustín de Betancourt (sesiones de 55 minutos):
+// Mañana: 6 sesiones de 55 min con recreo de 10:45 a 11:15 (30 min)
 const MORNING_SLOTS = [
-  { start: '08:00', end: '08:50', label: '1ª Sesión (50m)' },
-  { start: '08:50', end: '09:40', label: '2ª Sesión (50m)' },
-  { start: '09:40', end: '10:30', label: '3ª Sesión (50m)' },
-  { start: '10:30', end: '11:00', label: 'Recreo / Descanso Mañana (30m)', isBreak: true },
-  { start: '11:00', end: '11:50', label: '4ª Sesión (50m)' },
-  { start: '11:50', end: '12:40', label: '5ª Sesión (50m)' },
-  { start: '12:40', end: '13:30', label: '6ª Sesión (50m)' },
+  { start: '08:00', end: '08:55', label: '1ª Sesión (55m)' },
+  { start: '08:55', end: '09:50', label: '2ª Sesión (55m)' },
+  { start: '09:50', end: '10:45', label: '3ª Sesión (55m)' },
+  { start: '10:45', end: '11:15', label: 'Recreo / Descanso Mañana (30m)', isBreak: true },
+  { start: '11:15', end: '12:10', label: '4ª Sesión (55m)' },
+  { start: '12:10', end: '13:05', label: '5ª Sesión (55m)' },
+  { start: '13:05', end: '14:00', label: '6ª Sesión (55m)' },
 ];
 
-// Tarde-Noche: 6 sesiones de 50 min con descanso de 20 min tras la 3ª sesión
+// Tarde-Noche: 5 sesiones de 55 min con recreo de 19:45 a 20:00 (15 min)
 const AFTERNOON_SLOTS = [
-  { start: '17:00', end: '17:50', label: '1ª Sesión Tarde-Noche (50m)' },
-  { start: '17:50', end: '18:40', label: '2ª Sesión Tarde-Noche (50m)' },
-  { start: '18:40', end: '19:30', label: '3ª Sesión Tarde-Noche (50m)' },
-  { start: '19:30', end: '19:50', label: 'Descanso Tarde-Noche (20m)', isBreak: true },
-  { start: '19:50', end: '20:40', label: '4ª Sesión Tarde-Noche (50m)' },
-  { start: '20:40', end: '21:30', label: '5ª Sesión Tarde-Noche (50m)' },
-  { start: '21:30', end: '22:20', label: '6ª Sesión Tarde-Noche (50m)' },
+  { start: '17:00', end: '17:55', label: '1ª Sesión Tarde-Noche (55m)' },
+  { start: '17:55', end: '18:50', label: '2ª Sesión Tarde-Noche (55m)' },
+  { start: '18:50', end: '19:45', label: '3ª Sesión Tarde-Noche (55m)' },
+  { start: '19:45', end: '20:00', label: 'Recreo / Descanso Tarde (15m)', isBreak: true },
+  { start: '20:00', end: '20:55', label: '4ª Sesión Tarde-Noche (55m)' },
+  { start: '20:55', end: '21:50', label: '5ª Sesión Tarde-Noche (55m)' },
 ];
 
 export default function DayScheduleSheet({

@@ -5,6 +5,32 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.3.6] - 2026-09-23
+### ⏱️ Ajuste Oficial de Horarios Lectivos a Franjas de 55 Minutos (Mañana y Tarde-Noche)
+* **Objetivo**: Calibración exacta de las franjas horarias de reserva en la hoja diaria (`DayScheduleSheet`) adaptándolas a la duración lectiva oficial de 55 minutos del IES Agustín de Betancourt, incluyendo los tiempos exactos de recreo y descanso para los turnos de mañana y tarde-noche.
+* **Mejoras clave**:
+  * **Turno de Mañana (Sesiones de 55 min y Recreo de 30 min)**:
+    * 1ª Sesión: `08:00 - 08:55` (55 min)
+    * 2ª Sesión: `08:55 - 09:50` (55 min)
+    * 3ª Sesión: `09:50 - 10:45` (55 min)
+    * Recreo / Descanso Mañana: `10:45 - 11:15` (30 min)
+    * 4ª Sesión: `11:15 - 12:10` (55 min)
+    * 5ª Sesión: `12:10 - 13:05` (55 min)
+    * 6ª Sesión: `13:05 - 14:00` (55 min)
+  * **Turno de Tarde-Noche (Sesiones de 55 min y Recreo de 15 min)**:
+    * 1ª Sesión Tarde-Noche: `17:00 - 17:55` (55 min)
+    * 2ª Sesión Tarde-Noche: `17:55 - 18:50` (55 min)
+    * 3ª Sesión Tarde-Noche: `18:50 - 19:45` (55 min)
+    * Recreo / Descanso Tarde: `19:45 - 20:00` (15 min)
+    * 4ª Sesión Tarde-Noche: `20:00 - 20:55` (55 min)
+    * 5ª Sesión Tarde-Noche: `20:55 - 21:50` (55 min)
+  * **Visualización Dinámica e Inmunidad de Recreos**:
+    * Las franjas de recreo quedan explícitamente etiquetadas y protegidas contra reservas no procedentes.
+  * **Sincronización de Versión en Pie de Aplicación**:
+    * Actualización global de versión `1.3.6` en `package.json`, `types.ts`, pie de página institucional e historial de versiones.
+
+---
+
 ## [v1.3.5] - 2026-09-23
 ### 🔐 Seguridad 2FA por Correo, Departamentos Oficiales Simplificados y Lógica Condicionada P1/P2/P3
 * **Objetivo**: Refuerzo integral de seguridad mediante autenticación de doble factor con código aleatorio por email oficial, estandarización de la nomenclatura de departamentos didácticos, bloqueo en modo solo lectura del campo en reservas y asignación automatizada de prioridades P1, P2 y P3.
