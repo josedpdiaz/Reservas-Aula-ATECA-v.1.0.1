@@ -105,7 +105,7 @@ function getDefaultStore() {
                 'nombre' => 'José Díaz',
                 'email' => 'jpacdia@gobiernodecanarias.org',
                 'rol' => 'ADMIN',
-                'departamento' => 'Informática',
+                'departamento' => 'Departamento de Administración y Gestión',
                 'turno' => 'Ambos',
                 'activo' => true
             ]
@@ -142,7 +142,30 @@ function loadStore($dataFile) {
     fclose($fp);
 
     $json = json_decode($content, true);
-    return is_array($json) ? $json : getDefaultStore();
+    if (!is_array($json)) return getDefaultStore();
+
+    // Migración automática de departamentos Informática / Ofimática a Departamento de Administración y Gestión
+    $migrated = false;
+    if (isset($json['usuarios']) && is_array($json['usuarios'])) {
+        foreach ($json['usuarios'] as &$u) {
+            $dept = mb_strtoupper($u['departamento'] ?? '', 'UTF-8');
+            if (
+                strpos($dept, 'INFORMÁTICA') !== false ||
+                strpos($dept, 'INFORMATICA') !== false ||
+                strpos($dept, 'OFIMÁTICA') !== false ||
+                strpos($dept, 'OFIMATICA') !== false
+            ) {
+                $u['departamento'] = 'Departamento de Administración y Gestión';
+                $migrated = true;
+            }
+        }
+        unset($u);
+    }
+    if ($migrated) {
+        saveStore($dataFile, $json);
+    }
+
+    return $json;
 }
 
 // Guardar datos con bloqueo exclusivo y escritura atómica

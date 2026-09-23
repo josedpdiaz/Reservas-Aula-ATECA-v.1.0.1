@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Edit3, Lock, Zap } from 'lucide-react';
-import { Reserva, Usuario } from '../types';
+import { Reserva, Usuario, isFpDepartment } from '../types';
 import { 
   getReservas, getBloqueos, addReserva, updateReserva, 
   isNonWorkingDay, checkTimeOverlap, formatDateToYMD, getConfig, isFpBooking 
@@ -25,19 +25,20 @@ interface BookingFormProps {
 export default function BookingForm({ 
   currentUser, 
   onSuccess, 
-  onCancel, 
+  onCancel,
   initialDate,
   initialStartTime,
   initialEndTime,
   bookingToEdit
 }: BookingFormProps) {
   const config = getConfig();
+  const isTeacherFP = isFpDepartment(currentUser.departamento);
   
   // Form fields (prefilled with existing booking if in edit mode)
-  const [profesor, setProfesor] = useState(() => bookingToEdit ? bookingToEdit.profesor : currentUser.nombre);
-  const [email, setEmail] = useState(() => bookingToEdit ? bookingToEdit.email : currentUser.email);
-  const [departamento, setDepartamento] = useState(() => bookingToEdit ? bookingToEdit.departamento : (currentUser.departamento || ''));
-  const [nivel, setNivel] = useState(() => bookingToEdit ? bookingToEdit.nivel : 'Grado Superior FP');
+  const [profesor] = useState(() => bookingToEdit ? bookingToEdit.profesor : currentUser.nombre);
+  const [email] = useState(() => bookingToEdit ? bookingToEdit.email : currentUser.email);
+  const [departamento] = useState(() => bookingToEdit ? bookingToEdit.departamento : (currentUser.departamento || ''));
+  const [nivel, setNivel] = useState(() => bookingToEdit ? bookingToEdit.nivel : (isTeacherFP ? 'Grado Superior FP' : 'Bachillerato'));
   const [grupo, setGrupo] = useState(() => bookingToEdit ? bookingToEdit.grupo : '');
   const [moduloMateria, setModuloMateria] = useState(() => bookingToEdit ? bookingToEdit.modulo_materia_area : '');
   const [fecha, setFecha] = useState(() => bookingToEdit ? bookingToEdit.fecha_actividad : (initialDate || formatDateToYMD()));
@@ -49,15 +50,20 @@ export default function BookingForm({
   const [descripcionActividad, setDescripcionActividad] = useState(() => bookingToEdit ? bookingToEdit.descripcion_actividad : '');
   const [recursosNecesarios, setRecursosNecesarios] = useState(() => bookingToEdit ? bookingToEdit.recursos_necesarios : '');
   const [necesitaApoyo, setNecesitaApoyo] = useState(() => bookingToEdit ? bookingToEdit.necesita_apoyo : false);
-  const [prioridad, setPrioridad] = useState<'ALTA' | 'MEDIA' | 'NORMAL' | 'BAJA'>(() => bookingToEdit ? bookingToEdit.prioridad : 'NORMAL');
+  const [prioridad, setPrioridad] = useState<'ALTA' | 'MEDIA' | 'NORMAL' | 'BAJA'>(() => {
+    if (bookingToEdit) return bookingToEdit.prioridad;
+    return isTeacherFP ? 'ALTA' : 'NORMAL';
+  });
 
   // Warnings and calculations
   const [conflictType, setConflictType] = useState<'NONE' | 'BLOQUEO' | 'OVERLAP'>('NONE');
   const [conflictMsg, setConflictMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Auto-detect priority based on Nivel
+  // Auto-detect priority based on Nivel and Departamento
   useEffect(() => {
+    const isDeptFP = isFpDepartment(departamento);
+
     if (nivel === 'Proyecto de Centro (No FP)') {
       setPrioridad('MEDIA');
     } else if (
@@ -67,13 +73,13 @@ export default function BookingForm({
       nivel === 'Proyecto de Centro de FP' ||
       nivel === 'Prueba técnica / Demostración'
     ) {
-      setPrioridad('ALTA');
+      setPrioridad(isDeptFP ? 'ALTA' : 'MEDIA');
     } else if (nivel === 'Bachillerato' || nivel === 'ESO') {
       setPrioridad('NORMAL');
     } else {
       setPrioridad('NORMAL');
     }
-  }, [nivel]);
+  }, [nivel, departamento]);
 
   // Realtime conflict checker
   useEffect(() => {
@@ -150,7 +156,7 @@ export default function BookingForm({
     }
 
     if (bookingToEdit) {
-      const isFP = isFpBooking({ nivel, prioridad });
+      const isFP = isFpBooking({ nivel, prioridad, departamento }, currentUser.departamento);
       const nuevoEstado = isFP ? 'APROBADA' : 'PENDIENTE';
       const res = updateReserva({
         ...bookingToEdit,
@@ -318,14 +324,23 @@ export default function BookingForm({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Departamento Didáctico *</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1 flex items-center justify-between">
+                <span>Departamento Didáctico</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                  isFpDepartment(departamento)
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    : 'bg-amber-100 text-amber-800 border border-amber-200'
+                }`}>
+                  {isFpDepartment(departamento) ? 'Ciclo FP (P1)' : 'Secundaria / Otros (P2/P3)'}
+                </span>
+              </label>
               <input
                 type="text"
-                required
-                value={departamento}
-                onChange={(e) => setDepartamento(e.target.value)}
-                placeholder="Ejemplo: Informática"
-                className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-lg text-xs outline-none"
+                readOnly
+                value={departamento || 'Sin departamento asignado'}
+                placeholder="Departamento asignado en tu ficha de usuario"
+                className="w-full px-3 py-2 bg-slate-100/80 border border-slate-200 text-slate-700 rounded-lg text-xs outline-none cursor-not-allowed font-medium select-none"
+                title="Tu departamento está configurado de forma oficial en tu ficha de usuario por Jefatura / Administración."
               />
             </div>
           </div>
@@ -427,9 +442,9 @@ export default function BookingForm({
                    prioridad === 'MEDIA' ? 'P2 · Proyectos' :
                    'P3 · Ordinaria'}
                 </span>
-                {isFpBooking({ nivel, prioridad }) ? (
+                {isFpBooking({ nivel, prioridad, departamento }, currentUser.departamento) ? (
                   <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    <Zap className="w-3 h-3 text-emerald-600 fill-emerald-500" /> Aprobación automática directa (P1 · FP / Prueba técnica)
+                    <Zap className="w-3 h-3 text-emerald-600 fill-emerald-500" /> Aprobación automática directa (P1 · Docente de Ciclos de FP)
                   </span>
                 ) : (
                   <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">

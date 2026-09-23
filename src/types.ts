@@ -24,6 +24,43 @@ export interface Usuario {
   notificaciones?: NotificationPreferences;
 }
 
+export interface OfficialDepartment {
+  id: string;
+  name: string;
+  isFP: boolean;
+  category: 'FP' | 'SECUNDARIA_GENERAL' | 'OTROS';
+}
+
+export const OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
+  // Ciclos Formativos de Formación Profesional (Prioridad P1 · Aprobación Automática)
+  { id: 'admon', name: 'Departamento de Administración y Gestión', isFP: true, category: 'FP' },
+  { id: 'fol', name: 'Departamento de Formación y Orientación Laboral', isFP: true, category: 'FP' },
+  { id: 'comercio', name: 'Departamento de Comercio', isFP: true, category: 'FP' },
+
+  // Enseñanzas Generales / Secundaria / No FP (Prioridad P2/P3 · Requieren Aprobación)
+  { id: 'tecno', name: 'Departamento de Tecnología', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'fq', name: 'Departamento de Física y Química', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'mates', name: 'Departamento de Matemáticas', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'ingles', name: 'Departamento de Inglés', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'geohist', name: 'Departamento de Geografía e Historia', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'lengua', name: 'Departamento de Lengua Castellana y Literatura', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'litehist', name: 'Departamento de Literatura e Historia', isFP: false, category: 'SECUNDARIA_GENERAL' },
+  { id: 'otro', name: 'Otro Departamento', isFP: false, category: 'OTROS' },
+];
+
+export const isFpDepartment = (departamento?: string): boolean => {
+  if (!departamento) return false;
+  const deptUpper = departamento.trim().toUpperCase();
+  return (
+    deptUpper.includes('ADMINISTRACIÓN Y GESTIÓN') ||
+    deptUpper.includes('ADMINISTRACION Y GESTION') ||
+    deptUpper.includes('FORMACIÓN Y ORIENTACIÓN LABORAL') ||
+    deptUpper.includes('FORMACION Y ORIENTACION LABORAL') ||
+    deptUpper.includes('FOL') ||
+    deptUpper.includes('COMERCIO')
+  );
+};
+
 export type TipoNotificacionEmail = 
   | 'CONFIRMACION_SOLICITUD'
   | 'APROBADA'

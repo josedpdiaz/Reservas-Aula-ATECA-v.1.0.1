@@ -10,9 +10,9 @@ import {
   Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
   Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink
 } from 'lucide-react';
-import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog } from '../types';
+import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog, OFFICIAL_DEPARTMENTS, isFpDepartment } from '../types'; 
 import { 
-  getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig, 
+  getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig,
   modifyUsuario, addUsuario, deleteUsuario, addBloqueo, removeBloqueo, setConfig, 
   formatDateToYMD, getDiasNoHabiles, addDiaNoHabil, removeDiaNoHabil,
   clearAllReservasAndValoraciones
@@ -48,7 +48,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [newUsrName, setNewUsrName] = useState('');
   const [newUsrEmail, setNewUsrEmail] = useState('');
   const [newUsrRol, setNewUsrRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
-  const [newUsrDept, setNewUsrDept] = useState('');
+  const [newUsrDept, setNewUsrDept] = useState('Departamento de Administración y Gestión');
 
   // User search, edit and deactivate modal states (Opción A)
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -123,7 +123,9 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     setUserToEdit(u);
     setEditName(u.nombre);
     setEditEmail(u.email);
-    setEditDept(u.departamento || '');
+    const currentDept = u.departamento ? u.departamento.trim() : '';
+    const isOldInformatica = /informática|informatica|ofimática|ofimatica/i.test(currentDept);
+    setEditDept(isOldInformatica || !currentDept ? 'Departamento de Administración y Gestión' : currentDept);
     setEditRol(u.rol);
     setEditTurno(u.turno || 'Ambos');
     setEditActivo(u.activo);
@@ -168,7 +170,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
 
     setNewUsrName('');
     setNewUsrEmail('');
-    setNewUsrDept('');
+    setNewUsrDept('Departamento de Administración y Gestión');
     onRefresh();
   };
 
@@ -435,19 +437,41 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Departamento</label>
+                  <label className="block text-slate-500 font-semibold mb-1 flex items-center justify-between">
+                    <span>Departamento</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                      isFpDepartment(newUsrDept)
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {isFpDepartment(newUsrDept) ? 'P1 · Auto-aprobada' : 'P2/P3 · Requiere Aprobación'}
+                    </span>
+                  </label>
                   <div className="flex gap-2">
-                    <input
-                      type="text"
+                    <select
                       required
                       value={newUsrDept}
                       onChange={(e) => setNewUsrDept(e.target.value)}
-                      placeholder="Ej: Electrónica"
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none"
-                    />
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none font-medium cursor-pointer text-xs"
+                    >
+                      <optgroup label="⭐ Ciclos de FP (Prioridad P1 · Aprobación Automática)">
+                        {OFFICIAL_DEPARTMENTS.filter(d => d.isFP).map(d => (
+                          <option key={d.id} value={d.name}>
+                            {d.name} [P1 · Aprobación Directa]
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="📚 Secundaria / Enseñanzas Generales (P2/P3 · Requiere Aprobación)">
+                        {OFFICIAL_DEPARTMENTS.filter(d => !d.isFP).map(d => (
+                          <option key={d.id} value={d.name}>
+                            {d.name} [P2/P3 · Requiere Aprobación]
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
                     <button
                       type="submit"
-                      className="px-4 py-1.5 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700 active:bg-slate-600 cursor-pointer text-xs"
+                      className="px-4 py-1.5 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700 active:bg-slate-600 cursor-pointer text-xs shrink-0"
                     >
                       Añadir
                     </button>
@@ -465,61 +489,63 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   value={userSearchTerm}
                   onChange={(e) => setUserSearchTerm(e.target.value)}
                   placeholder="Buscar docente por nombre, email, departamento o rol..."
-                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-lg text-xs outline-none transition-colors"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
                 />
-                {userSearchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setUserSearchTerm('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
-                  >
-                    ✕
-                  </button>
-                )}
               </div>
-              <div className="text-xs text-slate-500 font-medium flex items-center gap-3">
-                <span>Total: <strong className="text-slate-800">{usuarios.length}</strong></span>
-                <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  {usuarios.filter(u => u.activo).length} activos
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 self-end sm:self-auto">
+                <span className="px-2.5 py-1 bg-slate-100 rounded-lg">
+                  Total: <strong className="text-slate-800">{usuarios.length}</strong>
                 </span>
-                {usuarios.some(u => !u.activo) && (
-                  <span className="text-rose-600 font-semibold flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-                    {usuarios.filter(u => !u.activo).length} de baja
-                  </span>
-                )}
+                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-100">
+                  Activos: <strong>{usuarios.filter(u => u.activo !== false).length}</strong>
+                </span>
+                <span className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg border border-red-100">
+                  Baja: <strong>{usuarios.filter(u => u.activo === false).length}</strong>
+                </span>
               </div>
             </div>
 
-            {/* Users lists */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs bg-white">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="p-3">Docente</th>
-                    <th className="p-3">Email de cuenta</th>
-                    <th className="p-3">Departamento</th>
-                    <th className="p-3 text-center">Turno</th>
-                    <th className="p-3 text-center">Rol asignado</th>
-                    <th className="p-3 text-center">Estado</th>
-                    <th className="p-3 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {usuarios
-                    .filter(u => {
-                      if (!userSearchTerm.trim()) return true;
-                      const term = userSearchTerm.toLowerCase();
-                      return u.nombre.toLowerCase().includes(term) ||
-                             u.email.toLowerCase().includes(term) ||
-                             (u.departamento && u.departamento.toLowerCase().includes(term)) ||
-                             u.rol.toLowerCase().includes(term);
-                    })
-                    .map(usr => (
-                      <tr key={usr.id_usuario} className="hover:bg-slate-50/70 transition-colors">
+            {/* Users Table */}
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+              <div className="max-h-[500px] overflow-y-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="p-3">Estado</th>
+                      <th className="p-3">Nombre</th>
+                      <th className="p-3">Email Institucional</th>
+                      <th className="p-3">Departamento Didáctico</th>
+                      <th className="p-3 text-center">Turno</th>
+                      <th className="p-3 text-center">Rol Asignado</th>
+                      <th className="p-3 text-center">Notificaciones</th>
+                      <th className="p-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {usuarios
+                      .filter(u => {
+                        if (!userSearchTerm.trim()) return true;
+                        const term = userSearchTerm.toLowerCase();
+                        return u.nombre.toLowerCase().includes(term) ||
+                               u.email.toLowerCase().includes(term) ||
+                               (u.departamento && u.departamento.toLowerCase().includes(term)) ||
+                               u.rol.toLowerCase().includes(term);
+                      })
+                      .map((usr) => (
+                      <tr key={usr.id_usuario} className={`hover:bg-slate-50/80 transition-colors ${usr.activo === false ? 'opacity-60 bg-slate-50/40' : ''}`}>
                         <td className="p-3">
-                          <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                          {usr.activo === false ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
+                              <UserX className="w-3 h-3" /> De Baja
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                              <UserCheck className="w-3 h-3" /> Activo
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 font-bold text-slate-800">
+                          <div className="flex items-center gap-2">
                             <span>{usr.nombre}</span>
                             {usr.id_usuario === currentUser.id_usuario && (
                               <span className="px-1.5 py-0.2 text-[9px] font-black bg-indigo-100 text-indigo-700 rounded-md">
@@ -529,7 +555,20 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                           </div>
                         </td>
                         <td className="p-3 font-mono text-slate-500 text-[11px]">{usr.email}</td>
-                        <td className="p-3 font-medium text-slate-600">{usr.departamento || 'General'}</td>
+                        <td className="p-3 font-medium text-slate-700">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{usr.departamento || 'General'}</span>
+                            {isFpDepartment(usr.departamento) ? (
+                              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.2 rounded border border-emerald-200 shrink-0">
+                                P1 · FP
+                              </span>
+                            ) : (
+                              <span className="text-[10px] bg-amber-50 text-amber-700 font-medium px-1.5 py-0.2 rounded border border-amber-200 shrink-0">
+                                P2/P3
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-3 text-center">
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
                             {usr.turno || 'Ambos'}
@@ -593,7 +632,8 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
               </table>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {activeTab === 'blocks' && (
           <div className="space-y-6">
@@ -1360,14 +1400,36 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-600 mb-1">Departamento</label>
-                  <input
-                    type="text"
+                  <label className="block font-bold text-slate-600 mb-1 flex items-center justify-between">
+                    <span>Departamento Didáctico</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                      isFpDepartment(editDept)
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {isFpDepartment(editDept) ? 'P1 · Auto-aprobada' : 'P2/P3 · Con Aprobación'}
+                    </span>
+                  </label>
+                  <select
                     value={editDept}
                     onChange={(e) => setEditDept(e.target.value)}
-                    placeholder="Ej: Informática, Electricidad..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 transition-colors"
-                  />
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 transition-colors font-medium text-xs cursor-pointer"
+                  >
+                    <optgroup label="⭐ Ciclos de FP (Prioridad P1 · Aprobación Automática)">
+                      {OFFICIAL_DEPARTMENTS.filter(d => d.isFP).map(d => (
+                        <option key={d.id} value={d.name}>
+                          {d.name} [P1 · Aprobación Directa]
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="📚 Secundaria / Enseñanzas Generales (P2/P3 · Requiere Aprobación)">
+                      {OFFICIAL_DEPARTMENTS.filter(d => !d.isFP).map(d => (
+                        <option key={d.id} value={d.name}>
+                          {d.name} [P2/P3 · Requiere Aprobación]
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
                 </div>
               </div>
 

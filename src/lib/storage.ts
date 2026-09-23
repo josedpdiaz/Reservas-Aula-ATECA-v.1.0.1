@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil } from '../types';
+import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil, isFpDepartment } from '../types';
 import { syncToGoogleSheets } from './syncService';
 import { 
   syncItemToServer, deleteItemFromServer, saveAllToServer, hydrateFromServer, markReservaAsDeleted 
@@ -28,7 +28,7 @@ const DEFAULT_USERS: Usuario[] = [
     nombre: "José Díaz",
     email: "jpacdia@gobiernodecanarias.org",
     rol: "ADMIN",
-    departamento: "Informática",
+    departamento: "Departamento de Administración y Gestión",
     turno: "Ambos",
     activo: true,
   }
@@ -212,6 +212,35 @@ export const initializeStorage = (force: boolean = false) => {
 
   // PURGA INMEDIATA: Elimina cualquier tarea, reserva o bloqueo que se encuentre en sábado o domingo
   purgeWeekendTasks();
+
+  // Migración automática de Informática / Ofimática hacia 'Departamento de Administración y Gestión'
+  try {
+    const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (rawUsers) {
+      const usersList = safeParse<Usuario[]>(rawUsers, []);
+      let changed = false;
+      const migrated = usersList.map(u => {
+        const dUpper = (u.departamento || '').toUpperCase();
+        if (dUpper.includes('INFORMÁTICA') || dUpper.includes('INFORMATICA') || dUpper.includes('OFIMÁTICA') || dUpper.includes('OFIMATICA')) {
+          changed = true;
+          return { ...u, departamento: 'Departamento de Administración y Gestión' };
+        }
+        return u;
+      });
+      if (changed) {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(migrated));
+      }
+    }
+    const current = getCurrentUser();
+    if (current) {
+      const cUpper = (current.departamento || '').toUpperCase();
+      if (cUpper.includes('INFORMÁTICA') || cUpper.includes('INFORMATICA') || cUpper.includes('OFIMÁTICA') || cUpper.includes('OFIMATICA')) {
+        setCurrentUser({ ...current, departamento: 'Departamento de Administración y Gestión' });
+      }
+    }
+  } catch (e) {
+    console.error('Error en migración de departamentos:', e);
+  }
 
   // Sincronización transparente con el servidor central de Hostinger
   syncWithServer().catch(() => {});
@@ -538,15 +567,24 @@ export const P1_FP_LEVELS = [
 
 /**
  * Determina si una reserva tiene Aprobación Automática Directa (P1 de FP).
- * Criterio oficial:
- * - Nivel P1 completo de FP (Grado Superior FP, Grado Medio FP, FP Básica, Proyecto de Centro de FP, Prueba técnica / Demostración): Aprobación Automática.
- * - Niveles P2 (Proyecto de Centro No FP) y P3 (Bachillerato, ESO): Necesitan aprobación de Administrador o Coordinadores (Estado: PENDIENTE).
+ * Criterio oficial del centro:
+ * 1. El docente debe pertenecer a un departamento oficial de FP (Administración y Gestión, Comercio o FOL).
+ * 2. El nivel seleccionado debe ser estrictamente un ciclo o actividad de FP (P1).
+ * Si el docente pertenece a otro departamento, o si el docente de FP selecciona Bachillerato o ESO,
+ * la reserva pasa automáticamente a estado PENDIENTE (P2/P3) para revisión de Coordinación o Administración.
  */
-export const isFpBooking = (reserva: Partial<Reserva>): boolean => {
+export const isFpBooking = (reserva: Partial<Reserva>, userDept?: string): boolean => {
+  const dept = (reserva.departamento || userDept || '').trim();
+
+  // 1. El departamento del docente debe ser obligatoriamente de ciclos de FP
+  if (!isFpDepartment(dept)) {
+    return false;
+  }
+
   const nivel = (reserva.nivel || '').trim();
   const upper = nivel.toUpperCase();
 
-  // Exclusión estricta de P2 (No FP) y P3 (Bachillerato, ESO)
+  // 2. Exclusión estricta de P2 (No FP) y P3 (Bachillerato, ESO)
   if (
     upper.includes('NO FP') ||
     upper.includes('NO-FP') ||
@@ -556,12 +594,12 @@ export const isFpBooking = (reserva: Partial<Reserva>): boolean => {
     return false;
   }
 
-  // Coincidencia exacta con las opciones P1 del selector de Nivel
+  // 3. Coincidencia exacta con las opciones P1 del selector de Nivel
   if (P1_FP_LEVELS.some(p1 => p1.toLowerCase() === nivel.toLowerCase())) {
     return true;
   }
 
-  // Coincidencia con variantes descriptivas de P1
+  // 4. Coincidencia con variantes descriptivas de P1
   if (
     upper.includes('GRADO SUPERIOR') ||
     upper.includes('GRADO MEDIO') ||
