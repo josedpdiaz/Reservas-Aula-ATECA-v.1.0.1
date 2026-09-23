@@ -31,7 +31,7 @@ export interface OfficialDepartment {
   category: 'FP' | 'SECUNDARIA_GENERAL' | 'OTROS';
 }
 
-export const OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
+export const DEFAULT_OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
   // Ciclos Formativos de Formación Profesional (Prioridad P1 · Aprobación Automática)
   { id: 'admon', name: 'Administración y Gestión', isFP: true, category: 'FP' },
   { id: 'fol', name: 'Formación y Orientación Laboral', isFP: true, category: 'FP' },
@@ -44,21 +44,76 @@ export const OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
   { id: 'ingles', name: 'Inglés', isFP: false, category: 'SECUNDARIA_GENERAL' },
   { id: 'geohist', name: 'Geografía e Historia', isFP: false, category: 'SECUNDARIA_GENERAL' },
   { id: 'lengua', name: 'Lengua Castellana y Literatura', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'litehist', name: 'Literatura e Historia', isFP: false, category: 'SECUNDARIA_GENERAL' },
-  { id: 'otro', name: 'Otro', isFP: false, category: 'OTROS' },
 ];
+
+export const OFFICIAL_DEPARTMENTS = DEFAULT_OFFICIAL_DEPARTMENTS;
+
+export const getCustomDepartments = (): OfficialDepartment[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('ateca_custom_departments');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveCustomDepartment = (name: string, isFP: boolean): OfficialDepartment => {
+  const cleanName = name.trim().replace(/^departamento\s+(de\s+)?/i, '').trim();
+  if (!cleanName) return { id: 'dept-unknown', name: cleanName, isFP, category: isFP ? 'FP' : 'SECUNDARIA_GENERAL' };
+  
+  const current = getCustomDepartments();
+  const existing = current.find(d => d.name.toLowerCase() === cleanName.toLowerCase());
+  if (existing) {
+    if (existing.isFP !== isFP) {
+      existing.isFP = isFP;
+      existing.category = isFP ? 'FP' : 'SECUNDARIA_GENERAL';
+      localStorage.setItem('ateca_custom_departments', JSON.stringify(current));
+    }
+    return existing;
+  }
+  const newDept: OfficialDepartment = {
+    id: 'dept-custom-' + Date.now(),
+    name: cleanName,
+    isFP,
+    category: isFP ? 'FP' : 'SECUNDARIA_GENERAL'
+  };
+  current.push(newDept);
+  localStorage.setItem('ateca_custom_departments', JSON.stringify(current));
+  return newDept;
+};
+
+export const getAllDepartments = (): OfficialDepartment[] => {
+  const custom = getCustomDepartments();
+  const map = new Map<string, OfficialDepartment>();
+  DEFAULT_OFFICIAL_DEPARTMENTS.forEach(d => map.set(d.name.toLowerCase(), d));
+  custom.forEach(d => map.set(d.name.toLowerCase(), d));
+  return Array.from(map.values());
+};
 
 export const isFpDepartment = (departamento?: string): boolean => {
   if (!departamento) return false;
-  const deptUpper = departamento.trim().toUpperCase();
-  return (
+  const deptClean = departamento.trim().replace(/^departamento\s+(de\s+)?/i, '').trim();
+  const deptUpper = deptClean.toUpperCase();
+  if (
     deptUpper.includes('ADMINISTRACIÓN Y GESTIÓN') ||
     deptUpper.includes('ADMINISTRACION Y GESTION') ||
     deptUpper.includes('FORMACIÓN Y ORIENTACIÓN LABORAL') ||
     deptUpper.includes('FORMACION Y ORIENTACION LABORAL') ||
     deptUpper.includes('FOL') ||
-    deptUpper.includes('COMERCIO')
-  );
+    deptUpper.includes('COMERCIO') ||
+    deptUpper.includes('MANTENIMIENTO')
+  ) {
+    return true;
+  }
+  const custom = getCustomDepartments();
+  const found = custom.find(c => c.name.toUpperCase() === deptUpper);
+  if (found) {
+    return found.isFP;
+  }
+  return false;
 };
 
 export type TipoNotificacionEmail = 

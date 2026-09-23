@@ -10,7 +10,7 @@ import {
   Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
   Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink
 } from 'lucide-react';
-import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog, OFFICIAL_DEPARTMENTS, isFpDepartment } from '../types'; 
+import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog, OfficialDepartment, isFpDepartment, getAllDepartments, saveCustomDepartment } from '../types'; 
 import { 
   getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig,
   modifyUsuario, addUsuario, deleteUsuario, addBloqueo, removeBloqueo, setConfig, 
@@ -44,6 +44,11 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [dnhInicio, setDnhInicio] = useState(() => formatDateToYMD());
   const [dnhFin, setDnhFin] = useState(() => formatDateToYMD());
 
+  // Dynamic departments state
+  const [allDepts, setAllDepts] = useState<OfficialDepartment[]>(() => getAllDepartments());
+  const [newCustomDeptName, setNewCustomDeptName] = useState('');
+  const [editCustomDeptName, setEditCustomDeptName] = useState('');
+
   // User form
   const [newUsrName, setNewUsrName] = useState('');
   const [newUsrEmail, setNewUsrEmail] = useState('');
@@ -55,7 +60,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [userToEdit, setUserToEdit] = useState<Usuario | null>(null);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
-  const [editDept, setEditDept] = useState('');
+  const [editDept, setEditDept] = useState('Administración y Gestión');
   const [editRol, setEditRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
   const [editTurno, setEditTurno] = useState<string>('Ambos');
   const [editActivo, setEditActivo] = useState(true);
@@ -126,7 +131,15 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     const currentDept = u.departamento ? u.departamento.trim() : '';
     const isOldInformatica = /informática|informatica|ofimática|ofimatica/i.test(currentDept);
     const cleanDept = currentDept.replace(/^departamento\s+(de\s+)?/i, '').trim();
-    setEditDept(isOldInformatica || !cleanDept ? 'Administración y Gestión' : cleanDept);
+    const finalInitialDept = isOldInformatica || !cleanDept ? 'Administración y Gestión' : cleanDept;
+
+    if (finalInitialDept && !allDepts.some(d => d.name.toLowerCase() === finalInitialDept.toLowerCase())) {
+      saveCustomDepartment(finalInitialDept, isFpDepartment(finalInitialDept));
+      setAllDepts(getAllDepartments());
+    }
+
+    setEditDept(finalInitialDept);
+    setEditCustomDeptName('');
     setEditRol(u.rol);
     setEditTurno(u.turno || 'Ambos');
     setEditActivo(u.activo);
@@ -136,16 +149,30 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     e.preventDefault();
     if (!userToEdit || !editName.trim() || !editEmail.trim()) return;
 
+    let finalDept = editDept;
+    if (editDept === '__NEW_FP__' || editDept === '__NEW_SEC__') {
+      const trimmed = editCustomDeptName.trim().replace(/^departamento\s+(de\s+)?/i, '').trim();
+      if (!trimmed) {
+        alert('Por favor, indica el nombre del nuevo departamento.');
+        return;
+      }
+      const isFP = editDept === '__NEW_FP__';
+      saveCustomDepartment(trimmed, isFP);
+      finalDept = trimmed;
+      setAllDepts(getAllDepartments());
+    }
+
     modifyUsuario(userToEdit.id_usuario, {
       nombre: editName.trim(),
       email: editEmail.trim().toLowerCase(),
-      departamento: editDept.trim(),
+      departamento: finalDept.trim(),
       rol: editRol,
       turno: editTurno,
       activo: editActivo,
     });
 
     setUserToEdit(null);
+    setEditCustomDeptName('');
     onRefresh();
   };
 
@@ -158,13 +185,28 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
 
   const handleAddUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUsrName.trim() || !newUsrEmail.trim() || !newUsrDept.trim()) return;
+    if (!newUsrName.trim() || !newUsrEmail.trim()) return;
+
+    let finalDept = newUsrDept;
+    if (newUsrDept === '__NEW_FP__' || newUsrDept === '__NEW_SEC__') {
+      const trimmed = newCustomDeptName.trim().replace(/^departamento\s+(de\s+)?/i, '').trim();
+      if (!trimmed) {
+        alert('Por favor, indica el nombre del nuevo departamento.');
+        return;
+      }
+      const isFP = newUsrDept === '__NEW_FP__';
+      saveCustomDepartment(trimmed, isFP);
+      finalDept = trimmed;
+      setAllDepts(getAllDepartments());
+    }
+
+    if (!finalDept.trim()) return;
 
     addUsuario({
       nombre: newUsrName.trim(),
       email: newUsrEmail.trim().toLowerCase(),
       rol: newUsrRol,
-      departamento: newUsrDept.trim(),
+      departamento: finalDept.trim(),
       turno: "Ambos",
       activo: true,
     });
@@ -172,6 +214,7 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     setNewUsrName('');
     setNewUsrEmail('');
     setNewUsrDept('Administración y Gestión');
+    setNewCustomDeptName('');
     onRefresh();
   };
 
@@ -441,33 +484,44 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   <label className="block text-slate-500 font-semibold mb-1 flex items-center justify-between">
                     <span>Departamento</span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                      isFpDepartment(newUsrDept)
+                      isFpDepartment(newUsrDept === '__NEW_FP__' ? newCustomDeptName || 'FP' : newUsrDept)
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {isFpDepartment(newUsrDept) ? 'P1 · Auto-aprobada' : 'P2/P3 · Requiere Aprobación'}
+                      {isFpDepartment(newUsrDept === '__NEW_FP__' ? newCustomDeptName || 'FP' : newUsrDept) ? 'P1 · Auto-aprobada' : 'P2/P3 · Requiere Aprobación'}
                     </span>
                   </label>
                   <div className="flex gap-2">
                     <select
                       required
                       value={newUsrDept}
-                      onChange={(e) => setNewUsrDept(e.target.value)}
+                      onChange={(e) => {
+                        setNewUsrDept(e.target.value);
+                        if (e.target.value !== '__NEW_FP__' && e.target.value !== '__NEW_SEC__') {
+                          setNewCustomDeptName('');
+                        }
+                      }}
                       className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none font-medium cursor-pointer text-xs"
                     >
                       <optgroup label="⭐ Ciclos de FP (Prioridad P1 · Aprobación Automática)">
-                        {OFFICIAL_DEPARTMENTS.filter(d => d.isFP).map(d => (
+                        {allDepts.filter(d => d.isFP).map(d => (
                           <option key={d.id} value={d.name}>
                             {d.name} [P1 · Aprobación Directa]
                           </option>
                         ))}
+                        <option value="__NEW_FP__" className="font-bold text-indigo-700 bg-indigo-50">
+                          ➕ Otro departamento de FP (P1)...
+                        </option>
                       </optgroup>
-                      <optgroup label="📚 Secundaria / Enseñanzas Generales (P2/P3 · Requiere Aprobación)">
-                        {OFFICIAL_DEPARTMENTS.filter(d => !d.isFP).map(d => (
+                      <optgroup label="📚 Secundaria / Bachillerato (P2/P3 · Requiere Aprobación)">
+                        {allDepts.filter(d => !d.isFP).map(d => (
                           <option key={d.id} value={d.name}>
                             {d.name} [P2/P3 · Requiere Aprobación]
                           </option>
                         ))}
+                        <option value="__NEW_SEC__" className="font-bold text-amber-700 bg-amber-50">
+                          ➕ Otro de Secundaria / Bachillerato (P2/P3)...
+                        </option>
                       </optgroup>
                     </select>
                     <button
@@ -477,6 +531,31 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                       Añadir
                     </button>
                   </div>
+                  {(newUsrDept === '__NEW_FP__' || newUsrDept === '__NEW_SEC__') && (
+                    <div className="mt-2 p-2 bg-slate-100/90 border border-indigo-200 rounded-lg space-y-1">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className={newUsrDept === '__NEW_FP__' ? 'text-emerald-700' : 'text-amber-700'}>
+                          {newUsrDept === '__NEW_FP__' ? '★ Escribe el nuevo departamento de FP (P1)' : '📚 Escribe el nuevo departamento de Secundaria / Bachillerato (P2/P3)'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setNewUsrDept('Administración y Gestión'); setNewCustomDeptName(''); }}
+                          className="text-slate-400 hover:text-slate-600 text-[10px]"
+                        >
+                          ✕ Cancelar
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        value={newCustomDeptName}
+                        onChange={(e) => setNewCustomDeptName(e.target.value)}
+                        placeholder={newUsrDept === '__NEW_FP__' ? "Ej: Hostelería y Turismo" : "Ej: Educación Física"}
+                        className="w-full px-2.5 py-1.5 bg-white border border-indigo-300 focus:border-indigo-500 rounded-lg text-xs outline-none font-medium"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </form>
@@ -1404,33 +1483,73 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                   <label className="block font-bold text-slate-600 mb-1 flex items-center justify-between">
                     <span>Departamento Didáctico</span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                      isFpDepartment(editDept)
+                      isFpDepartment(editDept === '__NEW_FP__' ? editCustomDeptName || 'FP' : editDept)
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {isFpDepartment(editDept) ? 'P1 · Auto-aprobada' : 'P2/P3 · Con Aprobación'}
+                      {isFpDepartment(editDept === '__NEW_FP__' ? editCustomDeptName || 'FP' : editDept) ? 'P1 · Auto-aprobada' : 'P2/P3 · Con Aprobación'}
                     </span>
                   </label>
                   <select
                     value={editDept}
-                    onChange={(e) => setEditDept(e.target.value)}
+                    onChange={(e) => {
+                      setEditDept(e.target.value);
+                      if (e.target.value !== '__NEW_FP__' && e.target.value !== '__NEW_SEC__') {
+                        setEditCustomDeptName('');
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 transition-colors font-medium text-xs cursor-pointer"
                   >
                     <optgroup label="⭐ Ciclos de FP (Prioridad P1 · Aprobación Automática)">
-                      {OFFICIAL_DEPARTMENTS.filter(d => d.isFP).map(d => (
+                      {allDepts.filter(d => d.isFP).map(d => (
                         <option key={d.id} value={d.name}>
                           {d.name} [P1 · Aprobación Directa]
                         </option>
                       ))}
+                      <option value="__NEW_FP__" className="font-bold text-indigo-700 bg-indigo-50">
+                        ➕ Otro departamento de FP (P1)...
+                      </option>
                     </optgroup>
-                    <optgroup label="📚 Secundaria / Enseñanzas Generales (P2/P3 · Requiere Aprobación)">
-                      {OFFICIAL_DEPARTMENTS.filter(d => !d.isFP).map(d => (
+                    <optgroup label="📚 Secundaria / Bachillerato (P2/P3 · Requiere Aprobación)">
+                      {allDepts.filter(d => !d.isFP).map(d => (
                         <option key={d.id} value={d.name}>
                           {d.name} [P2/P3 · Requiere Aprobación]
                         </option>
                       ))}
+                      <option value="__NEW_SEC__" className="font-bold text-amber-700 bg-amber-50">
+                        ➕ Otro de Secundaria / Bachillerato (P2/P3)...
+                      </option>
                     </optgroup>
                   </select>
+
+                  {(editDept === '__NEW_FP__' || editDept === '__NEW_SEC__') && (
+                    <div className="mt-2 p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-xl space-y-1 animate-fade-in">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className={editDept === '__NEW_FP__' ? 'text-emerald-700' : 'text-amber-700'}>
+                          {editDept === '__NEW_FP__' ? '★ Escribe el nuevo departamento de FP (P1)' : '📚 Escribe el nuevo departamento de Secundaria / Bachillerato (P2/P3)'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setEditDept('Administración y Gestión'); setEditCustomDeptName(''); }}
+                          className="text-slate-400 hover:text-slate-600 text-[10px]"
+                        >
+                          ✕ Cancelar
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        value={editCustomDeptName}
+                        onChange={(e) => setEditCustomDeptName(e.target.value)}
+                        placeholder={editDept === '__NEW_FP__' ? "Ej: Hostelería y Turismo" : "Ej: Educación Física"}
+                        className="w-full px-3 py-1.5 bg-white border border-indigo-300 focus:border-indigo-500 rounded-lg text-xs outline-none font-medium"
+                      />
+                      <p className="text-[10px] text-slate-500">
+                        Se guardará en la ficha del docente y se incorporará automáticamente a la lista desplegable de departamentos.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
