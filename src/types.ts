@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export const APP_VERSION = '1.3.5';
+
 export interface NotificationPreferences {
   reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
   recordatorio_previo: boolean;     // Recordatorio 24h antes del uso del aula
