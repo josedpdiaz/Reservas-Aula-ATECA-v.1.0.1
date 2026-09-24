@@ -272,7 +272,7 @@ export default function BookingForm({
           id="btn_back_form"
           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-xs font-semibold cursor-pointer transition-all border border-slate-700 text-slate-200 hover:text-white"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Volver
+          <ArrowLeft className="h-3.5 w-3.5" /> Volver al Calendario
         </button>
       </div>
 

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Reserva } from '../types';
 import { getReservas, formatDateToYMD, isNonWorkingDay, isTeacherAccredited } from '../lib/storage';
+import { useDeviceDetection } from '../lib/useDeviceDetection';
 import DayScheduleSheet from './DayScheduleSheet';
 
 interface CalendarViewProps {
@@ -21,6 +22,7 @@ interface CalendarViewProps {
 }
 
 export default function CalendarView({ onSelectBooking, onRequestNewBookingWithDate, canCreateBookings }: CalendarViewProps) {
+  const device = useDeviceDetection();
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Filters state
@@ -466,14 +468,16 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
           <h2 className="text-lg font-black text-slate-900 tracking-tight">
             {monthNames[month]} <span className="text-indigo-600 font-extrabold">{year}</span>
           </h2>
-          {isCalendarMaximized && (
-            <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded font-mono">Maximizada</span>
+          {(isCalendarMaximized || device.isMobileOrTablet) && (
+            <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded font-mono">
+              {device.isMobileOrTablet ? 'Vista Maximizada' : 'Maximizada'}
+            </span>
           )}
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-          {/* Button to reopen day detail if closed */}
-          {!isDayDetailVisible && (
+          {/* Button to reopen day detail if closed (solo en desktop) */}
+          {!device.isMobileOrTablet && !isDayDetailVisible && (
             <button
               onClick={() => {
                 setIsDayDetailVisible(true);
@@ -513,26 +517,28 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
             </button>
           </div>
 
-          {/* Windows-Style Controls: Minimize, Maximize/Restore */}
-          <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/60 shadow-2xs">
-            <button
-              onClick={() => setIsMonthExpanded(prev => !prev)}
-              title={isMonthExpanded ? "Minimizar mes" : "Expandir mes"}
-              className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-md transition-all cursor-pointer"
-            >
-              <Minus className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => {
-                setIsCalendarMaximized(prev => !prev);
-                setIsDayDetailMaximized(false);
-              }}
-              title={isCalendarMaximized ? "Restaurar tamaño normal" : "Maximizar calendario a pantalla completa"}
-              className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-md transition-all cursor-pointer"
-            >
-              {isCalendarMaximized ? <Minimize2 className="w-3.5 h-3.5 text-indigo-600" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+          {/* Windows-Style Controls: Minimize, Maximize/Restore (solo en ordenador PC desktop) */}
+          {!device.isMobileOrTablet && (
+            <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/60 shadow-2xs">
+              <button
+                onClick={() => setIsMonthExpanded(prev => !prev)}
+                title={isMonthExpanded ? "Minimizar mes" : "Expandir mes"}
+                className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-md transition-all cursor-pointer"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => {
+                  setIsCalendarMaximized(prev => !prev);
+                  setIsDayDetailMaximized(false);
+                }}
+                title={isCalendarMaximized ? "Restaurar tamaño normal" : "Maximizar calendario a pantalla completa"}
+                className="p-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-md transition-all cursor-pointer"
+              >
+                {isCalendarMaximized ? <Minimize2 className="w-3.5 h-3.5 text-indigo-600" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -856,76 +862,84 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
         />
       ) : viewMode === 'month' ? (
         <div className="space-y-6">
-          
-          {/* Top position for day detail if selected by user */}
-          {dayDetailPosition === 'top' && isDayDetailVisible && !isCalendarMaximized && (
-            <div className="transition-all">
-              {renderDayDetailCard(true)}
+          {/* En tablets y móviles (vertical y apaisado): calendario siempre maximizado al 100% sin ventana lateral paralela */}
+          {device.isMobileOrTablet ? (
+            <div className="w-full">
+              {renderCalendarCard({ width: '100%' })}
             </div>
-          )}
-
-          {/* Top Layout Single Calendar or Resizable Horizontal Split for Left / Right */}
-          {dayDetailPosition === 'top' ? (
-            !isDayDetailMaximized && (
-              <div className="w-full">
-                {renderCalendarCard({ width: '100%' })}
-              </div>
-            )
           ) : (
-            <div 
-              ref={splitContainerRef}
-              className={`flex flex-col md:flex-row items-stretch gap-2 transition-all ${
-                isDragging ? 'select-none' : ''
-              }`}
-            >
-              {/* Left Position: Day Detail on the Left */}
-              {dayDetailPosition === 'left' && isDayDetailVisible && !isCalendarMaximized && (
-                <div 
-                  className="transition-all w-full md:w-auto shrink-0"
-                  style={{
-                    width: isDayDetailMaximized ? '100%' : `${100 - calendarRatio}%`,
-                  }}
-                >
-                  {renderDayDetailCard(false)}
+            /* En pantallas de ordenador PC: comportamiento original de dos ventanas simultáneas */
+            <>
+              {/* Top position for day detail if selected by user */}
+              {dayDetailPosition === 'top' && isDayDetailVisible && !isCalendarMaximized && (
+                <div className="transition-all">
+                  {renderDayDetailCard(true)}
                 </div>
               )}
 
-              {/* Central Draggable Resizer Handle when Day Detail is on the Left */}
-              {dayDetailPosition === 'left' && isDayDetailVisible && !isCalendarMaximized && !isDayDetailMaximized && (
-                renderDraggableHandle()
-              )}
-
-              {/* Calendar Card (Center/Left/Right) */}
-              {!isDayDetailMaximized && (
+              {/* Top Layout Single Calendar or Resizable Horizontal Split for Left / Right */}
+              {dayDetailPosition === 'top' ? (
+                !isDayDetailMaximized && (
+                  <div className="w-full">
+                    {renderCalendarCard({ width: '100%' })}
+                  </div>
+                )
+              ) : (
                 <div 
-                  className="transition-all flex-1 min-w-0"
-                  style={{
-                    width: (!isDayDetailVisible || isCalendarMaximized) ? '100%' : `${calendarRatio}%`,
-                  }}
+                  ref={splitContainerRef}
+                  className={`flex flex-col md:flex-row items-stretch gap-2 transition-all ${
+                    isDragging ? 'select-none' : ''
+                  }`}
                 >
-                  {renderCalendarCard()}
+                  {/* Left Position: Day Detail on the Left */}
+                  {dayDetailPosition === 'left' && isDayDetailVisible && !isCalendarMaximized && (
+                    <div 
+                      className="transition-all w-full md:w-auto shrink-0"
+                      style={{
+                        width: isDayDetailMaximized ? '100%' : `${100 - calendarRatio}%`,
+                      }}
+                    >
+                      {renderDayDetailCard(false)}
+                    </div>
+                  )}
+
+                  {/* Central Draggable Resizer Handle when Day Detail is on the Left */}
+                  {dayDetailPosition === 'left' && isDayDetailVisible && !isCalendarMaximized && !isDayDetailMaximized && (
+                    renderDraggableHandle()
+                  )}
+
+                  {/* Calendar Card (Center/Left/Right) */}
+                  {!isDayDetailMaximized && (
+                    <div 
+                      className="transition-all flex-1 min-w-0"
+                      style={{
+                        width: (!isDayDetailVisible || isCalendarMaximized) ? '100%' : `${calendarRatio}%`,
+                      }}
+                    >
+                      {renderCalendarCard()}
+                    </div>
+                  )}
+
+                  {/* Central Draggable Resizer Handle when Day Detail is on the Right */}
+                  {dayDetailPosition === 'right' && isDayDetailVisible && !isCalendarMaximized && !isDayDetailMaximized && (
+                    renderDraggableHandle()
+                  )}
+
+                  {/* Right Position: Day Detail on the Right */}
+                  {dayDetailPosition === 'right' && isDayDetailVisible && !isCalendarMaximized && (
+                    <div 
+                      className="transition-all w-full md:w-auto shrink-0"
+                      style={{
+                        width: isDayDetailMaximized ? '100%' : `${100 - calendarRatio}%`,
+                      }}
+                    >
+                      {renderDayDetailCard(false)}
+                    </div>
+                  )}
                 </div>
               )}
-
-              {/* Central Draggable Resizer Handle when Day Detail is on the Right */}
-              {dayDetailPosition === 'right' && isDayDetailVisible && !isCalendarMaximized && !isDayDetailMaximized && (
-                renderDraggableHandle()
-              )}
-
-              {/* Right Position: Day Detail on the Right */}
-              {dayDetailPosition === 'right' && isDayDetailVisible && !isCalendarMaximized && (
-                <div 
-                  className="transition-all w-full md:w-auto shrink-0"
-                  style={{
-                    width: isDayDetailMaximized ? '100%' : `${100 - calendarRatio}%`,
-                  }}
-                >
-                  {renderDayDetailCard(false)}
-                </div>
-              )}
-            </div>
+            </>
           )}
-
         </div>
       ) : (
         /* Full list view mode */

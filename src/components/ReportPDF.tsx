@@ -43,7 +43,7 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
             id="btn_back_report"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-xs font-semibold cursor-pointer text-white"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Volver a paneles
+            <ArrowLeft className="h-3.5 w-3.5" /> Volver al Calendario
           </button>
           <button
             onClick={handlePrint}

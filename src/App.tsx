@@ -35,8 +35,10 @@ import PrivacyModal from './components/PrivacyModal';
 import MyBookingsView from './components/MyBookingsView';
 import NotificationSettingsModal from './components/NotificationSettingsModal';
 import EmailLogsModal from './components/EmailLogsModal';
+import { useDeviceDetection } from './lib/useDeviceDetection';
 
 export default function App() {
+  const device = useDeviceDetection();
   const [tick, setTick] = useState(0);
   const forceUpdate = () => setTick(p => p + 1);
 
@@ -371,7 +373,16 @@ export default function App() {
       
       {/* PRIMARY APPLICATION HEADER BRAND */}
       <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sticky top-0 z-30 flex flex-col md:flex-row justify-between items-center gap-3 shadow-xs no-print">
-        <div className="flex items-center gap-3">
+        <div 
+          onClick={() => {
+            if (user) {
+              setActiveTab('calendar');
+              setCurrentAction('view');
+            }
+          }}
+          className={`flex items-center gap-3 ${user ? 'cursor-pointer hover:opacity-90 transition-opacity select-none' : ''}`}
+          title={user ? "Ir al Calendario / Almanaque" : undefined}
+        >
           {config.logo_centro ? (
             <div className="h-11 px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center overflow-hidden shrink-0">
               <img src={config.logo_centro} alt="Logo IES Agustín de Betancourt" className="h-full w-auto max-w-[75px] object-contain" />
@@ -680,6 +691,34 @@ export default function App() {
           /* FULL APPLICATION SHELL FOR WORKFLOWS */
           <div className="space-y-6">
 
+            {/* ACCESO RÁPIDO PERSISTENTE AL CALENDARIO EN MÓVIL Y TABLET (ESPECIALMENTE EN MODO VERTICAL) */}
+            {device.isMobileOrTablet && (activeTab !== 'calendar' || currentAction !== 'view') && (
+              <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white p-3 px-4 rounded-2xl shadow-md border border-indigo-700/60 flex items-center justify-between gap-3 no-print animate-fade-in">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 bg-emerald-500/20 text-emerald-300 rounded-xl shrink-0">
+                    <CalendarIcon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black truncate">Aula ATECA • Almanaque</p>
+                    <p className="text-[10px] text-indigo-200 truncate">
+                      {device.isPortrait ? 'Modo vertical detectado' : 'Dispositivo móvil/tablet'} • Pulsa para volver al calendario maximizado
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setActiveTab('calendar');
+                    setCurrentAction('view');
+                  }}
+                  className="px-3.5 py-2 bg-white hover:bg-indigo-50 text-indigo-950 font-black text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0 border border-white"
+                  title="Volver a la cuadrícula mensual maximizada del almanaque"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Volver al Calendario</span>
+                </button>
+              </div>
+            )}
+
             {/* TAB-NAVIGATION CONTROLS FOR USER ACTION (Hidden when printing reports) */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/90 backdrop-blur-md p-2 border border-slate-200/80 rounded-2xl no-print shadow-xs">
               <div className="flex flex-wrap gap-1.5 text-xs font-bold text-slate-600">
@@ -884,6 +923,16 @@ export default function App() {
                     >
                       Atrás
                     </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('calendar');
+                        setCurrentAction('view');
+                      }}
+                      className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-lg font-bold cursor-pointer flex items-center gap-1 transition-colors"
+                      title="Volver a la vista del calendario"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" /> Volver al Calendario
+                    </button>
                     {/* ACCIONES PARA ESTADO PENDIENTE */}
                     {(user.rol === 'ADMIN' || (user.rol === 'COORDINADOR' && user.permisos_coordinador?.autorizar_reservas !== false)) && selectedBooking.estado === 'PENDIENTE' && (
                       <button
@@ -1050,6 +1099,7 @@ export default function App() {
                       onValuateBooking={(res) => { setSelectedBooking(res); setCurrentAction('new-valuation'); }}
                       onViewDetail={(res) => { setSelectedBooking(res); setCurrentAction('view-booking-detail'); }}
                       onRefresh={handleUpdate}
+                      onBackToCalendar={() => { setActiveTab('calendar'); setCurrentAction('view'); }}
                     />
                   )}
 
@@ -1057,6 +1107,7 @@ export default function App() {
                     <CoordinatorPanel
                       currentUser={user}
                       onRefresh={handleUpdate}
+                      onBackToCalendar={() => { setActiveTab('calendar'); setCurrentAction('view'); }}
                       onSelectBookingForReport={(booking) => {
                         setSelectedBooking(booking);
                         setCurrentAction('view-report');
@@ -1072,6 +1123,7 @@ export default function App() {
                     <AdminPanel
                       currentUser={user}
                       onRefresh={handleUpdate}
+                      onBackToCalendar={() => { setActiveTab('calendar'); setCurrentAction('view'); }}
                     />
                   )}
                 </div>

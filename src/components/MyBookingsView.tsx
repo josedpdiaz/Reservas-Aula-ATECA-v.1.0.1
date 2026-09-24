@@ -7,7 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Award, Calendar, Clock, PlusCircle, Search, LayoutGrid, List, 
   Layers, CheckCircle2, ChevronDown, ChevronUp, ArrowUpDown, Filter, Eye,
-  Edit3, CalendarX, HeartHandshake, Trash2, GraduationCap
+  Edit3, CalendarX, HeartHandshake, Trash2, GraduationCap, ArrowLeft
 } from 'lucide-react';
 import { Reserva, Usuario, Valoracion } from '../types';
 import { updateReserva, deleteReserva, cancelReserva, hasBookingConcluded } from '../lib/storage';
@@ -23,6 +23,7 @@ interface MyBookingsViewProps {
   onValuateBooking: (booking: Reserva) => void;
   onViewDetail: (booking: Reserva) => void;
   onRefresh: () => void;
+  onBackToCalendar?: () => void;
 }
 
 export default function MyBookingsView({
@@ -35,6 +36,7 @@ export default function MyBookingsView({
   onValuateBooking,
   onViewDetail,
   onRefresh,
+  onBackToCalendar,
 }: MyBookingsViewProps) {
   // View mode: 'cards' (etiquetas/tarjetas) vs 'list' (lista con filtrado)
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
@@ -120,6 +122,17 @@ export default function MyBookingsView({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {onBackToCalendar && (
+            <button
+              onClick={onBackToCalendar}
+              className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              title="Volver al calendario / almanaque"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Volver al Calendario</span>
+            </button>
+          )}
+
           {/* Stats Pills */}
           <div className="flex gap-2 text-xs font-mono font-bold">
             <div className="bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-xl text-center">

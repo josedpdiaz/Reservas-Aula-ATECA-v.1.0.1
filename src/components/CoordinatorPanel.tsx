@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, FileCheck, CheckCircle2, Layers, Settings, GraduationCap, UserPlus, Lock, Search } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, FileCheck, CheckCircle2, Layers, Settings, GraduationCap, UserPlus, Lock, Search, ArrowLeft } from 'lucide-react';
 import { Reserva, Usuario, isFpDepartment, getAllDepartments } from '../types';
 import { getReservas, getValoraciones, updateReservaEstado, getUsuarios, toggleUserCompetencias, isTeacherAccredited, addUsuario } from '../lib/storage';
 import { notifyReservaAprobada, notifyReservaRechazada } from '../lib/emailService';
@@ -14,9 +14,10 @@ interface CoordinatorPanelProps {
   onSelectBooking?: (booking: Reserva) => void;
   onRefresh: () => void;
   currentUser: Usuario;
+  onBackToCalendar?: () => void;
 }
 
-export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBooking, onRefresh, currentUser }: CoordinatorPanelProps) {
+export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBooking, onRefresh, currentUser, onBackToCalendar }: CoordinatorPanelProps) {
   const [observacionesInput, setObservacionesInput] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'pending' | 'teachers' | 'unvalued' | 'all'>('pending');
   const [teacherSearch, setTeacherSearch] = useState('');
@@ -175,14 +176,26 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
   return (
     <div className="space-y-6">
       {/* Title */}
-      <div className="flex items-center space-x-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <div className="p-3 bg-slate-900 text-white rounded-lg">
-          <BarChart3 className="h-6 w-6 text-emerald-400" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div className="flex items-center space-x-3">
+          <div className="p-3 bg-slate-900 text-white rounded-lg">
+            <BarChart3 className="h-6 w-6 text-emerald-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Panel del Coordinador Aula ATECA</h1>
+            <p className="text-xs text-slate-500">Aprobaciones, resolución de conflictos y memorias de innovación</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">Panel del Coordinador Aula ATECA</h1>
-          <p className="text-xs text-slate-500">Aprobaciones, resolución de conflictos y memorias de innovación</p>
-        </div>
+        {onBackToCalendar && (
+          <button
+            onClick={onBackToCalendar}
+            className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs self-start sm:self-auto shrink-0"
+            title="Volver al calendario / almanaque"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Volver al Calendario</span>
+          </button>
+        )}
       </div>
 
       {/* STATISTICS GRID */}

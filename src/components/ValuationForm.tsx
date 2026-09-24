@@ -69,7 +69,7 @@ export default function ValuationForm({ reserva, existingValuation, onSuccess, o
           id="btn_back_val"
           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-xs font-semibold cursor-pointer transition-all"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Volver
+          <ArrowLeft className="h-3.5 w-3.5" /> Volver al Calendario
         </button>
       </div>
 

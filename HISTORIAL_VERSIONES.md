@@ -5,6 +5,41 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.4.1] - 2026-09-24
+### 📱 Detección Inteligente de Dispositivos, Calendario Maximizado en Móviles/Tablets y Botón Persistente «Volver al Calendario»
+* **Objetivo**: Detectar automáticamente el tipo de dispositivo y orientación de pantalla (móvil en vertical u horizontal, tablet y monitor de ordenador PC), maximizar el calendario a ancho completo (100%) en todos los dispositivos móviles y tablets eliminando la división en dos ventanas que dificultaba la visualización en pantallas reducidas, y garantizar una referencia y botón accesible y permanente de «Volver al Calendario» desde cualquier vista o subpantalla de la plataforma.
+* **Mejoras clave**:
+  * **Módulo de Detección Dinámica de Dispositivos (`useDeviceDetection.ts`)**:
+    * Implementación de un hook de detección reactiva con debounce ante cambios de tamaño de ventana (`resize`) y giro de orientación (`orientationchange`).
+    * Detección precisa de:
+      * `isMobile`: teléfonos inteligentes (< 768px o User-Agent móvil).
+      * `isTablet`: tabletas (iPad, tabletas Android, 768px ≤ ancho < 1024px, o User-Agent tablet con soporte táctil).
+      * `isDesktop`: pantallas y monitores de PC de sobremesa o portátil (ancho ≥ 1024px sin emulación táctil reducida).
+      * `isMobileOrTablet`: indicador unificado de dispositivos de pantalla reducida o táctil.
+      * `isPortrait` e `isLandscape`: detección en tiempo real de modo vertical o apaisado.
+  * **Calendario Siempre Maximizado en Móviles y Tablets**:
+    * En pantallas de ordenador PC (`isDesktop`), se preserva el flujo de trabajo de doble ventana paralela (cuadrícula mensual + tarjeta de detalle del día con tirador deslizable de proporción ajustable).
+    * En dispositivos móviles y tablets (tanto en modo vertical como horizontal), la cuadrícula mensual del calendario se abre y mantiene **siempre maximizada al 100% de la pantalla**, suprimiendo la segunda ventana lateral y evitando que las celdas de los días se compriman o deformen.
+    * Al pulsar sobre cualquier celda de un día en móvil o tablet, se accede directamente a la vista completa de franjas horarias del día (`DayScheduleSheet`), que cuenta con su propio botón prominente de retorno a la vista mensual.
+  * **Referencia y Botón Persistente «Volver al Calendario» en Toda la Aplicación**:
+    * **Cabecera Principal**: El logotipo oficial y el título institucional de la aplicación (`Gestor Aula ATECA`) son interactivos y permiten retornar instantáneamente al calendario desde cualquier estado.
+    * **Barra de Acceso Rápido en Móvil/Tablet**: Cuando el usuario se encuentra en un teléfono o tablet (especialmente en modo vertical) y navega a otra sección (*Mis Actividades*, *Panel Coordinador*, *Administración*, o cualquier formulario), se muestra una barra superior destacada con el botón `← Volver al Calendario`.
+    * **Botones de Retorno Explícitos en Todas las Subpantallas**:
+      * *Horario del Día (`DayScheduleSheet`)*: Se actualiza el botón de vuelta para que siempre muestre con claridad `← Volver al Calendario`.
+      * *Formulario de Reserva (`BookingForm`)*: Botón superior `← Volver al Calendario`.
+      * *Ficha de Detalle de Reserva (`App.tsx`)*: Se incorpora el botón `← Volver al Calendario`.
+      * *Formulario de Valoración Pedagógica (`ValuationForm`)*: Botón `← Volver al Calendario`.
+      * *Generador de Informes de Evidencia (`ReportPDF`)*: Botón `← Volver al Calendario`.
+      * *Panel Mis Actividades (`MyBookingsView`)*: Botón `← Volver al Calendario` en la cabecera.
+      * *Panel de Coordinación (`CoordinatorPanel`)*: Botón `← Volver al Calendario` en la barra superior.
+      * *Consola de Administración (`AdminPanel`)*: Botón `← Volver al Calendario` en el banner superior.
+  * **Sincronización en las 3 Capas (v1.4.1)**:
+    * Actualización de la versión a `1.4.1` en `types.ts`, `package.json` y pie de página de la aplicación.
+    * Generación de copia de seguridad local en archivo ZIP `Reservas-Aula-ATECA-v.1.4.1.zip` en la carpeta de respaldos.
+    * Compilación de producción, pruebas de linting (`tsc --noEmit`), despliegue a servidor en Hostinger (`https://ateca.fpapps.es`) y subida a GitHub (`main`, rama `backup/v1.4.1` y tag `v1.4.1`).
+
+---
+
 ## [v1.4.0] - 2026-09-24
 ### 🛡️ Permisos Configurables de Coordinación, Distintivo de Acreditación Docente ATECA, Aforo Máximo de 12 Alumnos e Integración del Departamento de Procesos de Gestión Administrativa
 * **Objetivo**: Proporcionar al administrador el control granular de permisos para coordinadores (autorizar reservas y crear usuarios, mostrándose exclusivamente cuando el usuario tiene rol de Coordinador), dotar al sistema de una acreditación de formación básica en competencias ATECA gestionable por administradores y coordinadores con distintivo visual `🎓 Acreditado ATECA`, limitar estrictamente el aforo simultáneo del aula a un máximo de 12 alumnos con avisos emergentes preventivos, e incorporar formalmente el departamento de 'Procesos de Gestión Administrativa' con prioridad P1 de Formación Profesional.

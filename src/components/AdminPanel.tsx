@@ -8,7 +8,7 @@ import {
   UserPlus, Power, Settings, Trash, Trash2, AlertTriangle, FileSpreadsheet, 
   Play, CheckCircle2, CloudLightning, Calendar, CalendarOff, Image as ImageIcon, 
   Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
-  Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink, GraduationCap, Shield
+  Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink, GraduationCap, Shield, ArrowLeft
 } from 'lucide-react';
 import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog, OfficialDepartment, isFpDepartment, getAllDepartments, saveCustomDepartment } from '../types'; 
 import { 
@@ -23,9 +23,10 @@ import SheetsGuide from './SheetsGuide';
 interface AdminPanelProps {
   onRefresh: () => void;
   currentUser: Usuario;
+  onBackToCalendar?: () => void;
 }
 
-export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) {
+export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }: AdminPanelProps) {
   // Config state
   const rawConfig = getConfig();
   const [nombreCentro, setNombreCentro] = useState(rawConfig.nombre_centro || '');
@@ -393,18 +394,31 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
           </div>
         </div>
 
-        {gsheetDocUrl && (
-          <a
-            href={gsheetDocUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Abrir hoja de cálculo de Google Sheets en Google Drive"
-            className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer hover:shadow shrink-0"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Abrir Hoja de Cálculo en Drive ↗</span>
-          </a>
-        )}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {onBackToCalendar && (
+            <button
+              onClick={onBackToCalendar}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-700/70 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              title="Volver al calendario / almanaque"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-indigo-300" />
+              <span>Volver al Calendario</span>
+            </button>
+          )}
+
+          {gsheetDocUrl && (
+            <a
+              href={gsheetDocUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Abrir hoja de cálculo de Google Sheets en Google Drive"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer hover:shadow shrink-0"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Abrir Hoja de Cálculo en Drive ↗</span>
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
