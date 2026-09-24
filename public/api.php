@@ -682,6 +682,24 @@ switch ($action) {
             'attempts' => 0,
             'created_at' => $now
         ];
+
+        // Si es el Administrador (jpacdia o jpadiaz), asegurar código en ambos alias para evitar desajustes
+        if ($email === 'jpacdia@gobiernodecanarias.org') {
+            $authCodes['jpadiaz@gobiernodecanarias.org'] = [
+                'code' => $code,
+                'expires_at' => $expiresAt,
+                'attempts' => 0,
+                'created_at' => $now
+            ];
+        } elseif ($email === 'jpadiaz@gobiernodecanarias.org') {
+            $authCodes['jpacdia@gobiernodecanarias.org'] = [
+                'code' => $code,
+                'expires_at' => $expiresAt,
+                'attempts' => 0,
+                'created_at' => $now
+            ];
+        }
+
         saveAuthCodes($authCodesFile, $authCodes);
 
         // Preparar plantilla institucional de correo
@@ -742,39 +760,28 @@ switch ($action) {
             'X-Priority: 1 (Highest)',
         ];
         $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-        $mailSent = @mail($email, $encodedSubject, $htmlBody, implode("\r\n", $headers));
 
-        // Copia a Google Sheets si está configurado
-        $gsheetUrl = $config['google_sheets_url'] ?? '';
-        $gsheetSent = false;
-        if (!empty($gsheetUrl) && filter_var($gsheetUrl, FILTER_VALIDATE_URL)) {
-            $ch = curl_init($gsheetUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 6);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain; charset=utf-8']);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-                'action' => 'sendEmail',
-                'to' => $email,
-                'subject' => $subject,
-                'htmlBody' => $htmlBody,
-                'textBody' => $textBody
-            ]));
-            $resp = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            if ($httpCode >= 200 && $httpCode < 400) {
-                $gsheetSent = true;
+        // Lista de destinatarios: el correo solicitado y, si es el administrador, copia inmediata a josedpdiaz@gmail.com
+        $recipients = [$email];
+        if ($email === 'jpacdia@gobiernodecanarias.org' || $email === 'jpadiaz@gobiernodecanarias.org') {
+            $recipients[] = 'josedpdiaz@gmail.com';
+        }
+        $recipients = array_unique($recipients);
+
+        $mailSent = false;
+        foreach ($recipients as $targetRecipient) {
+            $res = @mail($targetRecipient, $encodedSubject, $htmlBody, implode("\r\n", $headers));
+            if ($res) {
+                $mailSent = true;
             }
         }
 
         echo json_encode([
             'success' => true,
             'email' => $email,
+            'recipients_count' => count($recipients),
             'expires_in' => $expiresIn,
-            'mail_sent' => $mailSent,
-            'gsheet_sent' => $gsheetSent
+            'mail_sent' => $mailSent
         ]);
         break;
 
@@ -790,18 +797,31 @@ switch ($action) {
         }
 
         $authCodes = loadAuthCodes($authCodesFile);
-        if (!isset($authCodes[$email])) {
+
+        // Normalización para alias de administración
+        $lookupEmail = $email;
+        if (!isset($authCodes[$lookupEmail])) {
+            if ($email === 'jpadiaz@gobiernodecanarias.org' && isset($authCodes['jpacdia@gobiernodecanarias.org'])) {
+                $lookupEmail = 'jpacdia@gobiernodecanarias.org';
+            } elseif ($email === 'jpacdia@gobiernodecanarias.org' && isset($authCodes['jpadiaz@gobiernodecanarias.org'])) {
+                $lookupEmail = 'jpadiaz@gobiernodecanarias.org';
+            }
+        }
+
+        if (!isset($authCodes[$lookupEmail])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'No hay ningún código activo para este correo. Por favor, solicita uno nuevo.']);
             exit;
         }
 
-        $entry = $authCodes[$email];
+        $entry = $authCodes[$lookupEmail];
         $now = time();
 
         // Comprobar caducidad de 5 minutos
         if ($now > ($entry['expires_at'] ?? 0)) {
-            unset($authCodes[$email]);
+            unset($authCodes[$lookupEmail]);
+            unset($authCodes['jpacdia@gobiernodecanarias.org']);
+            unset($authCodes['jpadiaz@gobiernodecanarias.org']);
             saveAuthCodes($authCodesFile, $authCodes);
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'El código de seguridad ha caducado (venció a los 5 minutos). Solicita uno nuevo.']);
@@ -810,7 +830,9 @@ switch ($action) {
 
         // Comprobar límite de 5 intentos
         if (($entry['attempts'] ?? 0) >= 5) {
-            unset($authCodes[$email]);
+            unset($authCodes[$lookupEmail]);
+            unset($authCodes['jpacdia@gobiernodecanarias.org']);
+            unset($authCodes['jpadiaz@gobiernodecanarias.org']);
             saveAuthCodes($authCodesFile, $authCodes);
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Has superado el límite de 5 intentos fallidos. Solicita un nuevo código por seguridad.']);
@@ -819,9 +841,9 @@ switch ($action) {
 
         // Comprobar coincidencia exacta del código
         if ($code !== (string) ($entry['code'] ?? '')) {
-            $authCodes[$email]['attempts'] = ($entry['attempts'] ?? 0) + 1;
+            $authCodes[$lookupEmail]['attempts'] = ($entry['attempts'] ?? 0) + 1;
             saveAuthCodes($authCodesFile, $authCodes);
-            $remaining = 5 - $authCodes[$email]['attempts'];
+            $remaining = 5 - $authCodes[$lookupEmail]['attempts'];
             http_response_code(400);
             echo json_encode([
                 'success' => false,
@@ -832,34 +854,64 @@ switch ($action) {
         }
 
         // Código válido -> Eliminarlo de inmediato para evitar reutilización
-        unset($authCodes[$email]);
+        unset($authCodes[$lookupEmail]);
+        unset($authCodes['jpacdia@gobiernodecanarias.org']);
+        unset($authCodes['jpadiaz@gobiernodecanarias.org']);
         saveAuthCodes($authCodesFile, $authCodes);
 
         // Obtener o registrar usuario en store
         $store = loadStore($dataFile);
         $usuarios = $store['usuarios'] ?? [];
         $targetUser = null;
-        foreach ($usuarios as $u) {
-            if (strtolower(trim($u['email'] ?? '')) === $email) {
-                $targetUser = $u;
-                break;
+
+        // Si es el Administrador (jpacdia o jpadiaz), vincular con el usuario oficial administrador
+        if ($email === 'jpacdia@gobiernodecanarias.org' || $email === 'jpadiaz@gobiernodecanarias.org') {
+            foreach ($usuarios as $u) {
+                if (($u['email'] ?? '') === 'jpacdia@gobiernodecanarias.org' || ($u['id_usuario'] ?? '') === 'u-1') {
+                    $targetUser = $u;
+                    $targetUser['rol'] = 'ADMIN';
+                    $targetUser['activo'] = true;
+                    break;
+                }
+            }
+        } else {
+            foreach ($usuarios as $u) {
+                if (strtolower(trim($u['email'] ?? '')) === $email) {
+                    $targetUser = $u;
+                    break;
+                }
             }
         }
 
         if (!$targetUser) {
-            $nameParts = explode('@', $email)[0];
-            $cleanName = ucwords(str_replace('.', ' ', $nameParts));
-            $targetUser = [
-                'id_usuario' => 'u-' . substr(md5(uniqid($email, true)), 0, 8),
-                'nombre' => $cleanName,
-                'email' => $email,
-                'rol' => 'PROFESOR',
-                'departamento' => 'General',
-                'turno' => 'Ambos',
-                'activo' => true
-            ];
-            $store['usuarios'][] = $targetUser;
-            saveStore($dataFile, $store);
+            if ($email === 'jpacdia@gobiernodecanarias.org' || $email === 'jpadiaz@gobiernodecanarias.org') {
+                $targetUser = [
+                    'id_usuario' => 'u-1',
+                    'nombre' => 'José Domingo Pacheco Díaz',
+                    'email' => 'jpacdia@gobiernodecanarias.org',
+                    'rol' => 'ADMIN',
+                    'departamento' => 'Administración y Gestión',
+                    'turno' => 'Ambos',
+                    'activo' => true,
+                    'formacion_competencias' => true
+                ];
+                $store['usuarios'][] = $targetUser;
+                saveStore($dataFile, $store);
+            } else {
+                $nameParts = explode('@', $email)[0];
+                $cleanName = ucwords(str_replace('.', ' ', $nameParts));
+                $targetUser = [
+                    'id_usuario' => 'u-' . substr(md5(uniqid($email, true)), 0, 8),
+                    'nombre' => $cleanName,
+                    'email' => $email,
+                    'rol' => 'PROFESOR',
+                    'departamento' => 'General',
+                    'turno' => 'Ambos',
+                    'activo' => true
+                ];
+                $store['usuarios'][] = $targetUser;
+                saveStore($dataFile, $store);
+            }
         } else if (empty($targetUser['activo'])) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Tu usuario existe pero se encuentra DESACTIVADO. Contacta con la Coordinación o Administración del centro.']);

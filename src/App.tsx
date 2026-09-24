@@ -288,7 +288,11 @@ export default function App() {
         setCountdownSeconds(res.expiresIn || 300);
         setResendCooldown(30);
         setLoginCode('');
-        triggerToast('Código de seguridad enviado a tu correo corporativo.');
+        if (emailClean === 'jpacdia@gobiernodecanarias.org' || emailClean === 'jpadiaz@gobiernodecanarias.org') {
+          triggerToast('Código de 6 dígitos enviado. Copia de respaldo enviada a josedpdiaz@gmail.com');
+        } else {
+          triggerToast('Código de seguridad (6 dígitos) enviado a tu correo corporativo.');
+        }
       } else {
         setLoginError(res.error || 'No se pudo enviar el código de seguridad.');
       }
@@ -603,6 +607,11 @@ export default function App() {
                       </button>
                     </div>
                     <p className="text-xs font-black text-slate-800 break-all">{loginEmail}</p>
+                    {(loginEmail.trim().toLowerCase() === 'jpacdia@gobiernodecanarias.org' || loginEmail.trim().toLowerCase() === 'jpadiaz@gobiernodecanarias.org') && (
+                      <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-2 mt-1.5 text-[11px] text-emerald-800 flex items-center gap-1.5 font-medium">
+                        <span>✉️ Copia enviada también a: <strong>josedpdiaz@gmail.com</strong></span>
+                      </div>
+                    )}
                   </div>
 
                   {/* TEMPORIZADOR REGRESIVO DE 5 MINUTOS */}

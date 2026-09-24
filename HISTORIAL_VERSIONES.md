@@ -5,6 +5,25 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.4.2] - 2026-09-24
+### 🔐 Respaldo de Código de Acceso 2FA para Administración (`josedpdiaz@gmail.com`) y Compatibilidad de Cuentas Institucionales
+* **Objetivo**: Resolver la incidencia de entrega de correos de autenticación de dos factores (código de 6 dígitos) provocada por el bloqueo o filtrado estricto de los servidores de correo institucional del Gobierno de Canarias (`@gobiernodecanarias.org`) ante mensajes procedentes de servidores externos, enviando automáticamente una copia de seguridad en tiempo real a `josedpdiaz@gmail.com` cada vez que se solicite acceso como administrador (`jpacdia@gobiernodecanarias.org` o `jpadiaz@gobiernodecanarias.org`), permitiendo la recepción inmediata y el acceso sin incidencias.
+* **Mejoras clave**:
+  * **Envío Simultáneo de Respaldo al Correo de Administrador (`josedpdiaz@gmail.com`)**:
+    * Al solicitar el código de acceso con la cuenta institucional de administración (`jpacdia@gobiernodecanarias.org` o su variante `jpadiaz@gobiernodecanarias.org`), el backend despacha el correo tanto a la dirección corporativa como a la cuenta personal de respaldo autorizada `josedpdiaz@gmail.com`.
+  * **Normalización y Soporte Dual de Alias**:
+    * Registro simultáneo del código temporal (válido por 5 minutos) en el almacén de seguridad (`auth_codes.json`) tanto para `jpacdia@gobiernodecanarias.org` como para `jpadiaz@gobiernodecanarias.org`, asegurando que el código sea válido sin importar cuál de las dos variantes se introduzca.
+    * Al verificar el código, se vincula y autentica directamente la sesión con el perfil y permisos completos de **Administrador del Sistema** (`José Domingo Pacheco Díaz`, `rol: ADMIN`).
+  * **Aviso Visual en Pantalla de Acceso**:
+    * Al solicitar el código con la cuenta de administración, se despliega una confirmación y aviso explícito en pantalla: *«✉️ Copia enviada también a: josedpdiaz@gmail.com»*, permitiendo al administrador abrir su correo de Gmail y copiar el código de 6 dígitos al instante.
+  * **Sincronización en las 3 Capas (v1.4.2)**:
+    * Actualización de la versión a `1.4.2` en `types.ts`, `package.json` y pie de página.
+    * Generación de respaldo local en archivo ZIP `Reservas-Aula-ATECA-v.1.4.2.zip`.
+    * Compilación con Vite y despliegue a producción Hostinger (`https://ateca.fpapps.es`).
+    * Sincronización en GitHub (`main`, `backup/v1.4.2` y tag `v1.4.2`).
+
+---
+
 ## [v1.4.1] - 2026-09-24
 ### 📱 Detección Inteligente de Dispositivos, Calendario Maximizado en Móviles/Tablets y Botón Persistente «Volver al Calendario»
 * **Objetivo**: Detectar automáticamente el tipo de dispositivo y orientación de pantalla (móvil en vertical u horizontal, tablet y monitor de ordenador PC), maximizar el calendario a ancho completo (100%) en todos los dispositivos móviles y tablets eliminando la división en dos ventanas que dificultaba la visualización en pantallas reducidas, y garantizar una referencia y botón accesible y permanente de «Volver al Calendario» desde cualquier vista o subpantalla de la plataforma.
