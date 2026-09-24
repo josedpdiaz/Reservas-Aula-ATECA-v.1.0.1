@@ -513,6 +513,9 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
                         placeholder="docente@gobiernodecanarias.org"
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none"
                       />
+                      <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                        Matricula con @gobiernodecanarias.org (avisos a @canariaseducacion.es).
+                      </p>
                     </div>
                     <div>
                       <label className="block text-slate-400 font-semibold mb-1">Departamento</label>

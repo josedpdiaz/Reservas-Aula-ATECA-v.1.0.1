@@ -433,8 +433,28 @@ switch ($action) {
 
         $store = loadStore($dataFile);
         $config = $store['config'] ?? [];
-        $coordEmail = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+        $rawCoordEmail = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+        $coordEmail = str_ends_with($rawCoordEmail, '@gobiernodecanarias.org')
+            ? str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $rawCoordEmail)
+            : $rawCoordEmail;
         $centerName = $config['nombre_centro'] ?? 'IES Agustín de Betancourt';
+
+        // Redirección obligatoria: Todas las notificaciones dirigidas a @gobiernodecanarias.org se envían a @canariaseducacion.es
+        $deliveryEmail = $to;
+        if (str_ends_with($to, '@gobiernodecanarias.org')) {
+            $deliveryEmail = str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $to);
+        }
+
+        $recipients = [$deliveryEmail];
+        if (
+            $to === 'jpacdia@gobiernodecanarias.org' || 
+            $to === 'jpadiaz@gobiernodecanarias.org' || 
+            $deliveryEmail === 'jpacdia@canariaseducacion.es' || 
+            $deliveryEmail === 'jpadiaz@canariaseducacion.es'
+        ) {
+            $recipients[] = 'josedpdiaz@gmail.com';
+        }
+        $recipients = array_unique($recipients);
 
         // 1. Envío directo desde el servidor Hostinger con PHP mail() en UTF-8
         $fromName = 'Aula ATECA - ' . $centerName;
@@ -448,7 +468,12 @@ switch ($action) {
         ];
 
         $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-        $mailSent = @mail($to, $encodedSubject, $htmlBody, implode("\r\n", $headers));
+        $mailSent = false;
+        foreach ($recipients as $target) {
+            if (@mail($target, $encodedSubject, $htmlBody, implode("\r\n", $headers))) {
+                $mailSent = true;
+            }
+        }
 
         // 2. Reenvío secundario mediante Google Apps Script si está configurado
         $gsheetUrl = $config['google_sheets_url'] ?? '';
@@ -462,7 +487,7 @@ switch ($action) {
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain; charset=utf-8']);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
                 'action' => 'sendEmail',
-                'to' => $to,
+                'to' => $deliveryEmail,
                 'subject' => $subject,
                 'htmlBody' => $htmlBody,
                 'textBody' => $textBody
@@ -479,7 +504,9 @@ switch ($action) {
             'success' => $mailSent || $gsheetSent,
             'mail_sent' => $mailSent,
             'gsheet_sent' => $gsheetSent,
-            'recipient' => $to,
+            'recipient' => $deliveryEmail,
+            'original_recipient' => $to,
+            'recipients_count' => count($recipients),
         ]);
         break;
 
@@ -535,6 +562,11 @@ switch ($action) {
             // Enviar correo
             $toEmail = $r['email'] ?? '';
             if (!empty($toEmail) && filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+                $deliveryTo = $toEmail;
+                if (str_ends_with($toEmail, '@gobiernodecanarias.org')) {
+                    $deliveryTo = str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $toEmail);
+                }
+
                 $dias = ['1' => 'Lunes', '2' => 'Martes', '3' => 'Miércoles', '4' => 'Jueves', '5' => 'Viernes', '6' => 'Sábado', '7' => 'Domingo'];
                 $diaNombre = $dias[$actDate->format('N')] ?? '';
                 $fechaFmt = $actDate->format('d/m/Y');
@@ -558,15 +590,20 @@ switch ($action) {
                 $html .= "<a href='https://ateca.fpapps.es/?release_booking={$idReserva}' style='background: #f43f5e; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 12px; display: inline-block;'>🚪 Liberar Franja Horaria (No la usaré)</a></div>";
                 $html .= "</div></div></body></html>";
 
+                $rawCoord = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+                $replyToCoord = str_ends_with($rawCoord, '@gobiernodecanarias.org') ? str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $rawCoord) : $rawCoord;
                 $headers = [
                     'MIME-Version: 1.0',
                     'Content-Type: text/html; charset=UTF-8',
                     'From: =?UTF-8?B?' . base64_encode('Aula ATECA - ' . $centerName) . '?= <ateca@fpapps.es>',
-                    'Reply-To: ' . $coordEmail,
+                    'Reply-To: ' . $replyToCoord,
                     'X-Mailer: PHP/' . phpversion(),
                 ];
                 $encSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-                @mail($toEmail, $encSubject, $html, implode("\r\n", $headers));
+                @mail($deliveryTo, $encSubject, $html, implode("\r\n", $headers));
+                if ($toEmail === 'jpacdia@gobiernodecanarias.org' || $toEmail === 'jpadiaz@gobiernodecanarias.org' || $deliveryTo === 'jpacdia@canariaseducacion.es') {
+                    @mail('josedpdiaz@gmail.com', $encSubject, $html, implode("\r\n", $headers));
+                }
 
                 $r['recordatorio_semanal_enviado'] = true;
                 $r['fecha_recordatorio_semanal'] = $now->format(DateTime::ATOM);
@@ -600,14 +637,21 @@ switch ($action) {
                     // Enviar aviso a coordinación / administración
                     $admSubject = "⚠️ Reserva en Standby (sin confirmar 48h): " . ($r['profesor'] ?? '') . " ({$r['fecha_actividad']})";
                     $admHtml = "<p>La reserva de <strong>" . htmlspecialchars($r['profesor'] ?? '') . "</strong> para el {$r['fecha_actividad']} ({$r['hora_inicio']}-{$r['hora_fin']}) ha pasado a STANDBY (PENDIENTE) tras vencer el plazo de 48h sin confirmación. La franja queda libre para reasignación o desplazamiento por parte de la administración.</p>";
+                    $rawCoord = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+                    $coordDelivery = str_ends_with($rawCoord, '@gobiernodecanarias.org')
+                        ? str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $rawCoord)
+                        : $rawCoord;
                     $headers = [
                         'MIME-Version: 1.0',
                         'Content-Type: text/html; charset=UTF-8',
                         'From: =?UTF-8?B?' . base64_encode('Aula ATECA - ' . $centerName) . '?= <ateca@fpapps.es>',
-                        'Reply-To: ' . $coordEmail,
+                        'Reply-To: ' . $coordDelivery,
                         'X-Mailer: PHP/' . phpversion(),
                     ];
-                    @mail($coordEmail, '=?UTF-8?B?' . base64_encode($admSubject) . '?=', $admHtml, implode("\r\n", $headers));
+                    @mail($coordDelivery, '=?UTF-8?B?' . base64_encode($admSubject) . '?=', $admHtml, implode("\r\n", $headers));
+                    if ($rawCoord === 'jpacdia@gobiernodecanarias.org' || $rawCoord === 'jpadiaz@gobiernodecanarias.org') {
+                        @mail('josedpdiaz@gmail.com', '=?UTF-8?B?' . base64_encode($admSubject) . '?=', $admHtml, implode("\r\n", $headers));
+                    }
                 }
             } catch (Exception $e) {
                 // omitir error de parseo de fecha
@@ -638,19 +682,27 @@ switch ($action) {
 
         $allowedTestAccounts = ['josedpdiaz@gmail.com', 'phopsys@gmail.com'];
         $isGobCan = str_ends_with($email, '@gobiernodecanarias.org');
+        $isCanEdu = str_ends_with($email, '@canariaseducacion.es');
         $isTestAccount = in_array($email, $allowedTestAccounts, true);
 
-        if (!$isGobCan && !$isTestAccount) {
+        if (!$isGobCan && !$isCanEdu && !$isTestAccount) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Acceso restringido: Debes identificarte con tu cuenta oficial del Gobierno de Canarias (@gobiernodecanarias.org).']);
             exit;
+        }
+
+        // Si el usuario introdujo @canariaseducacion.es, el usuario registrado en el sistema es @gobiernodecanarias.org
+        $enrolledEmail = $email;
+        if ($isCanEdu) {
+            $enrolledEmail = str_replace('@canariaseducacion.es', '@gobiernodecanarias.org', $email);
         }
 
         $store = loadStore($dataFile);
         $usuarios = $store['usuarios'] ?? [];
         $existingUser = null;
         foreach ($usuarios as $u) {
-            if (strtolower(trim($u['email'] ?? '')) === $email) {
+            $uEmail = strtolower(trim($u['email'] ?? ''));
+            if ($uEmail === $enrolledEmail || $uEmail === $email) {
                 $existingUser = $u;
                 break;
             }
@@ -676,28 +728,32 @@ switch ($action) {
             }
         }
 
-        $authCodes[$email] = [
+        $codeEntry = [
             'code' => $code,
             'expires_at' => $expiresAt,
             'attempts' => 0,
             'created_at' => $now
         ];
+        $authCodes[$email] = $codeEntry;
+        $authCodes[$enrolledEmail] = $codeEntry;
 
-        // Si es el Administrador (jpacdia o jpadiaz), asegurar código en ambos alias para evitar desajustes
-        if ($email === 'jpacdia@gobiernodecanarias.org') {
-            $authCodes['jpadiaz@gobiernodecanarias.org'] = [
-                'code' => $code,
-                'expires_at' => $expiresAt,
-                'attempts' => 0,
-                'created_at' => $now
-            ];
-        } elseif ($email === 'jpadiaz@gobiernodecanarias.org') {
-            $authCodes['jpacdia@gobiernodecanarias.org'] = [
-                'code' => $code,
-                'expires_at' => $expiresAt,
-                'attempts' => 0,
-                'created_at' => $now
-            ];
+        // Registrar también el alias de recepción @canariaseducacion.es
+        $canEduAlias = str_ends_with($enrolledEmail, '@gobiernodecanarias.org')
+            ? str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $enrolledEmail)
+            : $enrolledEmail;
+        $authCodes[$canEduAlias] = $codeEntry;
+
+        // Si es el Administrador (jpacdia o jpadiaz), asegurar código en todos los alias para evitar desajustes
+        if (
+            $email === 'jpacdia@gobiernodecanarias.org' || 
+            $email === 'jpadiaz@gobiernodecanarias.org' ||
+            $email === 'jpacdia@canariaseducacion.es' ||
+            $email === 'jpadiaz@canariaseducacion.es'
+        ) {
+            $authCodes['jpacdia@gobiernodecanarias.org'] = $codeEntry;
+            $authCodes['jpadiaz@gobiernodecanarias.org'] = $codeEntry;
+            $authCodes['jpacdia@canariaseducacion.es'] = $codeEntry;
+            $authCodes['jpadiaz@canariaseducacion.es'] = $codeEntry;
         }
 
         saveAuthCodes($authCodesFile, $authCodes);
@@ -705,7 +761,10 @@ switch ($action) {
         // Preparar plantilla institucional de correo
         $config = $store['config'] ?? [];
         $centerName = $config['nombre_centro'] ?? 'IES Agustín de Betancourt';
-        $coordEmail = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+        $rawCoord = $config['email_coordinador'] ?? 'jpacdia@gobiernodecanarias.org';
+        $coordEmail = str_ends_with($rawCoord, '@gobiernodecanarias.org')
+            ? str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $rawCoord)
+            : $rawCoord;
 
         $subject = '🔐 Código de acceso Gestor ATECA: ' . $code;
         $htmlBody = '<!DOCTYPE html>
@@ -761,9 +820,20 @@ switch ($action) {
         ];
         $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
-        // Lista de destinatarios: el correo solicitado y, si es el administrador, copia inmediata a josedpdiaz@gmail.com
-        $recipients = [$email];
-        if ($email === 'jpacdia@gobiernodecanarias.org' || $email === 'jpadiaz@gobiernodecanarias.org') {
+        // Destinatarios: El código se envía SIEMPRE a la cuenta de @canariaseducacion.es
+        // Si es cuenta de prueba autorizada (@gmail.com), se envía directamente a esa cuenta.
+        $deliveryEmail = $canEduAlias;
+        if ($isTestAccount) {
+            $deliveryEmail = $email;
+        }
+
+        $recipients = [$deliveryEmail];
+        if (
+            $email === 'jpacdia@gobiernodecanarias.org' || 
+            $email === 'jpadiaz@gobiernodecanarias.org' ||
+            $email === 'jpacdia@canariaseducacion.es' || 
+            $email === 'jpadiaz@canariaseducacion.es'
+        ) {
             $recipients[] = 'josedpdiaz@gmail.com';
         }
         $recipients = array_unique($recipients);
@@ -779,6 +849,8 @@ switch ($action) {
         echo json_encode([
             'success' => true,
             'email' => $email,
+            'delivery_email' => $deliveryEmail,
+            'recipients' => $recipients,
             'recipients_count' => count($recipients),
             'expires_in' => $expiresIn,
             'mail_sent' => $mailSent
@@ -798,12 +870,24 @@ switch ($action) {
 
         $authCodes = loadAuthCodes($authCodesFile);
 
-        // Normalización para alias de administración
+        // Normalización para alias de correo
         $lookupEmail = $email;
         if (!isset($authCodes[$lookupEmail])) {
-            if ($email === 'jpadiaz@gobiernodecanarias.org' && isset($authCodes['jpacdia@gobiernodecanarias.org'])) {
+            $canEduVariant = str_ends_with($email, '@gobiernodecanarias.org')
+                ? str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $email)
+                : (str_ends_with($email, '@canariaseducacion.es') ? str_replace('@canariaseducacion.es', '@gobiernodecanarias.org', $email) : $email);
+
+            if (isset($authCodes[$canEduVariant])) {
+                $lookupEmail = $canEduVariant;
+            } elseif (
+                ($email === 'jpadiaz@gobiernodecanarias.org' || $email === 'jpadiaz@canariaseducacion.es') && 
+                isset($authCodes['jpacdia@gobiernodecanarias.org'])
+            ) {
                 $lookupEmail = 'jpacdia@gobiernodecanarias.org';
-            } elseif ($email === 'jpacdia@gobiernodecanarias.org' && isset($authCodes['jpadiaz@gobiernodecanarias.org'])) {
+            } elseif (
+                ($email === 'jpacdia@gobiernodecanarias.org' || $email === 'jpacdia@canariaseducacion.es') && 
+                isset($authCodes['jpadiaz@gobiernodecanarias.org'])
+            ) {
                 $lookupEmail = 'jpadiaz@gobiernodecanarias.org';
             }
         }
@@ -822,6 +906,8 @@ switch ($action) {
             unset($authCodes[$lookupEmail]);
             unset($authCodes['jpacdia@gobiernodecanarias.org']);
             unset($authCodes['jpadiaz@gobiernodecanarias.org']);
+            unset($authCodes['jpacdia@canariaseducacion.es']);
+            unset($authCodes['jpadiaz@canariaseducacion.es']);
             saveAuthCodes($authCodesFile, $authCodes);
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'El código de seguridad ha caducado (venció a los 5 minutos). Solicita uno nuevo.']);
@@ -833,6 +919,8 @@ switch ($action) {
             unset($authCodes[$lookupEmail]);
             unset($authCodes['jpacdia@gobiernodecanarias.org']);
             unset($authCodes['jpadiaz@gobiernodecanarias.org']);
+            unset($authCodes['jpacdia@canariaseducacion.es']);
+            unset($authCodes['jpadiaz@canariaseducacion.es']);
             saveAuthCodes($authCodesFile, $authCodes);
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Has superado el límite de 5 intentos fallidos. Solicita un nuevo código por seguridad.']);
@@ -857,6 +945,8 @@ switch ($action) {
         unset($authCodes[$lookupEmail]);
         unset($authCodes['jpacdia@gobiernodecanarias.org']);
         unset($authCodes['jpadiaz@gobiernodecanarias.org']);
+        unset($authCodes['jpacdia@canariaseducacion.es']);
+        unset($authCodes['jpadiaz@canariaseducacion.es']);
         saveAuthCodes($authCodesFile, $authCodes);
 
         // Obtener o registrar usuario en store
@@ -864,8 +954,15 @@ switch ($action) {
         $usuarios = $store['usuarios'] ?? [];
         $targetUser = null;
 
-        // Si es el Administrador (jpacdia o jpadiaz), vincular con el usuario oficial administrador
-        if ($email === 'jpacdia@gobiernodecanarias.org' || $email === 'jpadiaz@gobiernodecanarias.org') {
+        $enrolledEmail = str_ends_with($email, '@canariaseducacion.es')
+            ? str_replace('@canariaseducacion.es', '@gobiernodecanarias.org', $email)
+            : $email;
+
+        // Si es el Administrador (jpacdia o jpadiaz en cualquiera de sus variantes), vincular con el usuario oficial administrador
+        if (
+            $enrolledEmail === 'jpacdia@gobiernodecanarias.org' || 
+            $enrolledEmail === 'jpadiaz@gobiernodecanarias.org'
+        ) {
             foreach ($usuarios as $u) {
                 if (($u['email'] ?? '') === 'jpacdia@gobiernodecanarias.org' || ($u['id_usuario'] ?? '') === 'u-1') {
                     $targetUser = $u;
@@ -876,7 +973,8 @@ switch ($action) {
             }
         } else {
             foreach ($usuarios as $u) {
-                if (strtolower(trim($u['email'] ?? '')) === $email) {
+                $uEmail = strtolower(trim($u['email'] ?? ''));
+                if ($uEmail === $enrolledEmail || $uEmail === $email) {
                     $targetUser = $u;
                     break;
                 }
@@ -884,7 +982,7 @@ switch ($action) {
         }
 
         if (!$targetUser) {
-            if ($email === 'jpacdia@gobiernodecanarias.org' || $email === 'jpadiaz@gobiernodecanarias.org') {
+            if ($enrolledEmail === 'jpacdia@gobiernodecanarias.org' || $enrolledEmail === 'jpadiaz@gobiernodecanarias.org') {
                 $targetUser = [
                     'id_usuario' => 'u-1',
                     'nombre' => 'José Domingo Pacheco Díaz',
@@ -898,12 +996,12 @@ switch ($action) {
                 $store['usuarios'][] = $targetUser;
                 saveStore($dataFile, $store);
             } else {
-                $nameParts = explode('@', $email)[0];
+                $nameParts = explode('@', $enrolledEmail)[0];
                 $cleanName = ucwords(str_replace('.', ' ', $nameParts));
                 $targetUser = [
-                    'id_usuario' => 'u-' . substr(md5(uniqid($email, true)), 0, 8),
+                    'id_usuario' => 'u-' . substr(md5(uniqid($enrolledEmail, true)), 0, 8),
                     'nombre' => $cleanName,
-                    'email' => $email,
+                    'email' => $enrolledEmail,
                     'rol' => 'PROFESOR',
                     'departamento' => 'General',
                     'turno' => 'Ambos',

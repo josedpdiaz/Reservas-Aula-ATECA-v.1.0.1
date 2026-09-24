@@ -496,7 +496,7 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Correo Electrónico</label>
+                  <label className="block text-slate-400 font-semibold mb-1">Correo Electrónico Oficial</label>
                   <input
                     type="email"
                     required
@@ -505,6 +505,9 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
                     placeholder="docente@gobiernodecanarias.org"
                     className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none"
                   />
+                  <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                    Matricula con @gobiernodecanarias.org. Los avisos y códigos se remitirán a su buzón @canariaseducacion.es.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1">Rol</label>

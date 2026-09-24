@@ -217,16 +217,30 @@ export interface SendEmailPayload {
   buttonUrl?: string;
 }
 
+/**
+ * Convierte cualquier dirección oficial de registro (@gobiernodecanarias.org)
+ * a su buzón de entrega correspondiente en Canarias Educación (@canariaseducacion.es),
+ * manteniendo exactamente el mismo login/nombre de usuario que está delante de la @.
+ */
+export const getDeliveryEmail = (email: string): string => {
+  const clean = (email || '').trim().toLowerCase();
+  if (clean.endsWith('@gobiernodecanarias.org')) {
+    return clean.replace('@gobiernodecanarias.org', '@canariaseducacion.es');
+  }
+  return clean;
+};
+
 export const dispatchNotificationEmail = async (payload: SendEmailPayload): Promise<{ success: boolean; log: EmailLog }> => {
   const { toUser, type, subject, title, badgeText, badgeBg, contentHtml, contentText, details, buttonText, buttonUrl } = payload;
   const config = getConfig();
 
   // 1. Validar si el usuario tiene habilitado este tipo de aviso en sus preferencias
   if (!shouldSendNotification(toUser, type)) {
+    const rawDest = toUser.notificaciones?.email_alternativo || toUser.email;
     const skippedLog: EmailLog = {
       id: `mail-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       fecha_hora: new Date().toLocaleString('es-ES'),
-      destinatario_email: toUser.notificaciones?.email_alternativo || toUser.email,
+      destinatario_email: getDeliveryEmail(rawDest),
       destinatario_nombre: toUser.nombre,
       asunto: subject,
       cuerpo_html: '<p>Aviso omitido por preferencias del usuario.</p>',
@@ -239,7 +253,8 @@ export const dispatchNotificationEmail = async (payload: SendEmailPayload): Prom
     return { success: false, log: skippedLog };
   }
 
-  const targetEmail = toUser.notificaciones?.email_alternativo || toUser.email;
+  const rawTarget = toUser.notificaciones?.email_alternativo || toUser.email;
+  const targetEmail = getDeliveryEmail(rawTarget);
   const fullHtml = buildHtmlTemplate({
     centerName: config.nombre_centro || 'Canarias Educación',
     roomName: config.nombre_aula || 'Aula ATECA Innovación',

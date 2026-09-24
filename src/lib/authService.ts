@@ -6,6 +6,8 @@ export interface RequestCodeResult {
   success: boolean;
   error?: string;
   expiresIn?: number;
+  deliveryEmail?: string;
+  recipientsCount?: number;
 }
 
 export interface VerifyCodeResult {
@@ -49,6 +51,8 @@ export async function requestLoginCode(email: string): Promise<RequestCodeResult
       return {
         success: true,
         expiresIn: data.expires_in || 300,
+        deliveryEmail: data.delivery_email,
+        recipientsCount: data.recipients_count,
       };
     } else {
       return {
@@ -65,6 +69,9 @@ export async function requestLoginCode(email: string): Promise<RequestCodeResult
       return {
         success: true,
         expiresIn: 300,
+        deliveryEmail: cleanEmail.endsWith('@gobiernodecanarias.org')
+          ? cleanEmail.replace('@gobiernodecanarias.org', '@canariaseducacion.es')
+          : cleanEmail,
       };
     }
 

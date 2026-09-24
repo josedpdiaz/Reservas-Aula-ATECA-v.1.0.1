@@ -30,7 +30,7 @@ export const ALLOWED_TEST_ACCOUNTS: string[] = ['josedpdiaz@gmail.com', 'phopsys
  */
 export const isAllowedLoginEmail = (email: string): boolean => {
   const clean = (email || '').trim().toLowerCase();
-  return clean.endsWith('@gobiernodecanarias.org') || ALLOWED_TEST_ACCOUNTS.includes(clean);
+  return clean.endsWith('@gobiernodecanarias.org') || clean.endsWith('@canariaseducacion.es') || ALLOWED_TEST_ACCOUNTS.includes(clean);
 };
 
 // Pre-seeded users (Administrador oficial del centro y usuarios de prueba autorizados)
@@ -493,7 +493,7 @@ export const isNonWorkingDay = (dateStr: string): { isNonWorking: boolean; reaso
 export const loginByEmail = (email: string): { success: boolean; user?: Usuario; error?: string } => {
   const emailLower = email.trim().toLowerCase();
 
-  // En producción oficial se exige la terminación oficial @gobiernodecanarias.org (salvo cuentas de prueba excepcionales)
+  // En producción oficial se exige la terminación institucional @gobiernodecanarias.org (o su buzón asociado @canariaseducacion.es)
   if (!isAllowedLoginEmail(emailLower)) {
     return {
       success: false,
@@ -501,15 +501,22 @@ export const loginByEmail = (email: string): { success: boolean; user?: Usuario;
     };
   }
 
+  const enrolledLower = emailLower.endsWith('@canariaseducacion.es')
+    ? emailLower.replace('@canariaseducacion.es', '@gobiernodecanarias.org')
+    : emailLower;
+
   const users = getUsuarios();
-  const user = users.find(u => u.email.trim().toLowerCase() === emailLower);
+  const user = users.find(u => {
+    const uEmail = u.email.trim().toLowerCase();
+    return uEmail === enrolledLower || uEmail === emailLower;
+  });
 
   if (!user) {
-    // Si la cuenta es del Gobierno de Canarias pero aún no está en el listado, se registra como profesor activo
+    // Si la cuenta es del Gobierno de Canarias pero aún no está en el listado, se matricula oficialmente con @gobiernodecanarias.org
     const defaultUser: Usuario = {
       id_usuario: generateUniqueId('u'),
-      nombre: emailSplitName(emailLower),
-      email: emailLower,
+      nombre: emailSplitName(enrolledLower),
+      email: enrolledLower,
       rol: 'PROFESOR',
       departamento: "General",
       turno: "Ambos",

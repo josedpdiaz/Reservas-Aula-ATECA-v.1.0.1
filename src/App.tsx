@@ -287,11 +287,14 @@ export default function App() {
         setLoginStep('otp');
         setCountdownSeconds(res.expiresIn || 300);
         setResendCooldown(30);
-        setLoginCode('');
-        if (emailClean === 'jpacdia@gobiernodecanarias.org' || emailClean === 'jpadiaz@gobiernodecanarias.org') {
-          triggerToast('Código de 6 dígitos enviado. Copia de respaldo enviada a josedpdiaz@gmail.com');
+        const targetBuzon = res.deliveryEmail || (emailClean.endsWith('@gobiernodecanarias.org')
+          ? emailClean.replace('@gobiernodecanarias.org', '@canariaseducacion.es')
+          : emailClean);
+
+        if (emailClean === 'jpacdia@gobiernodecanarias.org' || emailClean === 'jpadiaz@gobiernodecanarias.org' || emailClean === 'jpacdia@canariaseducacion.es') {
+          triggerToast(`Código enviado a ${targetBuzon} (copia de respaldo en josedpdiaz@gmail.com)`);
         } else {
-          triggerToast('Código de seguridad (6 dígitos) enviado a tu correo corporativo.');
+          triggerToast(`Código de seguridad (6 dígitos) enviado a tu buzón: ${targetBuzon}`);
         }
       } else {
         setLoginError(res.error || 'No se pudo enviar el código de seguridad.');
@@ -546,8 +549,8 @@ export default function App() {
                   <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
                   <span>Autenticación Oficial del Centro</span>
                 </div>
-                <p className="text-[11px] text-indigo-800">
-                  Para acceder y gestionar reservas en el Aula ATECA, introduce tu cuenta corporativa del Gobierno de Canarias terminada en <strong>@gobiernodecanarias.org</strong>.
+                <p className="text-[11px] text-indigo-800 leading-relaxed">
+                  Para acceder y gestionar reservas en el Aula ATECA, introduce tu cuenta oficial del Gobierno de Canarias <strong>@gobiernodecanarias.org</strong>. El código de acceso de 6 dígitos se enviará automáticamente a tu buzón oficial de <strong>@canariaseducacion.es</strong>.
                 </p>
               </div>
 
@@ -573,6 +576,9 @@ export default function App() {
                       placeholder="ej: tu_nombre@gobiernodecanarias.org"
                       className="w-full px-3 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs md:text-sm outline-none transition-all"
                     />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      El código se remitirá al buzón de <strong>@canariaseducacion.es</strong> con el mismo usuario.
+                    </p>
                   </div>
 
                   <button
@@ -595,20 +601,35 @@ export default function App() {
               ) : (
                 /* PASO 2: INTRODUCIR CÓDIGO OTP DE 6 DÍGITOS CON CONTADOR REGRESIVO */
                 <form onSubmit={handleVerifyCode} className="space-y-4 animate-fade-in">
-                  <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-left space-y-1.5">
+                  <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-left space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código enviado a:</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cuenta identificada:</span>
                       <button
                         type="button"
                         onClick={handleBackToEmail}
                         className="text-[11px] text-indigo-600 hover:underline font-bold flex items-center gap-1 cursor-pointer"
                       >
-                        <ArrowLeft className="w-3 h-3" /> Cambiar correo
+                        <ArrowLeft className="w-3 h-3" /> Cambiar
                       </button>
                     </div>
                     <p className="text-xs font-black text-slate-800 break-all">{loginEmail}</p>
-                    {(loginEmail.trim().toLowerCase() === 'jpacdia@gobiernodecanarias.org' || loginEmail.trim().toLowerCase() === 'jpadiaz@gobiernodecanarias.org') && (
-                      <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-2 mt-1.5 text-[11px] text-emerald-800 flex items-center gap-1.5 font-medium">
+
+                    <div className="bg-indigo-50 border border-indigo-200/80 rounded-lg p-2.5 text-xs text-indigo-900 space-y-1">
+                      <p className="font-bold flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        Código enviado a tu buzón oficial:
+                      </p>
+                      <p className="font-mono font-bold text-indigo-700 break-all pl-5 text-[13px]">
+                        {loginEmail.trim().toLowerCase().endsWith('@gobiernodecanarias.org')
+                          ? loginEmail.trim().toLowerCase().replace('@gobiernodecanarias.org', '@canariaseducacion.es')
+                          : loginEmail.trim().toLowerCase()}
+                      </p>
+                    </div>
+
+                    {(loginEmail.trim().toLowerCase() === 'jpacdia@gobiernodecanarias.org' || 
+                      loginEmail.trim().toLowerCase() === 'jpadiaz@gobiernodecanarias.org' ||
+                      loginEmail.trim().toLowerCase() === 'jpacdia@canariaseducacion.es') && (
+                      <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-2 text-[11px] text-emerald-800 flex items-center gap-1.5 font-medium">
                         <span>✉️ Copia enviada también a: <strong>josedpdiaz@gmail.com</strong></span>
                       </div>
                     )}

@@ -5,6 +5,28 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.4.3] - 2026-09-24
+### 📧 Enrutamiento Universal de Avisos y Códigos 2FA al Buzón Educativo (`@canariaseducacion.es`) con Matrícula Centralizada (`@gobiernodecanarias.org`)
+* **Objetivo**: Garantizar el 100% de la entregabilidad de correos electrónicos (códigos de acceso OTP de 6 dígitos, confirmaciones de reserva, avisos de coordinador, alertas de mantenimiento y recordatorios semanales), manteniendo la identidad institucional y matrícula de todos los docentes y administradores con su cuenta corporativa del Gobierno de Canarias (`@gobiernodecanarias.org`), pero remitiendo todas las notificaciones y códigos de forma universal e inequívoca a su buzón activo de **`@canariaseducacion.es`** (preservando exactamente el mismo login/nombre de usuario antes de la `@`).
+* **Mejoras clave**:
+  * **Regla Universal de Enrutamiento de Correos**:
+    * Para toda cuenta registrada como `login@gobiernodecanarias.org`, el sistema despacha siempre los correos a `login@canariaseducacion.es`.
+    * Aplica sin excepción a docentes, coordinadores y administración para sortear las restricciones y filtrados perimetrales del dominio corporativo.
+    * Para la cuenta del administrador (`jpacdia` / `jpadiaz`), se preserva además la copia adicional inmediata de respaldo a `josedpdiaz@gmail.com`.
+  * **Soporte Dual y Matrícula Transparente**:
+    * Todos los docentes se dan de alta en la plataforma bajo su cuenta oficial corporativa `@gobiernodecanarias.org`.
+    * En el formulario de autenticación, el usuario puede introducir tanto su cuenta `@gobiernodecanarias.org` como `@canariaseducacion.es`. El sistema almacena el código bajo ambos alias y lo entrega en `@canariaseducacion.es`.
+  * **Indicadores Visuales y Aclaraciones en Interfaz**:
+    * En la pantalla de login, tanto en el paso 1 (solicitud) como en el paso 2 (código de 6 dígitos), se indica explícitamente al usuario la dirección exacta a la que ha sido enviado el correo (`@canariaseducacion.es`).
+    * En los formularios de registro de nuevos profesores (Panel de Administración y Panel de Coordinación), se añade texto de ayuda indicando que el docente debe ser matriculado con `@gobiernodecanarias.org` y que recibirá sus accesos en `@canariaseducacion.es`.
+  * **Sincronización en las 3 Capas (v1.4.3)**:
+    * Actualización de la versión a `1.4.3` en `types.ts`, `package.json` y pie de página.
+    * Generación de respaldo local en archivo ZIP `Reservas-Aula-ATECA-v.1.4.3.zip`.
+    * Compilación con Vite y despliegue a producción Hostinger (`https://ateca.fpapps.es`).
+    * Sincronización en GitHub (`main`, `backup/v1.4.3` y tag `v1.4.3`).
+
+---
+
 ## [v1.4.2] - 2026-09-24
 ### 🔐 Respaldo de Código de Acceso 2FA para Administración (`josedpdiaz@gmail.com`) y Compatibilidad de Cuentas Institucionales
 * **Objetivo**: Resolver la incidencia de entrega de correos de autenticación de dos factores (código de 6 dígitos) provocada por el bloqueo o filtrado estricto de los servidores de correo institucional del Gobierno de Canarias (`@gobiernodecanarias.org`) ante mensajes procedentes de servidores externos, enviando automáticamente una copia de seguridad en tiempo real a `josedpdiaz@gmail.com` cada vez que se solicite acceso como administrador (`jpacdia@gobiernodecanarias.org` o `jpadiaz@gobiernodecanarias.org`), permitiendo la recepción inmediata y el acceso sin incidencias.
