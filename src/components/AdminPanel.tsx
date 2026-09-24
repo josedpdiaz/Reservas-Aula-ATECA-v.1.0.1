@@ -8,7 +8,8 @@ import {
   UserPlus, Power, Settings, Trash, Trash2, AlertTriangle, FileSpreadsheet, 
   Play, CheckCircle2, CloudLightning, Calendar, CalendarOff, Image as ImageIcon, 
   Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
-  Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink, GraduationCap, Shield, ArrowLeft
+  Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink, GraduationCap, Shield, ArrowLeft,
+  ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog, OfficialDepartment, isFpDepartment, getAllDepartments, saveCustomDepartment } from '../types'; 
 import { 
@@ -75,6 +76,12 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
   const [userToDeletePermanently, setUserToDeletePermanently] = useState<Usuario | null>(null);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
 
+  // User Table Pagination and Sorting states
+  const [userPageSize, setUserPageSize] = useState<number>(10); // 5, 10, 25, 50, 0 (0 = Todos)
+  const [userCurrentPage, setUserCurrentPage] = useState<number>(1);
+  const [userSortField, setUserSortField] = useState<'estado' | 'nombre' | 'email' | 'departamento' | 'turno' | 'rol' | 'acreditacion' | 'cuenta' | 'acciones'>('nombre');
+  const [userSortAsc, setUserSortAsc] = useState<boolean>(true);
+
   // Lockout form
   const [blockFecha, setBlockFecha] = useState(() => formatDateToYMD());
   const [blockInicio, setBlockInicio] = useState('08:00');
@@ -132,6 +139,85 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
     modifyUsuario(id, { activo: !currentStatus });
     onRefresh();
   };
+
+  const handleSortUsers = (field: typeof userSortField) => {
+    if (userSortField === field) {
+      setUserSortAsc(!userSortAsc);
+    } else {
+      setUserSortField(field);
+      setUserSortAsc(true);
+    }
+    setUserCurrentPage(1);
+  };
+
+  const renderSortIndicator = (field: typeof userSortField) => {
+    if (userSortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 text-slate-300 opacity-60 group-hover:opacity-100 group-hover:text-slate-500 transition-all shrink-0" />;
+    }
+    return userSortAsc 
+      ? <ArrowUp className="w-3 h-3 text-indigo-600 font-bold shrink-0 animate-in fade-in" /> 
+      : <ArrowDown className="w-3 h-3 text-indigo-600 font-bold shrink-0 animate-in fade-in" />;
+  };
+
+  const filteredUsers = usuarios.filter(u => {
+    if (!userSearchTerm.trim()) return true;
+    const term = userSearchTerm.toLowerCase();
+    return u.nombre.toLowerCase().includes(term) ||
+           u.email.toLowerCase().includes(term) ||
+           (u.departamento && u.departamento.toLowerCase().includes(term)) ||
+           u.rol.toLowerCase().includes(term);
+  });
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    let comparison = 0;
+    switch (userSortField) {
+      case 'estado':
+      case 'cuenta':
+        comparison = (a.activo === false ? 0 : 1) - (b.activo === false ? 0 : 1);
+        if (comparison === 0) comparison = a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+        break;
+      case 'nombre':
+        comparison = a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+        break;
+      case 'email':
+        comparison = a.email.localeCompare(b.email, 'es', { sensitivity: 'base' });
+        break;
+      case 'departamento':
+        comparison = (a.departamento || '').localeCompare(b.departamento || '', 'es', { sensitivity: 'base' });
+        if (comparison === 0) comparison = a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+        break;
+      case 'turno':
+        comparison = (a.turno || 'Ambos').localeCompare(b.turno || 'Ambos', 'es', { sensitivity: 'base' });
+        if (comparison === 0) comparison = a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+        break;
+      case 'rol':
+        comparison = a.rol.localeCompare(b.rol, 'es');
+        if (comparison === 0) comparison = a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+        break;
+      case 'acreditacion':
+        comparison = Number(Boolean(a.formacion_competencias)) - Number(Boolean(b.formacion_competencias));
+        if (comparison === 0) comparison = a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+        break;
+      case 'acciones':
+        comparison = a.nombre.localeCompare(b.nombre, 'es');
+        break;
+      default:
+        comparison = a.nombre.localeCompare(b.nombre, 'es');
+    }
+    return userSortAsc ? comparison : -comparison;
+  });
+
+  const totalUserCount = sortedUsers.length;
+  const isViewAllUsers = userPageSize === 0;
+  const totalUserPages = isViewAllUsers ? 1 : Math.max(1, Math.ceil(totalUserCount / userPageSize));
+  const activeUserPage = Math.min(Math.max(1, userCurrentPage), totalUserPages);
+
+  const paginatedUsers = isViewAllUsers
+    ? sortedUsers
+    : sortedUsers.slice((activeUserPage - 1) * userPageSize, activeUserPage * userPageSize);
+
+  const userStartItem = totalUserCount === 0 ? 0 : isViewAllUsers ? 1 : (activeUserPage - 1) * userPageSize + 1;
+  const userEndItem = isViewAllUsers ? totalUserCount : Math.min(activeUserPage * userPageSize, totalUserCount);
 
   const openEditModal = (u: Usuario) => {
     setUserToEdit(u);
@@ -677,19 +763,88 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
               </div>
             </form>
 
-            {/* Search & Stats Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 border border-slate-200 rounded-xl shadow-2xs">
+            {/* Search, Page Size Selector & Stats Bar */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-3 border border-slate-200 rounded-xl shadow-2xs">
               <div className="relative flex-1 max-w-md">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={userSearchTerm}
-                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setUserSearchTerm(e.target.value);
+                    setUserCurrentPage(1);
+                  }}
                   placeholder="Buscar docente por nombre, email, departamento o rol..."
                   className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
                 />
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 self-end sm:self-auto">
+
+              {/* View options: 5 en 5, 10 en 10, 25, 50, Ver todos de un golpe */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-semibold text-slate-400 mr-0.5">Mostrar:</span>
+                <button
+                  type="button"
+                  onClick={() => { setUserPageSize(5); setUserCurrentPage(1); }}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-bold transition-all cursor-pointer border ${
+                    userPageSize === 5 
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-2xs' 
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                  title="Ver de 5 en 5"
+                >
+                  5 en 5
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUserPageSize(10); setUserCurrentPage(1); }}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-bold transition-all cursor-pointer border ${
+                    userPageSize === 10 
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-2xs' 
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                  title="Ver de 10 en 10"
+                >
+                  10 en 10
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUserPageSize(25); setUserCurrentPage(1); }}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-bold transition-all cursor-pointer border ${
+                    userPageSize === 25 
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-2xs' 
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                  title="Ver de 25 en 25"
+                >
+                  25
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUserPageSize(50); setUserCurrentPage(1); }}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-bold transition-all cursor-pointer border ${
+                    userPageSize === 50 
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-2xs' 
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                  title="Ver de 50 en 50"
+                >
+                  50
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUserPageSize(0); setUserCurrentPage(1); }}
+                  className={`px-3 py-1 text-xs rounded-lg font-black transition-all cursor-pointer border ${
+                    userPageSize === 0 
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs' 
+                      : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                  }`}
+                  title="Ver todos los docentes de un golpe sin paginación"
+                >
+                  Ver todos de un golpe
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 self-end lg:self-auto shrink-0">
                 <span className="px-2.5 py-1 bg-slate-100 rounded-lg">
                   Total: <strong className="text-slate-800">{usuarios.length}</strong>
                 </span>
@@ -704,32 +859,111 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
 
             {/* Users Table */}
             <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
-              <div className="max-h-[500px] overflow-y-auto">
+              <div className="max-h-[550px] overflow-y-auto">
                 <table className="w-full text-left border-collapse text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 text-slate-500 font-bold uppercase text-[10px] tracking-wider select-none">
                     <tr>
-                      <th className="p-3">Estado</th>
-                      <th className="p-3">Nombre</th>
-                      <th className="p-3">Email Institucional</th>
-                      <th className="p-3">Departamento Didáctico</th>
-                      <th className="p-3 text-center">Turno</th>
-                      <th className="p-3 text-center">Rol Asignado</th>
-                      <th className="p-3 text-center">Acreditación ATECA</th>
-                      <th className="p-3 text-center">Cuenta</th>
-                      <th className="p-3 text-right">Acciones</th>
+                      <th 
+                        onClick={() => handleSortUsers('estado')}
+                        className="p-3 cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por estado (Activo / De baja)"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Estado</span>
+                          {renderSortIndicator('estado')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortUsers('nombre')}
+                        className="p-3 cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por nombre (A-Z / Z-A)"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Nombre</span>
+                          {renderSortIndicator('nombre')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortUsers('email')}
+                        className="p-3 cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por email institucional (A-Z / Z-A)"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Email Institucional</span>
+                          {renderSortIndicator('email')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortUsers('departamento')}
+                        className="p-3 cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por departamento didáctico (A-Z / Z-A)"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Departamento Didáctico</span>
+                          {renderSortIndicator('departamento')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortUsers('turno')}
+                        className="p-3 text-center cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por turno (Mañana / Tarde / Ambos)"
+                      >
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span>Turno</span>
+                          {renderSortIndicator('turno')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortUsers('rol')}
+                        className="p-3 text-center cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por rol asignado"
+                      >
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span>Rol Asignado</span>
+                          {renderSortIndicator('rol')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortUsers('acreditacion')}
+                        className="p-3 text-center cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por acreditación ATECA"
+                      >
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span>Acreditación ATECA</span>
+                          {renderSortIndicator('acreditacion')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortUsers('cuenta')}
+                        className="p-3 text-center cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por estado de cuenta"
+                      >
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span>Cuenta</span>
+                          {renderSortIndicator('cuenta')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortUsers('acciones')}
+                        className="p-3 text-right cursor-pointer group hover:bg-slate-100 transition-colors"
+                        title="Ordenar por acciones"
+                      >
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span>Acciones</span>
+                          {renderSortIndicator('acciones')}
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {usuarios
-                      .filter(u => {
-                        if (!userSearchTerm.trim()) return true;
-                        const term = userSearchTerm.toLowerCase();
-                        return u.nombre.toLowerCase().includes(term) ||
-                               u.email.toLowerCase().includes(term) ||
-                               (u.departamento && u.departamento.toLowerCase().includes(term)) ||
-                               u.rol.toLowerCase().includes(term);
-                      })
-                      .map((usr) => (
+                    {paginatedUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="p-8 text-center text-slate-400 italic">
+                          No se encontraron docentes con el criterio de búsqueda especificado.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedUsers.map((usr) => (
                       <tr key={usr.id_usuario} className={`hover:bg-slate-50/80 transition-colors ${usr.activo === false ? 'opacity-60 bg-slate-50/40' : ''}`}>
                         <td className="p-3">
                           {usr.activo === false ? (
@@ -873,9 +1107,68 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination Controls & Item Range */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <span>
+                  {isViewAllUsers ? (
+                    <>Mostrando <strong className="text-slate-900 font-bold">todos los {totalUserCount} docentes</strong> de un golpe.</>
+                  ) : (
+                    <>Mostrando del <strong className="text-slate-900 font-bold">{userStartItem}</strong> al <strong className="text-slate-900 font-bold">{userEndItem}</strong> de <strong className="text-slate-900 font-bold">{totalUserCount}</strong> docentes</>
+                  )}
+                </span>
+                {userSearchTerm && (
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    (filtrados de {usuarios.length} docentes totales)
+                  </span>
+                )}
+              </div>
+
+              {!isViewAllUsers && totalUserPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={activeUserPage === 1}
+                    onClick={() => setUserCurrentPage(prev => Math.max(1, prev - 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Página anterior"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  <div className="flex items-center gap-1 px-1">
+                    {Array.from({ length: totalUserPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setUserCurrentPage(pageNum)}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          activeUserPage === pageNum
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={activeUserPage === totalUserPages}
+                    onClick={() => setUserCurrentPage(prev => Math.min(totalUserPages, prev + 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Página siguiente"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

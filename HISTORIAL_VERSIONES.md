@@ -5,6 +5,33 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.4.5] - 2026-09-24
+### 📊 Gestión de Usuarios: Paginación Configurable (5, 10, Todos) y Ordenación Interactiva Multicolumna
+* **Objetivo**: Proporcionar una experiencia fluida, rápida y ergonómica en la tabla de Gestión de Usuarios del Panel de Administración, permitiendo al Administrador ver a todos los docentes de un golpe o paginados (de 5 en 5, de 10 en 10, de 25 o de 50), así como ordenar interactivamente por cualquiera de las 9 columnas de la tabla.
+* **Mejoras clave**:
+  * **Paginación Configurable y Vista Completa ("Ver todos de un golpe")**:
+    * Botones selectores directos en la barra superior: `5 en 5`, `10 en 10`, `25`, `50` y `Ver todos de un golpe`.
+    * Barra inferior de navegación con botones Anterior / Siguiente, numeración de páginas activas e indicador de rango de docentes visibles (`Mostrando del X al Y de Z docentes` o `Mostrando todos los Z docentes de un golpe`).
+  * **Ordenación Interactiva en las 9 Columnas de la Tabla**:
+    * Cada encabezado de columna es interactivo y conmutador (ascendente / descendente):
+      * **Estado**: Clasifica entre docentes Activos y De Baja.
+      * **Nombre**: Orden alfabético (A-Z / Z-A) con soporte de acentos y caracteres en español.
+      * **Email Institucional**: Orden alfabético por buzón oficial corporativo.
+      * **Departamento Didáctico**: Agrupación y orden alfabético por especialidad o familia profesional.
+      * **Turno**: Clasificación por jornada (Mañana, Tarde o Ambos).
+      * **Rol Asignado**: Ordenación jerárquica por perfil (Profesor, Coordinador, Administrador).
+      * **Acreditación ATECA**: Priorización entre docentes Acreditados con competencias básicas vs Sin Acreditar.
+      * **Cuenta**: Ordenación por estado de habilitación de cuenta.
+      * **Acciones**: Ordenación alfabética complementaria.
+    * Indicadores visuales direccionales dinámicos (`ArrowUp`, `ArrowDown`, `ArrowUpDown`) para identificar con claridad el criterio activo de ordenación.
+  * **Sincronización en las 3 Capas (v1.4.5)**:
+    * Actualización de la versión a `1.4.5` en `types.ts`, `package.json` y pie de página.
+    * Generación de respaldo local en archivo ZIP `Reservas-Aula-ATECA-v.1.4.5.zip`.
+    * Compilación con Vite y despliegue a producción Hostinger (`https://ateca.fpapps.es`).
+    * Sincronización en GitHub (`main`, `backup/v1.4.5` y tag `v1.4.5`).
+
+---
+
 ## [v1.4.4] - 2026-09-24
 ### 🗑️ Gestión Avanzada de Usuarios: Opción de Eliminación Completa y Purga Definitiva de Registros
 * **Objetivo**: Permitir al Administrador eliminar definitivamente y por completo a cualquier usuario para mantener la lista de usuarios limpia y depurada, eliminando simultáneamente en cascada todos sus registros asociados (reservas históricas, memorias didácticas, valoraciones y códigos 2FA activos), manteniendo al mismo tiempo la política existente de «Dar de baja (Opción A)» para aquellos casos donde se desee preservar el histórico escolar.
