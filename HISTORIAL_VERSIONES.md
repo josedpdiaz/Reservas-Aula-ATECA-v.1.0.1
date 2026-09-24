@@ -5,6 +5,27 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.4.4] - 2026-09-24
+### 🗑️ Gestión Avanzada de Usuarios: Opción de Eliminación Completa y Purga Definitiva de Registros
+* **Objetivo**: Permitir al Administrador eliminar definitivamente y por completo a cualquier usuario para mantener la lista de usuarios limpia y depurada, eliminando simultáneamente en cascada todos sus registros asociados (reservas históricas, memorias didácticas, valoraciones y códigos 2FA activos), manteniendo al mismo tiempo la política existente de «Dar de baja (Opción A)» para aquellos casos donde se desee preservar el histórico escolar.
+* **Mejoras clave**:
+  * **Doble Política de Gestión de Usuarios**:
+    * **Opción A (Conservar Histórico)**: Conmutador de «Dar de baja» / «Reactivar», que revoca el acceso del docente pero conserva intactas todas sus reservas pasadas, valoraciones y memorias para auditorías pedagógicas y estadísticas del centro.
+    * **Opción B (Eliminación Completa y Purga Total)**: Botón de acción con icono de papelera roja (`Trash2`) que purga totalmente al usuario de la base de datos, desasigna y suprime todas sus reservas del calendario (dejando las franjas horarias libres), purga sus valoraciones y limpia cualquier código 2FA activo en el almacén de seguridad.
+  * **Salvaguardas de Seguridad Institucional**:
+    * Protección estricta que impide borrar la cuenta raíz de Administración del centro (`jpacdia@gobiernodecanarias.org` / `u-1`) o el usuario con el que el administrador tiene la sesión iniciada en ese momento.
+    * Modal de confirmación con advertencia de irreversibilidad antes de ejecutar la purga.
+  * **Persistencia Atómica en Servidor y Almacenamiento**:
+    * Actualización del backend en `public/api.php` (`delete_item` con `item_type: 'usuario_completo'`) para ejecutar la eliminación atómica en disco y añadir las reservas del usuario a la lista de exclusión (`deleted_reservas`), impidiendo que reaparezcan tras sincronizaciones.
+    * Integración completa en `src/lib/storage.ts` con la nueva función `deleteUserCompletely()`.
+  * **Sincronización en las 3 Capas (v1.4.4)**:
+    * Actualización de la versión a `1.4.4` en `types.ts`, `package.json` y pie de página.
+    * Generación de respaldo local en archivo ZIP `Reservas-Aula-ATECA-v.1.4.4.zip`.
+    * Compilación con Vite y despliegue a producción Hostinger (`https://ateca.fpapps.es`).
+    * Sincronización en GitHub (`main`, `backup/v1.4.4` y tag `v1.4.4`).
+
+---
+
 ## [v1.4.3] - 2026-09-24
 ### 📧 Enrutamiento Universal de Avisos y Códigos 2FA al Buzón Educativo (`@canariaseducacion.es`) con Matrícula Centralizada (`@gobiernodecanarias.org`)
 * **Objetivo**: Garantizar el 100% de la entregabilidad de correos electrónicos (códigos de acceso OTP de 6 dígitos, confirmaciones de reserva, avisos de coordinador, alertas de mantenimiento y recordatorios semanales), manteniendo la identidad institucional y matrícula de todos los docentes y administradores con su cuenta corporativa del Gobierno de Canarias (`@gobiernodecanarias.org`), pero remitiendo todas las notificaciones y códigos de forma universal e inequívoca a su buzón activo de **`@canariaseducacion.es`** (preservando exactamente el mismo login/nombre de usuario antes de la `@`).

@@ -407,13 +407,92 @@ switch ($action) {
             $store['bloqueos'] = array_values(array_filter($store['bloqueos'], function($b) use ($id) {
                 return (($b['id_bloqueo'] ?? $b['id'] ?? '')) !== $id;
             }));
+        } elseif ($itemType === 'usuario' || $itemType === 'usuario_completo') {
+            $userEmail = strtolower(trim($input['email'] ?? ''));
+            $userId = trim($input['id_usuario'] ?? $id);
+
+            // Salvaguarda: No permitir eliminar la cuenta de administración principal del centro
+            if (
+                $userEmail === 'jpacdia@gobiernodecanarias.org' || 
+                $userEmail === 'jpadiaz@gobiernodecanarias.org' || 
+                $userId === 'u-1'
+            ) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Operación denegada: No se puede eliminar la cuenta principal de Administración del centro.']);
+                exit;
+            }
+
+            // Localizar el email del usuario si no vino explícito
+            if (empty($userEmail) && !empty($userId)) {
+                foreach ($store['usuarios'] as $u) {
+                    if (($u['id_usuario'] ?? '') === $userId) {
+                        $userEmail = strtolower(trim($u['email'] ?? ''));
+                        break;
+                    }
+                }
+            }
+
+            // 1. Eliminar al usuario de la lista de usuarios
+            $store['usuarios'] = array_values(array_filter($store['usuarios'], function($u) use ($userId, $userEmail) {
+                $matchId = !empty($userId) && (($u['id_usuario'] ?? '') === $userId);
+                $matchEmail = !empty($userEmail) && (strtolower(trim($u['email'] ?? '')) === $userEmail);
+                return !($matchId || $matchEmail);
+            }));
+
+            // 2. Purgar todas sus reservas asociadas
+            $deletedResCount = 0;
+            if (!empty($userEmail)) {
+                if (!isset($store['deleted_reservas']) || !is_array($store['deleted_reservas'])) {
+                    $store['deleted_reservas'] = [];
+                }
+                $purgedResIds = [];
+                $store['reservas'] = array_values(array_filter($store['reservas'], function($r) use ($userEmail, &$purgedResIds, &$store) {
+                    $rEmail = strtolower(trim($r['email'] ?? ''));
+                    if ($rEmail === $userEmail) {
+                        $rId = $r['id_reserva'] ?? '';
+                        if (!empty($rId)) {
+                            $purgedResIds[] = $rId;
+                            if (!in_array($rId, $store['deleted_reservas'])) {
+                                $store['deleted_reservas'][] = $rId;
+                            }
+                        }
+                        return false;
+                    }
+                    return true;
+                }));
+                $deletedResCount = count($purgedResIds);
+
+                // 3. Purgar valoraciones asociadas
+                $store['valoraciones'] = array_values(array_filter($store['valoraciones'], function($v) use ($userEmail, $purgedResIds) {
+                    $vEmail = strtolower(trim($v['email_profesor'] ?? $v['email'] ?? ''));
+                    $vResId = $v['id_reserva'] ?? '';
+                    if ($vEmail === $userEmail || in_array($vResId, $purgedResIds)) {
+                        return false;
+                    }
+                    return true;
+                }));
+
+                // 4. Purgar códigos de autenticación 2FA en auth_codes.json
+                $authCodes = loadAuthCodes($authCodesFile);
+                $canEduAlias = str_ends_with($userEmail, '@gobiernodecanarias.org')
+                    ? str_replace('@gobiernodecanarias.org', '@canariaseducacion.es', $userEmail)
+                    : $userEmail;
+                unset($authCodes[$userEmail]);
+                unset($authCodes[$canEduAlias]);
+                saveAuthCodes($authCodesFile, $authCodes);
+            }
         }
 
         if (saveStore($dataFile, $store)) {
-            echo json_encode(['success' => true, 'updated_at' => $store['updated_at']]);
+            echo json_encode([
+                'success' => true,
+                'updated_at' => $store['updated_at'],
+                'item_type' => $itemType,
+                'deleted_reservas_count' => $deletedResCount ?? 0
+            ]);
         } else {
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Error al eliminar']);
+            echo json_encode(['success' => false, 'error' => 'Error al eliminar en disco']);
         }
         break;
 

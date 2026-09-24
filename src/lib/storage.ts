@@ -885,15 +885,80 @@ export const modifyUsuario = (userId: string, updates: Partial<Usuario>) => {
   }
 };
 
+/**
+ * Elimina definitivamente y por completo a un usuario y todos sus registros asociados
+ * (reservas, valoraciones, memorias y códigos de acceso), limpiando la base de datos de usuarios.
+ * Salvaguarda: No permite eliminar al Administrador Principal del centro.
+ */
+export const deleteUserCompletely = (userIdOrEmail: string): { success: boolean; message: string; deletedBookingsCount?: number } => {
+  const cleanTarget = userIdOrEmail.trim().toLowerCase();
+  const users = getUsuarios();
+
+  const user = users.find(u => u.id_usuario === cleanTarget || u.email.trim().toLowerCase() === cleanTarget);
+  if (!user) {
+    return { success: false, message: 'Usuario no encontrado en la plataforma.' };
+  }
+
+  const userEmail = user.email.trim().toLowerCase();
+  const userId = user.id_usuario;
+
+  // Salvaguarda de seguridad institucional: Prohibido eliminar la cuenta de administración principal del centro
+  if (
+    userEmail === 'jpacdia@gobiernodecanarias.org' ||
+    userEmail === 'jpadiaz@gobiernodecanarias.org' ||
+    userId === 'u-1'
+  ) {
+    return {
+      success: false,
+      message: 'Operación denegada: No se puede eliminar la cuenta principal de Administración del centro.'
+    };
+  }
+
+  // 1. Purgar al usuario de la lista de usuarios
+  const newUsers = users.filter(u => u.id_usuario !== userId && u.email.trim().toLowerCase() !== userEmail);
+  setUsuarios(newUsers);
+
+  // 2. Purgar todas sus reservas asociadas
+  const allReservas = getReservas();
+  const deletedReservaIds: string[] = [];
+  const remainingReservas = allReservas.filter(r => {
+    if (r.email.trim().toLowerCase() === userEmail) {
+      if (r.id_reserva) {
+        deletedReservaIds.push(r.id_reserva);
+        markReservaAsDeleted(r.id_reserva);
+      }
+      return false;
+    }
+    return true;
+  });
+  setReservas(remainingReservas);
+
+  // 3. Purgar valoraciones asociadas a las reservas del usuario
+  const allVals = getValoraciones();
+  const remainingVals = allVals.filter(v => {
+    return !deletedReservaIds.includes(v.id_reserva);
+  });
+  setValoraciones(remainingVals);
+
+  // 4. Si el usuario eliminado era el actualmente logueado (caso extremo), desloguear
+  const cur = getCurrentUser();
+  if (cur && (cur.id_usuario === userId || cur.email.trim().toLowerCase() === userEmail)) {
+    setCurrentUser(null);
+  }
+
+  // 5. Notificar al servidor central para persistencia atómica en disco y borrado en auth_codes.json
+  deleteItemFromServer('usuario_completo', userId, { email: userEmail, id_usuario: userId });
+
+  return {
+    success: true,
+    message: `El usuario ${user.nombre} (${userEmail}) y todos sus registros (${deletedReservaIds.length} reserva(s)) han sido eliminados definitivamente del sistema.`,
+    deletedBookingsCount: deletedReservaIds.length
+  };
+};
+
 // Delete user (ADMIN)
 export const deleteUsuario = (userId: string): boolean => {
-  const users = getUsuarios();
-  const filtered = users.filter(u => u.id_usuario !== userId);
-  if (filtered.length !== users.length) {
-    setUsuarios(filtered);
-    return true;
-  }
-  return false;
+  return deleteUserCompletely(userId).success;
 };
 
 // Add user

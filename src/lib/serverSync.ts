@@ -99,8 +99,9 @@ export const markReservaAsDeleted = (id: string) => {
  * Elimina un elemento del servidor central de forma asíncrona
  */
 export const deleteItemFromServer = async (
-  itemType: 'reserva' | 'bloqueo',
-  id: string
+  itemType: 'reserva' | 'bloqueo' | 'usuario' | 'usuario_completo',
+  id: string,
+  extraData?: { email?: string; id_usuario?: string }
 ): Promise<boolean> => {
   if (itemType === 'reserva') {
     markReservaAsDeleted(id);
@@ -116,6 +117,8 @@ export const deleteItemFromServer = async (
         action: 'delete_item',
         item_type: itemType,
         id,
+        email: extraData?.email,
+        id_usuario: extraData?.id_usuario,
       }),
     });
 

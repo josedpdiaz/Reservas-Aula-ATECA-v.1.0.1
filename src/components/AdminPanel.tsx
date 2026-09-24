@@ -13,7 +13,7 @@ import {
 import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog, OfficialDepartment, isFpDepartment, getAllDepartments, saveCustomDepartment } from '../types'; 
 import { 
   getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig,
-  modifyUsuario, addUsuario, deleteUsuario, addBloqueo, removeBloqueo, setConfig, 
+  modifyUsuario, addUsuario, deleteUsuario, deleteUserCompletely, addBloqueo, removeBloqueo, setConfig, 
   formatDateToYMD, getDiasNoHabiles, addDiaNoHabil, removeDiaNoHabil,
   clearAllReservasAndValoraciones, toggleUserCompetencias
 } from '../lib/storage';
@@ -72,6 +72,8 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
   const [editPermisoCrearUsuarios, setEditPermisoCrearUsuarios] = useState(false);
   const [editFormacionCompetencias, setEditFormacionCompetencias] = useState(false);
   const [userToDeactivate, setUserToDeactivate] = useState<Usuario | null>(null);
+  const [userToDeletePermanently, setUserToDeletePermanently] = useState<Usuario | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   // Lockout form
   const [blockFecha, setBlockFecha] = useState(() => formatDateToYMD());
@@ -198,6 +200,22 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
     modifyUsuario(userToDeactivate.id_usuario, { activo: !userToDeactivate.activo });
     setUserToDeactivate(null);
     onRefresh();
+  };
+
+  const handleConfirmDeleteUserPermanently = () => {
+    if (!userToDeletePermanently) return;
+    setIsDeletingUser(true);
+    try {
+      const res = deleteUserCompletely(userToDeletePermanently.id_usuario);
+      if (res.success) {
+        setUserToDeletePermanently(null);
+        onRefresh();
+      } else {
+        alert(res.message);
+      }
+    } finally {
+      setIsDeletingUser(false);
+    }
   };
 
   const handleAddUserSubmit = (e: React.FormEvent) => {
@@ -830,7 +848,7 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
                               type="button"
                               disabled={usr.id_usuario === currentUser.id_usuario}
                               onClick={() => setUserToDeactivate(usr)}
-                              title={usr.id_usuario === currentUser.id_usuario ? 'No puedes darte de baja a ti mismo' : (usr.activo ? 'Dar de baja (Opción A)' : 'Reactivar docente')}
+                              title={usr.id_usuario === currentUser.id_usuario ? 'No puedes darte de baja a ti mismo' : (usr.activo ? 'Dar de baja (Opción A - Conservar registros)' : 'Reactivar docente')}
                               className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
                                 usr.activo 
                                   ? 'bg-slate-100 hover:bg-amber-50 text-slate-400 hover:text-amber-600' 
@@ -838,6 +856,19 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
                               }`}
                             >
                               {usr.activo ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={usr.id_usuario === currentUser.id_usuario || usr.email === 'jpacdia@gobiernodecanarias.org' || usr.id_usuario === 'u-1'}
+                              onClick={() => setUserToDeletePermanently(usr)}
+                              title={
+                                usr.id_usuario === currentUser.id_usuario || usr.email === 'jpacdia@gobiernodecanarias.org' || usr.id_usuario === 'u-1'
+                                  ? 'No se puede eliminar la cuenta principal de administración'
+                                  : 'Eliminar completamente al usuario y todos sus registros (Opción B - Purga total)'
+                              }
+                              className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-700 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -1875,6 +1906,77 @@ export default function AdminPanel({ onRefresh, currentUser, onBackToCalendar }:
               <button
                 type="button"
                 onClick={() => setUserToDeactivate(null)}
+                className="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-center cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ELIMINACIÓN COMPLETA DE USUARIO Y REGISTROS (OPCIÓN B) */}
+      {userToDeletePermanently && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in no-print">
+          <div className="bg-white rounded-2xl shadow-2xl border border-rose-200 max-w-md w-full p-6 space-y-5 animate-scale-up">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
+                  Opción B · Purga Definitiva
+                </span>
+                <h3 className="text-base font-black text-slate-900 tracking-tight mt-1">
+                  Eliminar Usuario y Registros
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {userToDeletePermanently.nombre} ({userToDeletePermanently.email})
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-rose-50/80 border border-rose-200 rounded-xl p-4 text-xs text-rose-950 space-y-2.5 leading-relaxed">
+              <div className="font-bold flex items-center gap-1.5 text-rose-900">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>¿Estás seguro de eliminar completamente a este docente?</span>
+              </div>
+              <p className="text-[11px] text-rose-800">
+                Esta acción eliminará al usuario de la plataforma y <strong>purgará definitivamente todas sus reservas anteriores, valoraciones y memorias didácticas</strong> del Aula ATECA.
+              </p>
+              <div className="bg-white/90 p-2.5 rounded-lg border border-rose-200 text-[11px] text-slate-700 space-y-1">
+                <p>⚠️ <strong>Consecuencias de esta acción:</strong></p>
+                <ul className="list-disc list-inside space-y-0.5 pl-1 text-[10px] text-slate-600">
+                  <li>El usuario desaparecerá completamente del listado para dejarlo limpio.</li>
+                  <li>Se liberarán y purgarán todas sus reservas horarias asociadas.</li>
+                  <li>Esta operación es irreversible y no se puede deshacer.</li>
+                </ul>
+              </div>
+              <p className="text-[10px] text-slate-500 italic">
+                * Si únicamente deseas impedir su acceso conservando el histórico escolar, utiliza la <strong>Opción A (Dar de baja)</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-2 text-xs pt-1">
+              <button
+                type="button"
+                disabled={isDeletingUser}
+                onClick={handleConfirmDeleteUserPermanently}
+                className="w-full py-2.5 px-4 font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white"
+              >
+                {isDeletingUser ? (
+                  <span>Eliminando y purgando registros...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" /> Sí, eliminar usuario y todos sus registros
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeletingUser}
+                onClick={() => setUserToDeletePermanently(null)}
                 className="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-center cursor-pointer transition-colors"
               >
                 Cancelar
