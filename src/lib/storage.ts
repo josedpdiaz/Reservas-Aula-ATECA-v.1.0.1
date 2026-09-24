@@ -589,6 +589,7 @@ export const addReserva = (reserva: Omit<Reserva, 'id_reserva' | 'fecha_creacion
 
   const finalReserva: Reserva = {
     ...reserva,
+    numero_alumnos: Math.min(12, Math.max(1, Number(reserva.numero_alumnos) || 1)),
     id_reserva,
     fecha_creacion,
     estado: nuevoEstado,
@@ -818,6 +819,7 @@ export const updateReserva = (reserva: Reserva): { success: boolean; message?: s
   const updatedReserva: Reserva = {
     ...arr[idx],
     ...reserva,
+    numero_alumnos: Math.min(12, Math.max(1, Number(reserva.numero_alumnos) || 1)),
     estado: nuevoEstado,
     observaciones_coordinador: isFP
       ? 'Aprobada automáticamente por nivel P1 de Formación Profesional (FP / Prueba técnica).'
@@ -1240,3 +1242,30 @@ export const confirmReservaDocente = (id_reserva: string): { success: boolean; m
   }
   return { success: false, message: 'Reserva no encontrada.' };
 };
+
+/**
+ * Comprueba si un docente cuenta con la acreditación de competencias básicas del Aula ATECA
+ */
+export const isTeacherAccredited = (emailOrName?: string): boolean => {
+  if (!emailOrName) return false;
+  const users = getUsuarios();
+  const lower = emailOrName.trim().toLowerCase();
+  const u = users.find(usr => 
+    usr.email.toLowerCase() === lower || 
+    usr.nombre.toLowerCase() === lower
+  );
+  return Boolean(u?.formacion_competencias);
+};
+
+/**
+ * Conmuta el estado de acreditación de competencias básicas de un usuario (Admin y Coordinación)
+ */
+export const toggleUserCompetencias = (userId: string): boolean => {
+  const users = getUsuarios();
+  const u = users.find(usr => usr.id_usuario === userId);
+  if (!u) return false;
+  const nextVal = !u.formacion_competencias;
+  modifyUsuario(userId, { formacion_competencias: nextVal });
+  return nextVal;
+};
+

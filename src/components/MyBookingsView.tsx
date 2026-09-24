@@ -7,7 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Award, Calendar, Clock, PlusCircle, Search, LayoutGrid, List, 
   Layers, CheckCircle2, ChevronDown, ChevronUp, ArrowUpDown, Filter, Eye,
-  Edit3, CalendarX, HeartHandshake, Trash2
+  Edit3, CalendarX, HeartHandshake, Trash2, GraduationCap
 } from 'lucide-react';
 import { Reserva, Usuario, Valoracion } from '../types';
 import { updateReserva, deleteReserva, cancelReserva, hasBookingConcluded } from '../lib/storage';
@@ -108,7 +108,14 @@ export default function MyBookingsView({
       {/* Top Banner with Stats & View Switcher */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-lg font-black tracking-tight text-slate-900">Mi Agenda y Memorias Docentes</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg font-black tracking-tight text-slate-900">Mi Agenda y Memorias Docentes</h2>
+            {currentUser.formacion_competencias && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                <GraduationCap className="w-3 h-3 text-amber-700" /> Acreditado ATECA
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">Control de tus actividades didácticas y justificaciones en el Aula ATECA</p>
         </div>
 

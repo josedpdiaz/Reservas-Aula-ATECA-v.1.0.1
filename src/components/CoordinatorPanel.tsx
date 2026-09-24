@@ -4,9 +4,9 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, FileCheck, CheckCircle2, Layers, Settings } from 'lucide-react';
-import { Reserva, Usuario } from '../types';
-import { getReservas, getValoraciones, updateReservaEstado, getUsuarios } from '../lib/storage';
+import { CheckCircle, XCircle, AlertTriangle, FileText, BarChart3, Clock, FileCheck, CheckCircle2, Layers, Settings, GraduationCap, UserPlus, Lock, Search } from 'lucide-react';
+import { Reserva, Usuario, isFpDepartment, getAllDepartments } from '../types';
+import { getReservas, getValoraciones, updateReservaEstado, getUsuarios, toggleUserCompetencias, isTeacherAccredited, addUsuario } from '../lib/storage';
 import { notifyReservaAprobada, notifyReservaRechazada } from '../lib/emailService';
 
 interface CoordinatorPanelProps {
@@ -18,10 +18,53 @@ interface CoordinatorPanelProps {
 
 export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBooking, onRefresh, currentUser }: CoordinatorPanelProps) {
   const [observacionesInput, setObservacionesInput] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<'pending' | 'all' | 'unvalued'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'teachers' | 'unvalued' | 'all'>('pending');
+  const [teacherSearch, setTeacherSearch] = useState('');
+  const [newTeacherName, setNewTeacherName] = useState('');
+  const [newTeacherEmail, setNewTeacherEmail] = useState('');
+  const [newTeacherDept, setNewTeacherDept] = useState('Administración y Gestión');
+  const [newTeacherTurno, setNewTeacherTurno] = useState<'Mañana' | 'Tarde-Noche' | 'Ambos'>('Ambos');
+  const [newTeacherAcreditado, setNewTeacherAcreditado] = useState(false);
+  const [teacherSuccessMsg, setTeacherSuccessMsg] = useState('');
+
+  const canAuthorize = currentUser.rol === 'ADMIN' || currentUser.permisos_coordinador?.autorizar_reservas !== false;
+  const canCreateUsers = currentUser.rol === 'ADMIN' || !!currentUser.permisos_coordinador?.crear_usuarios;
 
   const rawReservas = getReservas();
   const valoraciones = getValoraciones();
+  const allUsers = getUsuarios();
+  const allDepts = getAllDepartments();
+
+  const handleAddTeacherSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canCreateUsers) return;
+
+    if (!newTeacherEmail.toLowerCase().endsWith('@gobiernodecanarias.org') &&
+        newTeacherEmail.toLowerCase() !== 'josedpdiaz@gmail.com' &&
+        newTeacherEmail.toLowerCase() !== 'phopsys@gmail.com') {
+      alert('Solo se admiten correos institucionales (@gobiernodecanarias.org) o cuentas de prueba autorizadas.');
+      return;
+    }
+
+    addUsuario({
+      nombre: newTeacherName.trim(),
+      email: newTeacherEmail.trim().toLowerCase(),
+      rol: 'PROFESOR',
+      departamento: newTeacherDept,
+      turno: newTeacherTurno,
+      activo: true,
+      formacion_competencias: newTeacherAcreditado,
+    });
+
+    setTeacherSuccessMsg(`Docente ${newTeacherName.trim()} registrado correctamente.`);
+    setTimeout(() => setTeacherSuccessMsg(''), 4000);
+    setNewTeacherName('');
+    setNewTeacherEmail('');
+    setNewTeacherDept('Administración y Gestión');
+    setNewTeacherTurno('Ambos');
+    setNewTeacherAcreditado(false);
+    onRefresh();
+  };
 
   // Filter lists
   const pendingReservas = useMemo(() => {
@@ -254,10 +297,10 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
       {/* CORE WORKFLOW LISTS */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
         {/* Navigation Tabs */}
-        <div className="flex bg-slate-100 border-b border-slate-200 text-xs font-bold text-slate-500">
+        <div className="flex bg-slate-100 border-b border-slate-200 text-xs font-bold text-slate-500 overflow-x-auto">
           <button
             onClick={() => setActiveTab('pending')}
-            className={`px-5 py-3 border-r border-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors ${
+            className={`px-5 py-3 border-r border-slate-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors ${
               activeTab === 'pending' ? 'bg-white text-slate-800 border-b-2 border-b-slate-900' : 'hover:bg-slate-50'
             }`}
           >
@@ -265,8 +308,17 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
             {stats.pendingCount > 0 && <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></span>}
           </button>
           <button
+            onClick={() => setActiveTab('teachers')}
+            className={`px-5 py-3 border-r border-slate-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors ${
+              activeTab === 'teachers' ? 'bg-white text-slate-800 border-b-2 border-b-slate-900' : 'hover:bg-slate-50'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4 text-amber-600" />
+            Docentes y Acreditaciones ({allUsers.length})
+          </button>
+          <button
             onClick={() => setActiveTab('unvalued')}
-            className={`px-5 py-3 border-r border-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors ${
+            className={`px-5 py-3 border-r border-slate-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors ${
               activeTab === 'unvalued' ? 'bg-white text-slate-800 border-b-2 border-b-slate-900' : 'hover:bg-slate-50'
             }`}
           >
@@ -274,7 +326,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
           </button>
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-5 py-3 flex items-center gap-1.5 cursor-pointer transition-colors ${
+            className={`px-5 py-3 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors ${
               activeTab === 'all' ? 'bg-white text-slate-800 border-b-2 border-b-slate-900' : 'hover:bg-slate-50'
             }`}
           >
@@ -286,6 +338,15 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
         <div className="p-4">
           {activeTab === 'pending' && (
             <div className="space-y-4">
+              {!canAuthorize && (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-900 text-xs">
+                  <Lock className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div>
+                    <strong className="font-bold">Permiso de autorización restringido:</strong> Tu perfil de coordinador está configurado en modo consulta. La aprobación o rechazo de solicitudes de reserva pendientes requiere autorización expresa del administrador.
+                  </div>
+                </div>
+              )}
+
               {pendingReservas.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 text-xs">
                   Aún no hay nuevas reservas en estado PENDIENTE. ¡El aula está al corriente!
@@ -297,6 +358,11 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-2 text-xs">
                       <div>
                         <span className="font-extrabold text-slate-800 text-sm">{res.profesor}</span>
+                        {isTeacherAccredited(res.email || res.profesor) && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300 ml-2" title="Docente con competencias básicas ATECA acreditadas">
+                            <GraduationCap className="w-2.5 h-2.5 text-amber-700" /> Acreditado
+                          </span>
+                        )}
                         <span className="text-slate-400 mx-2">|</span>
                         <span className="text-slate-500 font-medium">{res.departamento} • {res.grupo} • {res.nivel}</span>
                       </div>
@@ -321,7 +387,7 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
                       <div>
                         <p className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Eje temático y mÓdulo</p>
                         <p className="text-slate-700 font-semibold mt-1">{res.modulo_materia_area}</p>
-                        <p className="text-slate-500 mt-1">Zona: <strong>{res.zona_principal}</strong> ({res.numero_alumnos} alumnos)</p>
+                        <p className="text-slate-500 mt-1">Zona: <strong>{res.zona_principal}</strong> ({res.numero_alumnos} alumnos máx 12)</p>
                       </div>
                       <div>
                         <p className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Objetivo pedagÓgico</p>
@@ -360,29 +426,233 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
                             <Settings className="w-4 h-4" /> Ficha
                           </button>
                         )}
-                        <button
-                          onClick={() => handleAction(res.id_reserva, 'CANCELADA', observacionesInput[res.id_reserva] || 'Reserva cancelada por el coordinador.')}
-                          className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <AlertTriangle className="w-4 h-4" /> Cancelar
-                        </button>
-                        <button
-                          onClick={() => handleAction(res.id_reserva, 'RECHAZADA', observacionesInput[res.id_reserva] || 'Reserva desestimada por el coordinador debido a solapamiento o necesidades del centro.')}
-                          className="px-3 py-2 border border-red-200 hover:bg-red-50 text-red-600 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <XCircle className="w-4 h-4" /> Rechazar
-                        </button>
-                        <button
-                          onClick={() => handleAction(res.id_reserva, 'APROBADA', observacionesInput[res.id_reserva] || 'Autorizada por el Coordinador Ateca.')}
-                          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-xs"
-                        >
-                          <CheckCircle className="w-4 h-4 text-emerald-400" /> Aprobar reserva
-                        </button>
+                        {canAuthorize ? (
+                          <>
+                            <button
+                              onClick={() => handleAction(res.id_reserva, 'CANCELADA', observacionesInput[res.id_reserva] || 'Reserva cancelada por el coordinador.')}
+                              className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <AlertTriangle className="w-4 h-4" /> Cancelar
+                            </button>
+                            <button
+                              onClick={() => handleAction(res.id_reserva, 'RECHAZADA', observacionesInput[res.id_reserva] || 'Reserva desestimada por el coordinador debido a solapamiento o necesidades del centro.')}
+                              className="px-3 py-2 border border-red-200 hover:bg-red-50 text-red-600 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <XCircle className="w-4 h-4" /> Rechazar
+                            </button>
+                            <button
+                              onClick={() => handleAction(res.id_reserva, 'APROBADA', observacionesInput[res.id_reserva] || 'Autorizada por el Coordinador Ateca.')}
+                              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+                            >
+                              <CheckCircle className="w-4 h-4 text-emerald-400" /> Aprobar reserva
+                            </button>
+                          </>
+                        ) : (
+                          <span className="px-3 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-bold inline-flex items-center gap-1.5" title="Sin permiso para aprobar o rechazar">
+                            <Lock className="w-3.5 h-3.5" /> Requiere permiso de autorización
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))
               )}
+            </div>
+          )}
+
+          {activeTab === 'teachers' && (
+            <div className="space-y-5">
+              {/* Formulario de registro de docentes si tiene permiso crear_usuarios */}
+              {canCreateUsers ? (
+                <form onSubmit={handleAddTeacherSubmit} className="bg-slate-50 p-4 border border-slate-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
+                      <UserPlus className="w-4 h-4 text-slate-500" /> Dar de alta nuevo docente
+                    </h3>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                      Permiso de Coordinación Activo
+                    </span>
+                  </div>
+                  {teacherSuccessMsg && (
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 font-medium">
+                      ✓ {teacherSuccessMsg}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Nombre y Apellidos</label>
+                      <input
+                        type="text"
+                        required
+                        value={newTeacherName}
+                        onChange={(e) => setNewTeacherName(e.target.value)}
+                        placeholder="Ej: Laura Palmer"
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Email Institucional</label>
+                      <input
+                        type="email"
+                        required
+                        value={newTeacherEmail}
+                        onChange={(e) => setNewTeacherEmail(e.target.value)}
+                        placeholder="docente@gobiernodecanarias.org"
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Departamento</label>
+                      <select
+                        value={newTeacherDept}
+                        onChange={(e) => setNewTeacherDept(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none font-medium cursor-pointer"
+                      >
+                        <optgroup label="⭐ Ciclos de FP (Prioridad P1)">
+                          {allDepts.filter(d => d.isFP).map(d => (
+                            <option key={d.id} value={d.name}>{d.name}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="📚 Secundaria / Bachillerato (P2/P3)">
+                          {allDepts.filter(d => !d.isFP).map(d => (
+                            <option key={d.id} value={d.name}>{d.name}</option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Turno</label>
+                      <div className="flex gap-2">
+                        <select
+                          value={newTeacherTurno}
+                          onChange={(e) => setNewTeacherTurno(e.target.value as any)}
+                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg outline-none font-medium cursor-pointer"
+                        >
+                          <option value="Ambos">Ambos</option>
+                          <option value="Mañana">Mañana</option>
+                          <option value="Tarde-Noche">Tarde-Noche</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-xs cursor-pointer shrink-0 transition-colors"
+                        >
+                          Registrar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-amber-900 font-medium">
+                      <input
+                        type="checkbox"
+                        checked={newTeacherAcreditado}
+                        onChange={(e) => setNewTeacherAcreditado(e.target.checked)}
+                        className="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500 cursor-pointer"
+                      />
+                      <GraduationCap className="w-4 h-4 text-amber-600" />
+                      <span>Docente con competencias básicas ATECA acreditadas</span>
+                    </label>
+                  </div>
+                </form>
+              ) : (
+                <div className="p-3.5 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-slate-500 text-xs flex items-center gap-2.5">
+                  <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span>El alta de nuevos usuarios está reservada al administrador o a coordinadores con permiso concedido por la administración.</span>
+                </div>
+              )}
+
+              {/* Barra de búsqueda e información */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={teacherSearch}
+                    onChange={(e) => setTeacherSearch(e.target.value)}
+                    placeholder="Buscar docente por nombre, email o departamento..."
+                    className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-slate-400"
+                  />
+                </div>
+                <div className="text-xs text-slate-600 flex items-center gap-1.5">
+                  <GraduationCap className="w-4 h-4 text-amber-600" />
+                  <span>Haz clic en la insignia para activar o desactivar la acreditación en competencias ATECA.</span>
+                </div>
+              </div>
+
+              {/* Tabla de Docentes y Acreditaciones */}
+              <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-2xs">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="p-3">Docente</th>
+                      <th className="p-3">Email Institucional</th>
+                      <th className="p-3">Departamento</th>
+                      <th className="p-3 text-center">Turno</th>
+                      <th className="p-3 text-center">Rol</th>
+                      <th className="p-3 text-center">Acreditación ATECA</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {allUsers
+                      .filter(u => {
+                        if (!teacherSearch.trim()) return true;
+                        const term = teacherSearch.toLowerCase();
+                        return u.nombre.toLowerCase().includes(term) ||
+                               u.email.toLowerCase().includes(term) ||
+                               (u.departamento && u.departamento.toLowerCase().includes(term));
+                      })
+                      .map(usr => (
+                        <tr key={usr.id_usuario} className="hover:bg-slate-50/50">
+                          <td className="p-3 font-bold text-slate-800">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span>{usr.nombre}</span>
+                              {usr.formacion_competencias && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                  <GraduationCap className="w-2.5 h-2.5 text-amber-700" /> Acreditado
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 font-mono text-slate-500 text-[11px]">{usr.email}</td>
+                          <td className="p-3 font-medium text-slate-600">
+                            <div className="flex items-center gap-1.5">
+                              <span>{usr.departamento || 'General'}</span>
+                              {isFpDepartment(usr.departamento) ? (
+                                <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1 py-0.2 rounded border border-emerald-200">FP</span>
+                              ) : (
+                                <span className="text-[9px] bg-amber-50 text-amber-700 font-medium px-1 py-0.2 rounded border border-amber-200">P2/P3</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 text-center font-medium text-slate-500">{usr.turno || 'Ambos'}</td>
+                          <td className="p-3 text-center">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${usr.rol === 'ADMIN' ? 'bg-purple-100 text-purple-700' : usr.rol === 'COORDINADOR' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                              {usr.rol}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                toggleUserCompetencias(usr.id_usuario);
+                                onRefresh();
+                              }}
+                              title={usr.formacion_competencias ? "Docente acreditado en ATECA (Clic para alternar)" : "Docente sin acreditar (Clic para alternar)"}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-all border ${
+                                usr.formacion_competencias
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 shadow-2xs'
+                                  : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600'
+                              }`}
+                            >
+                              <GraduationCap className={`w-3.5 h-3.5 ${usr.formacion_competencias ? 'text-amber-600' : 'text-slate-400'}`} />
+                              {usr.formacion_competencias ? '🎓 Acreditado' : 'Sin Acreditar'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -451,7 +721,14 @@ export default function CoordinatorPanel({ onSelectBookingForReport, onSelectBoo
                     return (
                       <tr key={res.id_reserva} className="hover:bg-slate-50/50">
                         <td className="p-3">
-                          <p className="font-bold text-slate-800">{res.profesor}</p>
+                          <p className="font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                            <span>{res.profesor}</span>
+                            {isTeacherAccredited(res.email || res.profesor) && (
+                              <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Acreditado en competencias básicas ATECA">
+                                <GraduationCap className="w-2.5 h-2.5 text-amber-700" /> Acreditado
+                              </span>
+                            )}
+                          </p>
                           <p className="text-[10px] text-slate-500">{res.departamento}</p>
                         </td>
                         <td className="p-3">

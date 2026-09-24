@@ -8,14 +8,14 @@ import {
   UserPlus, Power, Settings, Trash, Trash2, AlertTriangle, FileSpreadsheet, 
   Play, CheckCircle2, CloudLightning, Calendar, CalendarOff, Image as ImageIcon, 
   Upload, X, ShieldAlert, Sparkles, HelpCircle, Info, RotateCcw, Mail, Inbox, Eye, Check,
-  Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink
+  Edit, Search, UserCheck, UserX, ShieldCheck, ExternalLink, GraduationCap, Shield
 } from 'lucide-react';
 import { Usuario, Bloqueo, DiaNoHabil, TipoDiaNoHabil, EmailLog, OfficialDepartment, isFpDepartment, getAllDepartments, saveCustomDepartment } from '../types'; 
 import { 
   getUsuarios, getReservas, getValoraciones, getBloqueos, getConfig,
   modifyUsuario, addUsuario, deleteUsuario, addBloqueo, removeBloqueo, setConfig, 
   formatDateToYMD, getDiasNoHabiles, addDiaNoHabil, removeDiaNoHabil,
-  clearAllReservasAndValoraciones
+  clearAllReservasAndValoraciones, toggleUserCompetencias
 } from '../lib/storage';
 import { notifyBloqueoTecnico, getEmailLogs, clearEmailLogs, notifyTestEmail } from '../lib/emailService';
 import SheetsGuide from './SheetsGuide';
@@ -54,6 +54,9 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [newUsrEmail, setNewUsrEmail] = useState('');
   const [newUsrRol, setNewUsrRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
   const [newUsrDept, setNewUsrDept] = useState('Administración y Gestión');
+  const [newUsrPermisoAutorizar, setNewUsrPermisoAutorizar] = useState(true);
+  const [newUsrPermisoCrearUsuarios, setNewUsrPermisoCrearUsuarios] = useState(false);
+  const [newUsrFormacion, setNewUsrFormacion] = useState(false);
 
   // User search, edit and deactivate modal states (Opción A)
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -64,6 +67,9 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
   const [editRol, setEditRol] = useState<'PROFESOR' | 'COORDINADOR' | 'ADMIN'>('PROFESOR');
   const [editTurno, setEditTurno] = useState<string>('Ambos');
   const [editActivo, setEditActivo] = useState(true);
+  const [editPermisoAutorizar, setEditPermisoAutorizar] = useState(true);
+  const [editPermisoCrearUsuarios, setEditPermisoCrearUsuarios] = useState(false);
+  const [editFormacionCompetencias, setEditFormacionCompetencias] = useState(false);
   const [userToDeactivate, setUserToDeactivate] = useState<Usuario | null>(null);
 
   // Lockout form
@@ -143,6 +149,9 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     setEditRol(u.rol);
     setEditTurno(u.turno || 'Ambos');
     setEditActivo(u.activo);
+    setEditPermisoAutorizar(u.permisos_coordinador?.autorizar_reservas ?? true);
+    setEditPermisoCrearUsuarios(u.permisos_coordinador?.crear_usuarios ?? false);
+    setEditFormacionCompetencias(u.formacion_competencias ?? false);
   };
 
   const handleSaveEditUser = (e: React.FormEvent) => {
@@ -150,17 +159,22 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
     if (!userToEdit || !editName.trim() || !editEmail.trim()) return;
 
     let finalDept = editDept;
-    if (editDept === '__NEW_FP__' || editDept === '__NEW_SEC__') {
+    if (editDept === '__NEW_FP__' || editDept === '__NEW_SEC__' || editDept === '__NEW_PGA__') {
       const trimmed = editCustomDeptName.trim().replace(/^departamento\s+(de\s+)?/i, '').trim();
       if (!trimmed) {
         alert('Por favor, indica el nombre del nuevo departamento.');
         return;
       }
-      const isFP = editDept === '__NEW_FP__';
+      const isFP = editDept === '__NEW_FP__' || editDept === '__NEW_PGA__';
       saveCustomDepartment(trimmed, isFP);
       finalDept = trimmed;
       setAllDepts(getAllDepartments());
     }
+
+    const permisos_coordinador = editRol === 'COORDINADOR' ? {
+      autorizar_reservas: editPermisoAutorizar,
+      crear_usuarios: editPermisoCrearUsuarios,
+    } : undefined;
 
     modifyUsuario(userToEdit.id_usuario, {
       nombre: editName.trim(),
@@ -169,6 +183,8 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
       rol: editRol,
       turno: editTurno,
       activo: editActivo,
+      permisos_coordinador,
+      formacion_competencias: editFormacionCompetencias,
     });
 
     setUserToEdit(null);
@@ -209,12 +225,20 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
       departamento: finalDept.trim(),
       turno: "Ambos",
       activo: true,
+      permisos_coordinador: newUsrRol === 'COORDINADOR' ? {
+        autorizar_reservas: newUsrPermisoAutorizar,
+        crear_usuarios: newUsrPermisoCrearUsuarios,
+      } : undefined,
+      formacion_competencias: newUsrFormacion,
     });
 
     setNewUsrName('');
     setNewUsrEmail('');
     setNewUsrDept('Administración y Gestión');
     setNewCustomDeptName('');
+    setNewUsrPermisoAutorizar(true);
+    setNewUsrPermisoCrearUsuarios(false);
+    setNewUsrFormacion(false);
     onRefresh();
   };
 
@@ -524,12 +548,6 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                         </option>
                       </optgroup>
                     </select>
-                    <button
-                      type="submit"
-                      className="px-4 py-1.5 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700 active:bg-slate-600 cursor-pointer text-xs shrink-0"
-                    >
-                      Añadir
-                    </button>
                   </div>
                   {(newUsrDept === '__NEW_FP__' || newUsrDept === '__NEW_SEC__') && (
                     <div className="mt-2 p-2 bg-slate-100/90 border border-indigo-200 rounded-lg space-y-1">
@@ -556,6 +574,70 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                       />
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Opciones adicionales: Permisos de Coordinador y Acreditación ATECA */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                {newUsrRol === 'COORDINADOR' ? (
+                  <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2 animate-fade-in">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900">
+                      <Shield className="w-4 h-4 text-indigo-600" />
+                      <span>Permisos configurables de Coordinador</span>
+                    </div>
+                    <div className="space-y-1.5 pt-0.5">
+                      <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newUsrPermisoAutorizar}
+                          onChange={(e) => setNewUsrPermisoAutorizar(e.target.checked)}
+                          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span>Autorizar / rechazar reservas de aula</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newUsrPermisoCrearUsuarios}
+                          onChange={(e) => setNewUsrPermisoCrearUsuarios(e.target.checked)}
+                          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span>Dar de alta nuevos miembros / docentes</span>
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center text-slate-400 text-xs italic">
+                    Los permisos avanzados de gestión solo son aplicables cuando el rol asignado sea COORDINADOR.
+                  </div>
+                )}
+
+                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex flex-col justify-between">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newUsrFormacion}
+                      onChange={(e) => setNewUsrFormacion(e.target.checked)}
+                      className="w-4 h-4 mt-0.5 text-amber-600 rounded border-slate-300 focus:ring-amber-500 cursor-pointer"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                        <GraduationCap className="w-4 h-4 text-amber-600" />
+                        Acreditación en Competencias ATECA
+                      </span>
+                      <p className="text-[11px] text-amber-700 mt-0.5">
+                        Marca si el docente ha superado la formación de uso seguro del aula y sus herramientas tecnológicas.
+                      </p>
+                    </div>
+                  </label>
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white font-bold rounded-lg cursor-pointer text-xs transition-colors shadow-xs"
+                    >
+                      Añadir Docente
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
@@ -597,7 +679,8 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                       <th className="p-3">Departamento Didáctico</th>
                       <th className="p-3 text-center">Turno</th>
                       <th className="p-3 text-center">Rol Asignado</th>
-                      <th className="p-3 text-center">Notificaciones</th>
+                      <th className="p-3 text-center">Acreditación ATECA</th>
+                      <th className="p-3 text-center">Cuenta</th>
                       <th className="p-3 text-right">Acciones</th>
                     </tr>
                   </thead>
@@ -625,8 +708,13 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                           )}
                         </td>
                         <td className="p-3 font-bold text-slate-800">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span>{usr.nombre}</span>
+                            {usr.formacion_competencias && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Acreditado en competencias básicas ATECA">
+                                <GraduationCap className="w-2.5 h-2.5 text-amber-700" /> Acreditado
+                              </span>
+                            )}
                             {usr.id_usuario === currentUser.id_usuario && (
                               <span className="px-1.5 py-0.2 text-[9px] font-black bg-indigo-100 text-indigo-700 rounded-md">
                                 Tú
@@ -655,16 +743,46 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                           </span>
                         </td>
                         <td className="p-3 text-center">
-                          <select
-                            value={usr.rol}
-                            disabled={usr.id_usuario === currentUser.id_usuario}
-                            onChange={(e) => handleUpdateUserRol(usr.id_usuario, e.target.value as any)}
-                            className={`px-2 py-1 text-[11px] rounded-lg border font-bold bg-white text-slate-700 outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+                          <div className="flex flex-col items-center gap-1">
+                            <select
+                              value={usr.rol}
+                              disabled={usr.id_usuario === currentUser.id_usuario}
+                              onChange={(e) => handleUpdateUserRol(usr.id_usuario, e.target.value as any)}
+                              className={`px-2 py-1 text-[11px] rounded-lg border font-bold bg-white text-slate-700 outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              <option value="PROFESOR">PROFESOR</option>
+                              <option value="COORDINADOR">COORDINADOR</option>
+                              <option value="ADMIN">ADMIN</option>
+                            </select>
+                            {usr.rol === 'COORDINADOR' && (
+                              <div className="flex flex-col gap-0.5 items-center">
+                                <span className={`text-[9px] px-1 py-0.2 rounded font-semibold ${usr.permisos_coordinador?.autorizar_reservas !== false ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-400 line-through'}`}>
+                                  {usr.permisos_coordinador?.autorizar_reservas !== false ? '✓ Aprobar reservas' : '✗ No autoriza'}
+                                </span>
+                                <span className={`text-[9px] px-1 py-0.2 rounded font-semibold ${usr.permisos_coordinador?.crear_usuarios ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 line-through'}`}>
+                                  {usr.permisos_coordinador?.crear_usuarios ? '✓ Alta usuarios' : '✗ No da altas'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              toggleUserCompetencias(usr.id_usuario);
+                              onRefresh();
+                            }}
+                            title={usr.formacion_competencias ? "Docente acreditado en ATECA (Clic para alternar)" : "Docente sin acreditar (Clic para alternar)"}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-all border ${
+                              usr.formacion_competencias
+                                ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                                : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600'
+                            }`}
                           >
-                            <option value="PROFESOR">PROFESOR</option>
-                            <option value="COORDINADOR">COORDINADOR</option>
-                            <option value="ADMIN">ADMIN</option>
-                          </select>
+                            <GraduationCap className={`w-3.5 h-3.5 ${usr.formacion_competencias ? 'text-amber-600' : 'text-slate-400'}`} />
+                            {usr.formacion_competencias ? 'Acreditado' : 'Sin Acreditar'}
+                          </button>
                         </td>
                         <td className="p-3 text-center">
                           <button
@@ -1593,6 +1711,60 @@ export default function AdminPanel({ onRefresh, currentUser }: AdminPanelProps) 
                     <option value="false">De baja</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Opciones de Coordinador (solo si el rol es COORDINADOR) */}
+              {editRol === 'COORDINADOR' && (
+                <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2.5 animate-fade-in">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900">
+                    <Shield className="w-4 h-4 text-indigo-600" />
+                    <span>Permisos configurables de Coordinador</span>
+                  </div>
+                  <p className="text-[11px] text-indigo-700">
+                    Define las facultades de gestión activas para este coordinador:
+                  </p>
+                  <div className="space-y-2 pt-0.5">
+                    <label className="flex items-center gap-2.5 text-xs font-medium text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editPermisoAutorizar}
+                        onChange={(e) => setEditPermisoAutorizar(e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span><strong>Autorizar reservas:</strong> Puede aprobar o denegar reservas pendientes</span>
+                    </label>
+                    <label className="flex items-center gap-2.5 text-xs font-medium text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editPermisoCrearUsuarios}
+                        onChange={(e) => setEditPermisoCrearUsuarios(e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span><strong>Dar de alta usuarios:</strong> Puede registrar nuevos miembros y docentes</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Acreditación en Competencias ATECA */}
+              <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editFormacionCompetencias}
+                    onChange={(e) => setEditFormacionCompetencias(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 text-amber-600 rounded border-slate-300 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                      <GraduationCap className="w-4 h-4 text-amber-600" />
+                      Acreditación en Competencias ATECA
+                    </span>
+                    <p className="text-[11px] text-amber-700 mt-0.5">
+                      Marcar si este docente cuenta con la formación básica superada para el uso seguro del aula y sus herramientas tecnológicas con el alumnado.
+                    </p>
+                  </div>
+                </label>
               </div>
 
               <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-4">

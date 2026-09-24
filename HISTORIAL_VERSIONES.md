@@ -5,6 +5,41 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.4.0] - 2026-09-24
+### 🛡️ Permisos Configurables de Coordinación, Distintivo de Acreditación Docente ATECA, Aforo Máximo de 12 Alumnos e Integración del Departamento de Procesos de Gestión Administrativa
+* **Objetivo**: Proporcionar al administrador el control granular de permisos para coordinadores (autorizar reservas y crear usuarios, mostrándose exclusivamente cuando el usuario tiene rol de Coordinador), dotar al sistema de una acreditación de formación básica en competencias ATECA gestionable por administradores y coordinadores con distintivo visual `🎓 Acreditado ATECA`, limitar estrictamente el aforo simultáneo del aula a un máximo de 12 alumnos con avisos emergentes preventivos, e incorporar formalmente el departamento de 'Procesos de Gestión Administrativa' con prioridad P1 de Formación Profesional.
+* **Mejoras clave**:
+  * **Permisos Configurables para Coordinadores (Panel de Administración)**:
+    * El Administrador puede configurar mediante casillas/conmutadores los permisos específicos para cada coordinador:
+      * **Autorizar reservas (`autorizar_reservas`)**: Determina si el coordinador puede aprobar, rechazar o reactivar reservas que queden en estado pendiente.
+      * **Dar de alta usuarios (`crear_usuarios`)**: Determina si el coordinador tiene habilitada la facultad de registrar nuevos docentes y miembros en la plataforma.
+    * **Restricción estricta de interfaz**: Estas casillas de permisos avanzados solo se muestran y son configurables en el formulario de alta y en el modal de edición cuando el rol asignado al usuario es estrictamente `COORDINADOR`.
+    * **Aplicación efectiva de permisos**:
+      * Si un coordinador tiene desactivado el permiso de autorizar reservas, las acciones de aprobación/rechazo quedan bloqueadas en el Panel de Coordinación y en el modal de detalle de reserva de la vista principal con aviso informativo explicativo.
+      * En el Panel de Coordinación se añade una pestaña de gestión docente (`Docentes y Acreditaciones`). Si el coordinador tiene concedido el permiso `crear_usuarios`, se le despliega el formulario de registro; en caso contrario, se muestra un aviso de que dicha acción requiere autorización administrativa.
+  * **Distintivo e Icono de Formación Docente en Competencias Básicas ATECA (`🎓 Acreditado`)**:
+    * Tanto Administradores como Coordinadores pueden marcar y desmarcar a los docentes que hayan superado la formación para el uso seguro del aula y sus herramientas tecnológicas (`formacion_competencias`).
+    * Se añade botón de alternancia rápida (*toggle*) en la tabla de usuarios del Panel de Administración y en la nueva pestaña de Docentes del Panel de Coordinación.
+    * Muestra del distintivo visual `🎓 Acreditado ATECA` junto al nombre del docente en:
+      * Ficha de detalle de la reserva (`App.tsx`).
+      * Tarjetas de ocupación diaria y vista de lista del Calendario (`CalendarView.tsx`).
+      * Panel del Coordinador en reservas pendientes, historial y lista de docentes (`CoordinatorPanel.tsx`).
+      * Cabecera del panel de *Mi Agenda y Memorias* (`MyBookingsView.tsx`).
+      * Formulario de reserva didáctica (`BookingForm.tsx`).
+  * **Control Estricto de Aforo Máximo: Límite de 12 Alumnos y Modal Preventivo**:
+    * En el formulario de reserva didáctica (`BookingForm.tsx`), el campo de número estimado de alumnos se acota estrictamente a un valor máximo de 12 (`min="1"`, `max="12"`).
+    * Si el usuario intenta introducir un número superior a 12 o pegar un valor mayor, el campo se ajusta automáticamente a 12 y se despliega un cuadro emergente modal explicativo recordando que, por motivos de seguridad, prevención de riesgos laborales y dotación de puestos interactivos (VR, escaneado 3D, estudio audiovisual), el aforo simultáneo es de 12 alumnos como tope, sugiriendo la organización en turnos o desdobles.
+    * Validación redundante en almacenamiento local (`storage.ts`) para garantizar que ninguna reserva supere el límite reglamentario de 12 alumnos.
+  * **Incorporación Oficial del Departamento 'Procesos de Gestión Administrativa' (PGA)**:
+    * Integrado de serie en el catálogo oficial de departamentos de Formación Profesional (`types.ts`).
+    * Clasificado automáticamente como departamento de Ciclos de FP con prioridad preferente **P1 (Aprobación Automática Directa)**.
+  * **Sincronización en las 3 Capas (v1.4.0)**:
+    * Actualización de la versión a `1.4.0` en `types.ts`, `package.json` y pie de página institucional.
+    * Respaldo local en ZIP `Reservas-Aula-ATECA-v.1.4.0.zip` en la carpeta de respaldos.
+    * Despliegue en producción Hostinger (`https://ateca.fpapps.es`) y subida a GitHub (`main`, `backup/v1.4.0`, tag `v1.4.0`).
+
+---
+
 ## [v1.3.9] - 2026-09-23
 ### ⏳ Pase Automático a Standby tras 48h sin Confirmación, Reasignación de Franjas y Desactivación de Liberación Post-Sesión
 * **Objetivo**: Implementar la regla de expiración de 48 horas tras el recordatorio semanal para pasar reservas no confirmadas a estado *Standby* (`PENDIENTE`), permitiendo a la Administración o Coordinación reasignar el espacio o desplazar la reserva con solicitudes prioritarias (como FP), y desactivar automáticamente la acción de «Liberar Aula» una vez que el horario de la reserva ha concluido.

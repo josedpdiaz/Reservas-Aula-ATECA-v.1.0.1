@@ -9,7 +9,7 @@ import {
   Settings, Award, FileText, LogIn, LogOut, 
   PlusCircle, Activity, BookmarkCheck, ShieldCheck, Mail, Bell, Inbox,
   Sun, Moon, Sparkles, Edit3, CalendarX, HeartHandshake, Trash2,
-  RotateCcw, Clock, KeyRound, ArrowLeft, RefreshCw
+  RotateCcw, Clock, KeyRound, ArrowLeft, RefreshCw, GraduationCap
 } from 'lucide-react';
 
 import { Usuario, Reserva, APP_VERSION } from './types';
@@ -20,7 +20,7 @@ import {
   getFontSize, setFontSize, updateReservaEstado, getUsuarios,
   syncWithServer, checkAndTriggerValuationReminders, hasBookingConcluded,
   checkAndTriggerWeeklyReminders, checkAndTriggerStandbyReservas,
-  confirmReservaDocente, isAllowedLoginEmail
+  confirmReservaDocente, isAllowedLoginEmail, isTeacherAccredited
 } from './lib/storage';
 import { notifyAulaLiberada, notifyReservaAprobada } from './lib/emailService';
 import { requestLoginCode, verifyLoginCode } from './lib/authService';
@@ -823,7 +823,14 @@ export default function App() {
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Docente responsable</p>
-                      <p className="font-bold text-slate-800 text-sm leading-tight">{selectedBooking.profesor}</p>
+                      <p className="font-bold text-slate-800 text-sm leading-tight flex items-center gap-1.5 flex-wrap">
+                        <span>{selectedBooking.profesor}</span>
+                        {isTeacherAccredited(selectedBooking.email || selectedBooking.profesor) && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Docente con competencias básicas ATECA acreditadas">
+                            <GraduationCap className="w-2.5 h-2.5 text-amber-700" /> Acreditado ATECA
+                          </span>
+                        )}
+                      </p>
                       <p className="text-slate-500 mt-0.5">{selectedBooking.email} ({selectedBooking.departamento})</p>
                     </div>
                     <div>
@@ -878,7 +885,7 @@ export default function App() {
                       Atrás
                     </button>
                     {/* ACCIONES PARA ESTADO PENDIENTE */}
-                    {(user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && selectedBooking.estado === 'PENDIENTE' && (
+                    {(user.rol === 'ADMIN' || (user.rol === 'COORDINADOR' && user.permisos_coordinador?.autorizar_reservas !== false)) && selectedBooking.estado === 'PENDIENTE' && (
                       <button
                         onClick={() => {
                           updateReservaEstado(selectedBooking.id_reserva, 'APROBADA', 'Autorizada por la Coordinación/Administración.');
@@ -904,7 +911,7 @@ export default function App() {
                     )}
 
                     {/* ACCIONES PARA ESTADO CANCELADA O RECHAZADA (REACTIVACIÓN Y ELIMINACIÓN) */}
-                    {(user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && (selectedBooking.estado === 'CANCELADA' || selectedBooking.estado === 'RECHAZADA') && (
+                    {(user.rol === 'ADMIN' || (user.rol === 'COORDINADOR' && user.permisos_coordinador?.autorizar_reservas !== false)) && (selectedBooking.estado === 'CANCELADA' || selectedBooking.estado === 'RECHAZADA') && (
                       <>
                         <button
                           onClick={() => {

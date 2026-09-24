@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = '1.3.9';
+export const APP_VERSION = '1.4.0';
 
 export interface NotificationPreferences {
   reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
@@ -16,6 +16,11 @@ export interface NotificationPreferences {
   email_alternativo?: string;       // Email alternativo opcional
 }
 
+export interface CoordinadorPermisos {
+  autorizar_reservas?: boolean; // Permiso para aprobar o rechazar reservas pendientes (defecto: true)
+  crear_usuarios?: boolean;     // Permiso para dar de alta nuevos miembros/docentes (defecto: false)
+}
+
 export interface Usuario {
   id_usuario: string;
   nombre: string;
@@ -25,6 +30,8 @@ export interface Usuario {
   turno: 'Mañana' | 'Tarde' | 'Tarde-Noche' | 'Ambos';
   activo: boolean;
   notificaciones?: NotificationPreferences;
+  permisos_coordinador?: CoordinadorPermisos;
+  formacion_competencias?: boolean; // Acreditado con competencias básicas ATECA
 }
 
 export interface OfficialDepartment {
@@ -37,6 +44,7 @@ export interface OfficialDepartment {
 export const DEFAULT_OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
   // Ciclos Formativos de Formación Profesional (Prioridad P1 · Aprobación Automática)
   { id: 'admon', name: 'Administración y Gestión', isFP: true, category: 'FP' },
+  { id: 'pga', name: 'Procesos de Gestión Administrativa', isFP: true, category: 'FP' },
   { id: 'fol', name: 'Formación y Orientación Laboral', isFP: true, category: 'FP' },
   { id: 'comercio', name: 'Comercio', isFP: true, category: 'FP' },
 
@@ -103,6 +111,9 @@ export const isFpDepartment = (departamento?: string): boolean => {
   if (
     deptUpper.includes('ADMINISTRACIÓN Y GESTIÓN') ||
     deptUpper.includes('ADMINISTRACION Y GESTION') ||
+    deptUpper.includes('PROCESOS DE GESTIÓN ADMINISTRATIVA') ||
+    deptUpper.includes('PROCESOS DE GESTION ADMINISTRATIVA') ||
+    deptUpper.includes('PGA') ||
     deptUpper.includes('FORMACIÓN Y ORIENTACIÓN LABORAL') ||
     deptUpper.includes('FORMACION Y ORIENTACION LABORAL') ||
     deptUpper.includes('FOL') ||

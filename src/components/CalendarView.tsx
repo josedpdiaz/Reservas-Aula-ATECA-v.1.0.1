@@ -8,10 +8,10 @@ import {
   Calendar as CalendarIcon, Layers, CheckCircle2, Plus, Clock, Search, 
   User, ChevronLeft, ChevronRight, Sparkles, Filter, ChevronDown, ChevronUp,
   PanelRight, PanelTop, PanelLeft, CalendarDays, Eye, Minus, Maximize2, Minimize2,
-  X, GripVertical, CalendarOff
+  X, GripVertical, CalendarOff, GraduationCap
 } from 'lucide-react';
 import { Reserva } from '../types';
-import { getReservas, formatDateToYMD, isNonWorkingDay } from '../lib/storage';
+import { getReservas, formatDateToYMD, isNonWorkingDay, isTeacherAccredited } from '../lib/storage';
 import DayScheduleSheet from './DayScheduleSheet';
 
 interface CalendarViewProps {
@@ -382,8 +382,15 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                     </div>
 
                     <div>
-                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                        <User className="w-3 h-3 text-slate-400" /> {res.profesor}
+                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3 text-slate-400" /> {res.profesor}
+                        </span>
+                        {isTeacherAccredited(res.email || res.profesor) && (
+                          <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Acreditado en competencias básicas ATECA">
+                            <GraduationCap className="w-2.5 h-2.5 text-amber-700" /> Acreditado
+                          </span>
+                        )}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">{res.departamento} • {res.modulo_materia_area}</p>
                     </div>
@@ -950,7 +957,14 @@ export default function CalendarView({ onSelectBooking, onRequestNewBookingWithD
                       className="hover:bg-slate-50/80 cursor-pointer transition-colors"
                     >
                       <td className="p-3">
-                        <p className="font-bold text-slate-800">{res.profesor}</p>
+                        <p className="font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                          <span>{res.profesor}</span>
+                          {isTeacherAccredited(res.email || res.profesor) && (
+                            <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Acreditado en competencias básicas ATECA">
+                              <GraduationCap className="w-2.5 h-2.5 text-amber-700" /> Acreditado
+                            </span>
+                          )}
+                        </p>
                         <p className="text-[10px] text-slate-500">{res.departamento} • {res.modulo_materia_area}</p>
                       </td>
                       <td className="p-3 font-semibold text-slate-600">

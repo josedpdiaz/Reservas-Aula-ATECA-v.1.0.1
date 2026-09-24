@@ -4,11 +4,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Edit3, Lock, Zap } from 'lucide-react';
+import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Edit3, Lock, Zap, GraduationCap } from 'lucide-react';
 import { Reserva, Usuario, isFpDepartment } from '../types';
 import { 
   getReservas, getBloqueos, addReserva, updateReserva, 
-  isNonWorkingDay, checkTimeOverlap, formatDateToYMD, getConfig, isFpBooking 
+  isNonWorkingDay, checkTimeOverlap, formatDateToYMD, getConfig, isFpBooking, isTeacherAccredited 
 } from '../lib/storage';
 import { notifySolicitudRecibida, notifyNuevaSolicitudCoordinacion, notifyReservaAprobada } from '../lib/emailService';
 
@@ -48,7 +48,7 @@ export default function BookingForm({
   const [horaInicio, setHoraInicio] = useState(() => bookingToEdit ? bookingToEdit.hora_inicio : (initialStartTime || '09:00'));
   const [horaFin, setHoraFin] = useState(() => bookingToEdit ? bookingToEdit.hora_fin : (initialEndTime || '11:00'));
   const [zonaPrincipal, setZonaPrincipal] = useState(() => bookingToEdit ? bookingToEdit.zona_principal : 'Multimedia');
-  const [numAlumnos, setNumAlumnos] = useState(() => bookingToEdit ? bookingToEdit.numero_alumnos : 15);
+  const [numAlumnos, setNumAlumnos] = useState(() => bookingToEdit ? Math.min(12, bookingToEdit.numero_alumnos) : 12);
   const [objetivoDidactico, setObjetivoDidactico] = useState(() => bookingToEdit ? bookingToEdit.objetivo_didactico : '');
   const [descripcionActividad, setDescripcionActividad] = useState(() => bookingToEdit ? bookingToEdit.descripcion_actividad : '');
   const [recursosNecesarios, setRecursosNecesarios] = useState(() => bookingToEdit ? bookingToEdit.recursos_necesarios : '');
@@ -62,6 +62,7 @@ export default function BookingForm({
   const [conflictType, setConflictType] = useState<'NONE' | 'BLOQUEO' | 'OVERLAP'>('NONE');
   const [conflictMsg, setConflictMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showAforoModal, setShowAforoModal] = useState(false);
 
   // Auto-detect priority based on Nivel and Departamento
   useEffect(() => {
@@ -155,6 +156,12 @@ export default function BookingForm({
 
     if (numAlumnos <= 0) {
       setErrorMsg('El número de alumnos debe ser mayor que 0.');
+      return;
+    }
+
+    if (numAlumnos > 12) {
+      setErrorMsg('El aforo del aula ATECA está limitado reglamentariamente a un máximo de 12 alumnos.');
+      setShowAforoModal(true);
       return;
     }
 
@@ -307,7 +314,14 @@ export default function BookingForm({
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Nombre del Profesor/a</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1 flex items-center justify-between">
+                <span>Nombre del Profesor/a</span>
+                {isTeacherAccredited(email) && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-full border border-amber-300">
+                    <GraduationCap className="w-2.5 h-2.5 text-amber-700" /> Acreditado ATECA
+                  </span>
+                )}
+              </label>
               <input
                 type="text"
                 disabled
@@ -418,16 +432,32 @@ export default function BookingForm({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Número estimado de Alumnos *</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1 flex items-center justify-between">
+                <span>Número estimado de Alumnos *</span>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                  Máximo 12
+                </span>
+              </label>
               <input
                 type="number"
                 required
                 min="1"
-                max="35"
+                max="12"
                 value={numAlumnos}
-                onChange={(e) => setNumAlumnos(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-lg text-xs outline-none"
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val > 12) {
+                    setShowAforoModal(true);
+                    setNumAlumnos(12);
+                  } else {
+                    setNumAlumnos(val);
+                  }
+                }}
+                className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-lg text-xs outline-none font-semibold text-slate-800"
               />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Aforo técnico del aula ATECA limitado a un tope de <strong>12 alumnos</strong>. Para grupos mayores, planificar en turnos o desdobles.
+              </p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Prioridad Asignada</label>
@@ -594,6 +624,46 @@ export default function BookingForm({
           </button>
         </div>
       </form>
+
+      {/* POPUP MODAL: AVISO TOPE MÁXIMO DE AFORO (12 ALUMNOS) */}
+      {showAforoModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in no-print">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 animate-scale-up">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-slate-800 tracking-tight">
+                  Aviso de Aforo Máximo Aula ATECA
+                </h3>
+                <p className="text-xs font-bold text-amber-700">
+                  Límite reglamentario: Máximo 12 alumnos simultáneos
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>
+                Por razones de <strong>seguridad, prevención de riesgos laborales</strong> y la ratio de equipamiento tecnológico interactivo (gafas VR, estaciones de digitalización 3D y estudio de grabación), el aforo máximo para entrar al aula es de <strong>12 alumnos como tope</strong>.
+              </p>
+              <p className="text-slate-500">
+                💡 <strong>Recomendación didáctica:</strong> Si tu grupo supera los 12 alumnos, organiza la actividad mediante turnos de acceso o sesiones de desdoble en franjas sucesivas.
+              </p>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAforoModal(false)}
+                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+              >
+                Entendido, continuar (Tope 12)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
