@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = '1.4.5';
+export const APP_VERSION = '1.4.6';
 
 export interface NotificationPreferences {
   reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
@@ -49,6 +49,7 @@ export const DEFAULT_OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
   { id: 'comercio', name: 'Comercio', isFP: true, category: 'FP' },
 
   // Enseñanzas Generales / Secundaria / No FP (Prioridad P2/P3 · Requieren Aprobación)
+  { id: 'economia', name: 'Economía', isFP: false, category: 'SECUNDARIA_GENERAL' },
   { id: 'tecno', name: 'Tecnología', isFP: false, category: 'SECUNDARIA_GENERAL' },
   { id: 'fq', name: 'Física y Química', isFP: false, category: 'SECUNDARIA_GENERAL' },
   { id: 'mates', name: 'Matemáticas', isFP: false, category: 'SECUNDARIA_GENERAL' },
@@ -58,6 +59,86 @@ export const DEFAULT_OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
 ];
 
 export const OFFICIAL_DEPARTMENTS = DEFAULT_OFFICIAL_DEPARTMENTS;
+
+// Horarios lectivos oficiales IES Agustín de Betancourt (sesiones de 55 minutos)
+export interface OfficialSlot {
+  start: string;
+  end: string;
+  label: string;
+  isBreak?: boolean;
+}
+
+// Mañana: 6 sesiones de 55 min con recreo de 10:45 a 11:15 (30 min)
+export const MORNING_SLOTS: OfficialSlot[] = [
+  { start: '08:00', end: '08:55', label: '1ª Sesión (55m)' },
+  { start: '08:55', end: '09:50', label: '2ª Sesión (55m)' },
+  { start: '09:50', end: '10:45', label: '3ª Sesión (55m)' },
+  { start: '10:45', end: '11:15', label: 'Recreo / Descanso Mañana (30m)', isBreak: true },
+  { start: '11:15', end: '12:10', label: '4ª Sesión (55m)' },
+  { start: '12:10', end: '13:05', label: '5ª Sesión (55m)' },
+  { start: '13:05', end: '14:00', label: '6ª Sesión (55m)' },
+];
+
+// Tarde-Noche: 5 sesiones de 55 min con recreo de 19:45 a 20:00 (15 min)
+export const AFTERNOON_SLOTS: OfficialSlot[] = [
+  { start: '17:00', end: '17:55', label: '1ª Sesión Tarde-Noche (55m)' },
+  { start: '17:55', end: '18:50', label: '2ª Sesión Tarde-Noche (55m)' },
+  { start: '18:50', end: '19:45', label: '3ª Sesión Tarde-Noche (55m)' },
+  { start: '19:45', end: '20:00', label: 'Recreo / Descanso Tarde (15m)', isBreak: true },
+  { start: '20:00', end: '20:55', label: '4ª Sesión Tarde-Noche (55m)' },
+  { start: '20:55', end: '21:50', label: '5ª Sesión Tarde-Noche (55m)' },
+];
+
+// Sesiones lectivas puras (excluyendo recreos/descansos)
+export const MORNING_INSTRUCTIONAL_SLOTS = MORNING_SLOTS.filter(s => !s.isBreak);
+export const AFTERNOON_INSTRUCTIONAL_SLOTS = AFTERNOON_SLOTS.filter(s => !s.isBreak);
+export const ALL_INSTRUCTIONAL_SLOTS = [...MORNING_INSTRUCTIONAL_SLOTS, ...AFTERNOON_INSTRUCTIONAL_SLOTS];
+
+/**
+ * Calcula la hora de finalización para `count` sesiones consecutivas (1, 2 o 3)
+ * a partir de la sesión de inicio dada por `startHour`.
+ * Retorna null si excede las sesiones disponibles en el turno.
+ */
+export const getConsecutiveSessionsEndTime = (startHour: string, count: number): string | null => {
+  if (count <= 1) {
+    const slot = ALL_INSTRUCTIONAL_SLOTS.find(s => s.start === startHour);
+    return slot ? slot.end : null;
+  }
+  
+  let list = MORNING_INSTRUCTIONAL_SLOTS;
+  let idx = list.findIndex(s => s.start === startHour);
+  if (idx === -1) {
+    list = AFTERNOON_INSTRUCTIONAL_SLOTS;
+    idx = list.findIndex(s => s.start === startHour);
+  }
+  if (idx === -1) return null;
+  
+  const targetIdx = idx + count - 1;
+  if (targetIdx < list.length) {
+    return list[targetIdx].end;
+  }
+  return null;
+};
+
+/**
+ * Retorna todas las sesiones lectivas individuales cubiertas en un intervalo [startHour, endHour].
+ */
+export const getCoveredInstructionalSlots = (startHour: string, endHour: string): OfficialSlot[] => {
+  return ALL_INSTRUCTIONAL_SLOTS.filter(slot => {
+    return slot.start >= startHour && slot.end <= endHour;
+  });
+};
+
+/**
+ * Detecta el número de sesiones lectivas cubiertas por un rango horario.
+ */
+export const detectConsecutiveSessionsCount = (startHour?: string, endHour?: string): number => {
+  if (!startHour || !endHour) return 1;
+  const covered = getCoveredInstructionalSlots(startHour, endHour);
+  if (covered.length >= 3) return 3;
+  if (covered.length === 2) return 2;
+  return 1;
+};
 
 export const getCustomDepartments = (): OfficialDepartment[] => {
   if (typeof window === 'undefined') return [];

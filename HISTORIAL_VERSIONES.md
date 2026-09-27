@@ -5,6 +5,34 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 
 ---
 
+## [v1.4.6] - 2026-09-27
+### 📈 Departamento de Economía y Reservas Multisesión Consecutivas (1, 2 o 3 Sesiones de 55m)
+* **Objetivo**: Integrar el departamento oficial de **Economía** dentro del catálogo docente y habilitar en el sistema de reservas la opción de **reservar de forma directa y consecutiva 1, 2 o 3 sesiones lectivas de 55 minutos** (55 min, 110 min o 165 min) en un mismo día. Esto permite a los docentes llevar a cabo talleres intensivos continuos o atender a varios turnos de alumnos sucesivos (máx. 12 simultáneos en aula ATECA) sin tener que cumplimentar y enviar el formulario de reserva dos o tres veces por separado.
+* **Mejoras clave**:
+  * **Incorporación Oficial del Departamento de Economía**:
+    * Se añade `Economía` a `DEFAULT_OFFICIAL_DEPARTMENTS` en `src/types.ts` bajo la categoría de Secundaria / Bachillerato (P2/P3 · Requiere Aprobación).
+    * Disponible de inmediato en los paneles de Administración y Coordinación para altas y modificaciones de profesorado.
+  * **Selector de Sesiones Consecutivas (1, 2 o 3 Sesiones de 55 min)**:
+    * En el formulario de reserva (`BookingForm.tsx`), nuevo selector visual ergonómico con cálculo horario automático:
+      * **1 Sesión (55 min)**: Sesión individual ordinaria (ej: 08:00 a 08:55).
+      * **2 Sesiones seguidas (110 min · 2 x 55 min)**: Franja doble continua (ej: 08:00 a 09:50 o 11:15 a 13:05).
+      * **3 Sesiones seguidas (165 min · 3 x 55 min)**: Bloque extendido para hasta 3 turnos (ej: 08:00 a 10:45 o 11:15 a 14:00).
+    * Detección en tiempo real de la disponibilidad y solapamientos de las franjas posteriores con aviso visual inmediato.
+    * Si la sesión inicial seleccionada se encuentra cerca del final del turno escolar (ej: 12:10 o 20:00), las opciones que exceden el horario se deshabilitan e indican «No disponible (fin de turno)».
+  * **Soporte Multiturno de Alumnos y Gestión de Aforo ATECA**:
+    * En el campo *Grupo(s) de Alumnos*, se orienta para especificar los distintos turnos convocados (ej: `2º DAM Turno 1 y Turno 2, o Grupo continuo`).
+    * El campo de aforo técnico recalcula y destaca el impacto acumulado: hasta 24 alumnos en 2 turnos o hasta 36 alumnos en 3 turnos (garantizando el límite reglamentario de 12 alumnos simultáneos en el aula).
+  * **Hoja Diaria (`DayScheduleSheet.tsx`) y Calendario Enriquecidos**:
+    * En las franjas libres de la hoja diaria, se añaden botones directos de acceso rápido: `Reservar`, `+2 sesiones` y `+3 sesiones`.
+    * Las franjas cubiertas por una reserva multisesión muestran el distintivo `🔗 Sesión continua (HH:MM - HH:MM)`.
+  * **Sincronización en las 3 Capas (v1.4.6)**:
+    * Actualización de la versión a `1.4.6` en `types.ts`, `package.json` y pie de página.
+    * Generación de respaldo local en archivo ZIP `Reservas-Aula-ATECA-v.1.4.6.zip`.
+    * Compilación de producción con Vite y despliegue a Hostinger (`https://ateca.fpapps.es`).
+    * Sincronización en GitHub (`main`, `backup/v1.4.6` y tag `v1.4.6`).
+
+---
+
 ## [v1.4.5] - 2026-09-24
 ### 📊 Gestión de Usuarios: Paginación Configurable (5, 10, Todos) y Ordenación Interactiva Multicolumna
 * **Objetivo**: Proporcionar una experiencia fluida, rápida y ergonómica en la tabla de Gestión de Usuarios del Panel de Administración, permitiendo al Administrador ver a todos los docentes de un golpe o paginados (de 5 en 5, de 10 en 10, de 25 o de 50), así como ordenar interactivamente por cualquiera de las 9 columnas de la tabla.

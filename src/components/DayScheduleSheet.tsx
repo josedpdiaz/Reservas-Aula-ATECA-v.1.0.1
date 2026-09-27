@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Sun, Moon, ShieldAlert, CheckCircle2,
   Sparkles, Layers, CalendarOff
 } from 'lucide-react';
-import { Reserva, Bloqueo } from '../types';
+import { Reserva, Bloqueo, MORNING_SLOTS, AFTERNOON_SLOTS, getConsecutiveSessionsEndTime } from '../types';
 import { getBloqueos, formatDateToYMD, checkTimeOverlap, isNonWorkingDay } from '../lib/storage';
 
 interface DayScheduleSheetProps {
@@ -21,28 +21,6 @@ interface DayScheduleSheetProps {
   onRequestBookingWithSlot: (dateStr: string, startHour: string, endHour: string) => void;
   canCreateBookings?: boolean;
 }
-
-// Horarios lectivos oficiales IES Agustín de Betancourt (sesiones de 55 minutos):
-// Mañana: 6 sesiones de 55 min con recreo de 10:45 a 11:15 (30 min)
-const MORNING_SLOTS = [
-  { start: '08:00', end: '08:55', label: '1ª Sesión (55m)' },
-  { start: '08:55', end: '09:50', label: '2ª Sesión (55m)' },
-  { start: '09:50', end: '10:45', label: '3ª Sesión (55m)' },
-  { start: '10:45', end: '11:15', label: 'Recreo / Descanso Mañana (30m)', isBreak: true },
-  { start: '11:15', end: '12:10', label: '4ª Sesión (55m)' },
-  { start: '12:10', end: '13:05', label: '5ª Sesión (55m)' },
-  { start: '13:05', end: '14:00', label: '6ª Sesión (55m)' },
-];
-
-// Tarde-Noche: 5 sesiones de 55 min con recreo de 19:45 a 20:00 (15 min)
-const AFTERNOON_SLOTS = [
-  { start: '17:00', end: '17:55', label: '1ª Sesión Tarde-Noche (55m)' },
-  { start: '17:55', end: '18:50', label: '2ª Sesión Tarde-Noche (55m)' },
-  { start: '18:50', end: '19:45', label: '3ª Sesión Tarde-Noche (55m)' },
-  { start: '19:45', end: '20:00', label: 'Recreo / Descanso Tarde (15m)', isBreak: true },
-  { start: '20:00', end: '20:55', label: '4ª Sesión Tarde-Noche (55m)' },
-  { start: '20:55', end: '21:50', label: '5ª Sesión Tarde-Noche (55m)' },
-];
 
 export default function DayScheduleSheet({
   dateStr,
@@ -154,6 +132,24 @@ export default function DayScheduleSheet({
               checkTimeOverlap(r.hora_inicio, r.hora_fin, slot.start, slot.end)
             );
 
+            const end2 = getConsecutiveSessionsEndTime(slot.start, 2);
+            const end3 = getConsecutiveSessionsEndTime(slot.start, 3);
+
+            const isSpanFree = (startHour: string, endHour: string | null) => {
+              if (!endHour) return false;
+              const hasLock = dayBloqueos.some(b => checkTimeOverlap(b.hora_inicio, b.hora_fin, startHour, endHour));
+              if (hasLock) return false;
+              const hasRes = dayReservations.some(r => 
+                r.estado !== 'RECHAZADA' && 
+                r.estado !== 'CANCELADA' && 
+                checkTimeOverlap(r.hora_inicio, r.hora_fin, startHour, endHour)
+              );
+              return !hasRes;
+            };
+
+            const canBook2 = isSpanFree(slot.start, end2);
+            const canBook3 = canBook2 && isSpanFree(slot.start, end3);
+
             return (
               <div 
                 key={idx}
@@ -188,9 +184,16 @@ export default function DayScheduleSheet({
                       className="p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl cursor-pointer transition-all space-y-1.5 group"
                     >
                       <div className="flex justify-between items-start gap-2">
-                        <span className="font-extrabold text-xs text-slate-900 group-hover:text-indigo-600 transition-colors">
-                          {slotRes.modulo_materia_area}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-extrabold text-xs text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            {slotRes.modulo_materia_area}
+                          </span>
+                          {(slotRes.hora_inicio !== slot.start || slotRes.hora_fin !== slot.end) && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200" title={`Reserva continua de ${slotRes.hora_inicio} a ${slotRes.hora_fin}`}>
+                              🔗 Sesión continua ({slotRes.hora_inicio} - {slotRes.hora_fin})
+                            </span>
+                          )}
+                        </div>
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${getBadgeStyle(slotRes.estado)}`}>
                           {slotRes.estado}
                         </span>
@@ -227,12 +230,33 @@ export default function DayScheduleSheet({
                           <span className="text-xs font-bold text-emerald-900">Franja Disponible</span>
                         </div>
                         {canCreateBookings && (
-                          <button
-                            onClick={() => onRequestBookingWithSlot(dateStr, slot.start, slot.end)}
-                            className="px-3 py-1 bg-white hover:bg-slate-900 hover:text-white text-slate-800 border border-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 active:scale-[0.98]"
-                          >
-                            <Plus className="w-3 h-3" /> Reservar
-                          </button>
+                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                            <button
+                              onClick={() => onRequestBookingWithSlot(dateStr, slot.start, slot.end)}
+                              className="px-2.5 py-1 bg-white hover:bg-slate-900 hover:text-white text-slate-800 border border-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 active:scale-[0.98]"
+                              title="Reservar 1 sesión (55 min)"
+                            >
+                              <Plus className="w-3 h-3" /> Reservar
+                            </button>
+                            {canBook2 && end2 && (
+                              <button
+                                onClick={() => onRequestBookingWithSlot(dateStr, slot.start, end2)}
+                                className="px-2 py-1 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 active:scale-[0.98]"
+                                title={`Reservar 2 sesiones seguidas: ${slot.start} a ${end2} (2x55m)`}
+                              >
+                                +2 sesiones
+                              </button>
+                            )}
+                            {canBook3 && end3 && (
+                              <button
+                                onClick={() => onRequestBookingWithSlot(dateStr, slot.start, end3)}
+                                className="px-2 py-1 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 active:scale-[0.98]"
+                                title={`Reservar 3 sesiones seguidas: ${slot.start} a ${end3} (3x55m)`}
+                              >
+                                +3 sesiones
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     )

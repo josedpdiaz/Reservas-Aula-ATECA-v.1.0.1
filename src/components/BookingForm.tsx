@@ -4,8 +4,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Edit3, Lock, Zap, GraduationCap } from 'lucide-react';
-import { Reserva, Usuario, isFpDepartment } from '../types';
+import { Calendar, Clock, Users, BookOpen, Layers, CheckCircle2, AlertTriangle, ArrowLeft, ShieldCheck, Edit3, Lock, Zap, GraduationCap, Link2 } from 'lucide-react';
+import { 
+  Reserva, Usuario, isFpDepartment, 
+  detectConsecutiveSessionsCount, getConsecutiveSessionsEndTime, 
+  ALL_INSTRUCTIONAL_SLOTS, MORNING_INSTRUCTIONAL_SLOTS, AFTERNOON_INSTRUCTIONAL_SLOTS 
+} from '../types';
 import { 
   getReservas, getBloqueos, addReserva, updateReserva, 
   isNonWorkingDay, checkTimeOverlap, formatDateToYMD, getConfig, isFpBooking, isTeacherAccredited 
@@ -34,6 +38,14 @@ export default function BookingForm({
   const config = getConfig();
   const isTeacherFP = isFpDepartment(currentUser.departamento);
   
+  // Consecutive sessions state (1, 2, or 3 sessions of 55 minutes)
+  const [numSesiones, setNumSesiones] = useState<number>(() => {
+    if (bookingToEdit) {
+      return detectConsecutiveSessionsCount(bookingToEdit.hora_inicio, bookingToEdit.hora_fin);
+    }
+    return detectConsecutiveSessionsCount(initialStartTime || '08:00', initialEndTime || '08:55');
+  });
+
   // Form fields (prefilled with existing booking if in edit mode)
   const [profesor] = useState(() => bookingToEdit ? bookingToEdit.profesor : currentUser.nombre);
   const [email] = useState(() => bookingToEdit ? bookingToEdit.email : currentUser.email);
@@ -45,8 +57,13 @@ export default function BookingForm({
   const [grupo, setGrupo] = useState(() => bookingToEdit ? bookingToEdit.grupo : '');
   const [moduloMateria, setModuloMateria] = useState(() => bookingToEdit ? bookingToEdit.modulo_materia_area : '');
   const [fecha, setFecha] = useState(() => bookingToEdit ? bookingToEdit.fecha_actividad : (initialDate || formatDateToYMD()));
-  const [horaInicio, setHoraInicio] = useState(() => bookingToEdit ? bookingToEdit.hora_inicio : (initialStartTime || '09:00'));
-  const [horaFin, setHoraFin] = useState(() => bookingToEdit ? bookingToEdit.hora_fin : (initialEndTime || '11:00'));
+  const [horaInicio, setHoraInicio] = useState(() => bookingToEdit ? bookingToEdit.hora_inicio : (initialStartTime || '08:00'));
+  const [horaFin, setHoraFin] = useState(() => {
+    if (bookingToEdit) return bookingToEdit.hora_fin;
+    if (initialEndTime) return initialEndTime;
+    const end = getConsecutiveSessionsEndTime(initialStartTime || '08:00', 1);
+    return end || '08:55';
+  });
   const [zonaPrincipal, setZonaPrincipal] = useState(() => bookingToEdit ? bookingToEdit.zona_principal : 'Multimedia');
   const [numAlumnos, setNumAlumnos] = useState(() => bookingToEdit ? Math.min(12, bookingToEdit.numero_alumnos) : 12);
   const [objetivoDidactico, setObjetivoDidactico] = useState(() => bookingToEdit ? bookingToEdit.objetivo_didactico : '');
@@ -57,6 +74,62 @@ export default function BookingForm({
     if (bookingToEdit) return bookingToEdit.prioridad;
     return isTeacherFP ? 'ALTA' : 'NORMAL';
   });
+
+  // Handler for consecutive sessions selection
+  const handleSelectSesiones = (count: number) => {
+    const newEnd = getConsecutiveSessionsEndTime(horaInicio, count);
+    if (newEnd) {
+      setNumSesiones(count);
+      setHoraFin(newEnd);
+    }
+  };
+
+  // Handler for changing starting session
+  const handleChangeHoraInicio = (newStart: string) => {
+    setHoraInicio(newStart);
+    let countToApply = numSesiones;
+    let newEnd = getConsecutiveSessionsEndTime(newStart, countToApply);
+    if (!newEnd && countToApply === 3) {
+      countToApply = 2;
+      newEnd = getConsecutiveSessionsEndTime(newStart, countToApply);
+    }
+    if (!newEnd) {
+      countToApply = 1;
+      newEnd = getConsecutiveSessionsEndTime(newStart, 1) || '08:55';
+    }
+    setNumSesiones(countToApply);
+    if (newEnd) {
+      setHoraFin(newEnd);
+    }
+  };
+
+  // Pre-calculated end times for 1, 2, and 3 consecutive sessions
+  const end1 = getConsecutiveSessionsEndTime(horaInicio, 1) || horaFin;
+  const end2 = getConsecutiveSessionsEndTime(horaInicio, 2);
+  const end3 = getConsecutiveSessionsEndTime(horaInicio, 3);
+
+  // Helper to detect conflicts for candidate session durations
+  const checkConflictForSpan = (start: string, end: string | null) => {
+    if (!end || !fecha) return { hasConflict: false };
+    const nonWorking = isNonWorkingDay(fecha);
+    if (nonWorking.isNonWorking) return { hasConflict: true, msg: nonWorking.reason };
+    const bloqueos = getBloqueos();
+    const hasLock = bloqueos.some(b => b.fecha === fecha && checkTimeOverlap(b.hora_inicio, b.hora_fin, start, end));
+    if (hasLock) return { hasConflict: true, msg: 'Bloqueo técnico' };
+    const reservas = getReservas();
+    const overlap = reservas.find(r => {
+      if (bookingToEdit && r.id_reserva === bookingToEdit.id_reserva) return false;
+      if (r.estado !== 'APROBADA' && r.estado !== 'REALIZADA') return false;
+      if (r.fecha_actividad !== fecha) return false;
+      return checkTimeOverlap(r.hora_inicio, r.hora_fin, start, end);
+    });
+    if (overlap) return { hasConflict: true, msg: `Ocupado por ${overlap.profesor}` };
+    return { hasConflict: false };
+  };
+
+  const conflict1 = checkConflictForSpan(horaInicio, end1);
+  const conflict2 = checkConflictForSpan(horaInicio, end2);
+  const conflict3 = checkConflictForSpan(horaInicio, end3);
 
   // Warnings and calculations
   const [conflictType, setConflictType] = useState<'NONE' | 'BLOQUEO' | 'OVERLAP'>('NONE');
@@ -394,13 +467,20 @@ export default function BookingForm({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Grupo de Alumnos *</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1 flex items-center justify-between">
+                <span>Grupo(s) de Alumnos *</span>
+                {numSesiones > 1 && (
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                    {numSesiones} turnos / grupos
+                  </span>
+                )}
+              </label>
               <input
                 type="text"
                 required
                 value={grupo}
                 onChange={(e) => setGrupo(e.target.value)}
-                placeholder="Ejemplo: 2º DAM, 4º ESO A"
+                placeholder={numSesiones > 1 ? "Ej: 2º DAM (Turno 1 y Turno 2), o Grupo continuo" : "Ejemplo: 2º DAM, 4º ESO A"}
                 className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-lg text-xs outline-none"
               />
             </div>
@@ -433,9 +513,9 @@ export default function BookingForm({
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1 flex items-center justify-between">
-                <span>Número estimado de Alumnos *</span>
+                <span>Alumnos simultáneos en aula *</span>
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
-                  Máximo 12
+                  Máx. 12 por turno
                 </span>
               </label>
               <input
@@ -456,7 +536,12 @@ export default function BookingForm({
                 className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-lg text-xs outline-none font-semibold text-slate-800"
               />
               <p className="text-[10px] text-slate-500 mt-1">
-                Aforo técnico del aula ATECA limitado a un tope de <strong>12 alumnos</strong>. Para grupos mayores, planificar en turnos o desdobles.
+                Aforo técnico del aula ATECA limitado a <strong>12 alumnos simultáneos</strong>.
+                {numSesiones > 1 && (
+                  <span className="block text-indigo-700 font-semibold mt-0.5">
+                    👥 En {numSesiones} turnos atenderás a un total de hasta {numAlumnos * numSesiones} alumnos.
+                  </span>
+                )}
               </p>
             </div>
             <div>
@@ -491,15 +576,120 @@ export default function BookingForm({
 
         {/* SECTION 3: CALENDARIO Y FECHA */}
         <div className="border border-slate-100 rounded-lg p-4 bg-slate-50/50 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2 flex-wrap gap-2">
             <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
               <Clock className="h-4 w-4 text-slate-500" />
-              3. Fecha y Franja Horaria (Fijadas por Calendario)
+              3. Fecha, Sesión de Inicio y Duración Consecutiva
             </h3>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200/80 text-slate-700">
-              <Lock className="w-3 h-3 text-slate-500" /> Franja lectiva fijada
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <Zap className="w-3 h-3 text-indigo-500" />
+              {numSesiones === 1 ? '1 Sesión (55 min)' : `${numSesiones} Sesiones Seguidas (${numSesiones * 55} min)`}
             </span>
           </div>
+
+          {/* Selector de Sesiones Consecutivas (1, 2 o 3) */}
+          <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Link2 className="w-3.5 h-3.5 text-indigo-600" />
+                <span>¿Cuántas sesiones consecutivas necesitas reservar?</span>
+              </label>
+              <span className="text-[11px] font-medium text-slate-500">
+                Evita repetir el formulario de reserva varias veces
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Opción 1: 1 Sesión */}
+              <button
+                type="button"
+                onClick={() => handleSelectSesiones(1)}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  numSesiones === 1
+                    ? 'border-indigo-600 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-500/20'
+                    : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-800">1 Sesión</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700 font-mono">55 min</span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-1 font-mono font-medium">
+                  {horaInicio} - {end1}
+                </p>
+                <div className="mt-2 text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                  <span>1 grupo / turno</span>
+                </div>
+              </button>
+
+              {/* Opción 2: 2 Sesiones seguidas */}
+              <button
+                type="button"
+                disabled={!end2}
+                onClick={() => end2 && handleSelectSesiones(2)}
+                className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                  !end2 
+                    ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200' 
+                    : numSesiones === 2
+                      ? 'border-indigo-600 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-500/20 cursor-pointer'
+                      : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 hover:border-slate-300 cursor-pointer'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-800">2 Sesiones seguidas</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-mono">110 min</span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-1 font-mono font-medium">
+                  {end2 ? `${horaInicio} - ${end2}` : 'No disponible (fin de turno)'}
+                </p>
+                <div className="mt-2 text-[10px] font-bold flex items-center gap-1">
+                  {conflict2.hasConflict ? (
+                    <span className="text-amber-600">⚠️ {conflict2.msg || 'Posible solapamiento'}</span>
+                  ) : end2 ? (
+                    <span className="text-emerald-700">✓ 2 turnos (2x55m)</span>
+                  ) : (
+                    <span className="text-slate-400">Excede turno escolar</span>
+                  )}
+                </div>
+              </button>
+
+              {/* Opción 3: 3 Sesiones seguidas */}
+              <button
+                type="button"
+                disabled={!end3}
+                onClick={() => end3 && handleSelectSesiones(3)}
+                className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                  !end3 
+                    ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200' 
+                    : numSesiones === 3
+                      ? 'border-indigo-600 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-500/20 cursor-pointer'
+                      : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 hover:border-slate-300 cursor-pointer'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-800">3 Sesiones seguidas</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-mono">165 min</span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-1 font-mono font-medium">
+                  {end3 ? `${horaInicio} - ${end3}` : 'No disponible (fin de turno)'}
+                </p>
+                <div className="mt-2 text-[10px] font-bold flex items-center gap-1">
+                  {conflict3.hasConflict ? (
+                    <span className="text-amber-600">⚠️ {conflict3.msg || 'Posible solapamiento'}</span>
+                  ) : end3 ? (
+                    <span className="text-emerald-700">✓ 3 turnos (3x55m)</span>
+                  ) : (
+                    <span className="text-slate-400">Excede turno escolar</span>
+                  )}
+                </div>
+              </button>
+            </div>
+
+            <p className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 leading-relaxed">
+              💡 <strong>Organización pedagógica flexible:</strong> Puedes seleccionar 2 o 3 sesiones consecutivas (ej: 08:00 a 09:50 o 08:00 a 10:45) para llevar a varios turnos de alumnos sucesivamente o mantener al mismo grupo trabajando en proyectos intensivos, sin tener que repetir el proceso de reserva 2 o 3 veces.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Fecha de la Actividad</label>
@@ -513,31 +703,43 @@ export default function BookingForm({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Hora de Inicio</label>
-              <input
-                type="time"
-                required
-                readOnly
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Sesión de Inicio</label>
+              <select
                 value={horaInicio}
-                className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs outline-none text-slate-700 font-bold cursor-not-allowed select-none"
-                title="La hora de inicio corresponde exactamente a la sesión seleccionada."
-              />
+                onChange={(e) => handleChangeHoraInicio(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-200 focus:border-slate-400 rounded-lg text-xs outline-none font-bold text-slate-800 cursor-pointer font-mono"
+              >
+                <optgroup label="☀️ Turno de Mañana (08:00 - 14:00)">
+                  {MORNING_INSTRUCTIONAL_SLOTS.map(s => (
+                    <option key={s.start} value={s.start}>
+                      {s.label} ({s.start} - {s.end})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🌙 Turno de Tarde-Noche (17:00 - 21:50)">
+                  {AFTERNOON_INSTRUCTIONAL_SLOTS.map(s => (
+                    <option key={s.start} value={s.start}>
+                      {s.label} ({s.start} - {s.end})
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Hora de Fin</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Hora de Fin (Calculada)</label>
               <input
                 type="time"
                 required
                 readOnly
                 value={horaFin}
-                className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs outline-none text-slate-700 font-bold cursor-not-allowed select-none"
-                title="La hora de fin corresponde exactamente a la sesión seleccionada."
+                className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs outline-none text-slate-700 font-bold cursor-not-allowed select-none font-mono"
+                title="La hora de fin se calcula automáticamente según el número de sesiones consecutivas seleccionadas."
               />
             </div>
           </div>
           <p className="text-[11px] text-slate-500 flex items-center gap-1.5 bg-indigo-50/60 border border-indigo-100/80 px-3 py-2 rounded-lg">
             <Lock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-            <span><strong>Franja lectiva protegida:</strong> La fecha y las horas están fijadas por la sesión oficial seleccionada en el cuadrante (50 minutos) para evitar desajustes o solapamientos indebidos.</span>
+            <span><strong>Franja lectiva protegida:</strong> Las horas de inicio y fin se ajustan a las sesiones oficiales de 55 minutos para garantizar la compatibilidad con el timbre escolar y evitar solapamientos indebidos.</span>
           </p>
         </div>
 
