@@ -3,6 +3,24 @@
 
 Este documento recopila de forma cronológica, concisa y estructurada todos los upgrades, updates y mejoras implementadas en la rama principal (`main`) del proyecto, asociadas a sus respectivas *Releases* en GitHub.
 
+## [v1.4.9] - 2026-09-27
+### 🔒 Limpieza y Simplificación de la Pantalla de Acceso Oficial
+* **Objetivo**: Limpiar la pantalla de inicio de sesión de indicaciones de redirección o buzones secundarios, manteniendo de forma sobria la exigencia de la cuenta oficial docente `@gobiernodecanarias.org` y comunicando simplemente que el código de 6 dígitos se enviará automáticamente a su cuenta de correo:
+* **Mejoras clave**:
+  * **Aviso Oficial Inicial (Banner Azul)**:
+    * Se actualiza el texto explicativo de la tarjeta azul superior: *«Para acceder y gestionar reservas en el Aula ATECA, introduce tu cuenta oficial del Gobierno de Canarias **@gobiernodecanarias.org**. El código de acceso de 6 dígitos se enviará automáticamente a tu cuenta de correo.»*
+  * **Campo de Cuenta Oficial Docente**:
+    * Se mantiene la etiqueta requerida *«Cuenta oficial docente (@gobiernodecanarias.org)»* y se retira el párrafo explicativo que detallaba la entrega interna hacia otros dominios.
+  * **Paso de Verificación (Código OTP)**:
+    * Se simplifica la ficha mostrando únicamente la *Cuenta identificada* y la casilla del código numérico, eliminando los avisos visuales que revelaban direcciones de entrega alternativas o copias secundarias.
+  * **Sincronización en las 3 Capas (v1.4.9)**:
+    * Versión `1.4.9` actualizada en `types.ts`, `package.json` y pie de página.
+    * Creación de respaldo ZIP local `Reservas-Aula-ATECA-v.1.4.9.zip`.
+    * Compilación con Vite (`npm run build`) y despliegue a producción en Hostinger (`https://ateca.fpapps.es`).
+    * Sincronización en repositorio GitHub (`main`, `backup/v1.4.9` y tag `v1.4.9`).
+
+---
+
 ## [v1.4.8] - 2026-09-27
 ### 🗑️ Eliminación Definitiva de Acciones Pasadas con Limpieza de Informes, Periodos Consecutivos y Firma Seleccionable de Coordinación
 * **Objetivo**: Permitir la eliminación definitiva y limpia de reservas ya efectuadas (acciones pasadas) eliminando también por completo su valoración e informe de evidencia técnica generado; registrar e indicar de forma explícita en los informes el número de periodos lectivos consecutivos (1 periodo / 55 min, 2 periodos / 110 min o 3 periodos / 165 min hasta 3 turnos); y habilitar la selección del Coordinador firmante oficial entre el equipo de coordinación registrado (por defecto D. José Domingo Pacheco Díaz, administrador/coordinador), manteniendo siempre al docente solicitante como profesor responsable firmante.
