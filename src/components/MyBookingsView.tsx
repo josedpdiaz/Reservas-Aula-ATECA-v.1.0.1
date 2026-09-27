@@ -10,7 +10,7 @@ import {
   Edit3, CalendarX, HeartHandshake, Trash2, GraduationCap, ArrowLeft
 } from 'lucide-react';
 import { Reserva, Usuario, Valoracion } from '../types';
-import { updateReserva, deleteReserva, cancelReserva, hasBookingConcluded } from '../lib/storage';
+import { updateReserva, deleteReserva, cancelReserva, hasBookingConcluded, getUserAccreditedZones } from '../lib/storage';
 import { notifyAulaLiberada } from '../lib/emailService';
 
 interface MyBookingsViewProps {
@@ -112,11 +112,18 @@ export default function MyBookingsView({
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-black tracking-tight text-slate-900">Mi Agenda y Memorias Docentes</h2>
-            {currentUser.formacion_competencias && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                <GraduationCap className="w-3 h-3 text-amber-700" /> Acreditado ATECA
-              </span>
-            )}
+            {(() => {
+              const uZones = getUserAccreditedZones(currentUser);
+              if (uZones.length === 0) return null;
+              return (
+                <span 
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300"
+                  title={`Acreditado en: ${uZones.join(', ')}`}
+                >
+                  <GraduationCap className="w-3 h-3 text-amber-700" /> Acreditado ATECA ({uZones.length}/4)
+                </span>
+              );
+            })()}
           </div>
           <p className="text-xs text-slate-500 mt-0.5">Control de tus actividades didácticas y justificaciones en el Aula ATECA</p>
         </div>

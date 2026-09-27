@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = '1.4.6';
+export const APP_VERSION = '1.4.7';
 
 export interface NotificationPreferences {
   reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
@@ -21,6 +21,53 @@ export interface CoordinadorPermisos {
   crear_usuarios?: boolean;     // Permiso para dar de alta nuevos miembros/docentes (defecto: false)
 }
 
+export type ZonaAteca = 
+  | 'Multimedia'
+  | 'Vídeo y audio'
+  | 'Impresión 3D'
+  | 'Realidad virtual y simuladores';
+
+export interface ZonaInfo {
+  id: ZonaAteca;
+  name: ZonaAteca;
+  description: string;
+  badge: string;
+}
+
+export const ZONAS_ATECA: ZonaAteca[] = [
+  'Multimedia',
+  'Vídeo y audio',
+  'Impresión 3D',
+  'Realidad virtual y simuladores'
+];
+
+export const ZONAS_ATECA_DETALLE: ZonaInfo[] = [
+  { 
+    id: 'Multimedia', 
+    name: 'Multimedia', 
+    description: 'Croma, Edición y Pizarra Interactiva',
+    badge: 'Multimedia'
+  },
+  { 
+    id: 'Vídeo y audio', 
+    name: 'Vídeo y audio', 
+    description: 'Estudio de Grabación y Podcast',
+    badge: 'Vídeo y Audio'
+  },
+  { 
+    id: 'Impresión 3D', 
+    name: 'Impresión 3D', 
+    description: 'Escáner e Impresora PLA',
+    badge: 'Impresión 3D'
+  },
+  { 
+    id: 'Realidad virtual y simuladores', 
+    name: 'Realidad virtual y simuladores', 
+    description: 'Meta Quest y Simuladores GUE',
+    badge: 'VR y Simuladores'
+  },
+];
+
 export interface Usuario {
   id_usuario: string;
   nombre: string;
@@ -31,7 +78,8 @@ export interface Usuario {
   activo: boolean;
   notificaciones?: NotificationPreferences;
   permisos_coordinador?: CoordinadorPermisos;
-  formacion_competencias?: boolean; // Acreditado con competencias básicas ATECA
+  formacion_competencias?: boolean; // Acreditado general (true si tiene al menos 1 zona)
+  zonas_acreditadas?: ZonaAteca[];  // Zonas tecnológicas específicas acreditadas
 }
 
 export interface OfficialDepartment {
@@ -46,7 +94,7 @@ export const DEFAULT_OFFICIAL_DEPARTMENTS: OfficialDepartment[] = [
   { id: 'admon', name: 'Administración y Gestión', isFP: true, category: 'FP' },
   { id: 'pga', name: 'Procesos de Gestión Administrativa', isFP: true, category: 'FP' },
   { id: 'fol', name: 'Formación y Orientación Laboral', isFP: true, category: 'FP' },
-  { id: 'comercio', name: 'Comercio', isFP: true, category: 'FP' },
+  { id: 'comercio', name: 'Comercio y Marketing', isFP: true, category: 'FP' },
 
   // Enseñanzas Generales / Secundaria / No FP (Prioridad P2/P3 · Requieren Aprobación)
   { id: 'economia', name: 'Economía', isFP: false, category: 'SECUNDARIA_GENERAL' },
@@ -199,6 +247,7 @@ export const isFpDepartment = (departamento?: string): boolean => {
     deptUpper.includes('FORMACION Y ORIENTACION LABORAL') ||
     deptUpper.includes('FOL') ||
     deptUpper.includes('COMERCIO') ||
+    deptUpper.includes('MARKETING') ||
     deptUpper.includes('MANTENIMIENTO')
   ) {
     return true;

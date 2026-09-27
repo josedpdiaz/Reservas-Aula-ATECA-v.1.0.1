@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil, isFpDepartment } from '../types';
+import { Usuario, Reserva, Valoracion, Bloqueo, ConfigItem, DiaNoHabil, isFpDepartment, ZonaAteca, ZONAS_ATECA } from '../types';
 import { syncToGoogleSheets } from './syncService';
 import { 
   syncItemToServer, deleteItemFromServer, saveAllToServer, hydrateFromServer, markReservaAsDeleted 
@@ -1318,26 +1318,84 @@ export const confirmReservaDocente = (id_reserva: string): { success: boolean; m
 /**
  * Comprueba si un docente cuenta con la acreditación de competencias básicas del Aula ATECA
  */
+/**
+ * Obtiene las zonas específicas en las que un docente está acreditado.
+ * Si tiene formacion_competencias activa pero no tenía zonas especificadas, se asumen todas por compatibilidad previa.
+ */
+export const getUserAccreditedZones = (userOrEmail?: Usuario | string): ZonaAteca[] => {
+  if (!userOrEmail) return [];
+  let user: Usuario | undefined;
+  if (typeof userOrEmail === 'string') {
+    const users = getUsuarios();
+    const lower = userOrEmail.trim().toLowerCase();
+    user = users.find(u => u.email.toLowerCase() === lower || u.nombre.toLowerCase() === lower);
+  } else {
+    user = userOrEmail;
+  }
+  if (!user) return [];
+  if (Array.isArray(user.zonas_acreditadas)) {
+    return user.zonas_acreditadas;
+  }
+  if (user.formacion_competencias) {
+    return ['Multimedia', 'Vídeo y audio', 'Impresión 3D', 'Realidad virtual y simuladores'];
+  }
+  return [];
+};
+
+/**
+ * Comprueba si un docente cuenta con la acreditación de competencias básicas del Aula ATECA (al menos 1 zona)
+ */
 export const isTeacherAccredited = (emailOrName?: string): boolean => {
   if (!emailOrName) return false;
+  const zones = getUserAccreditedZones(emailOrName);
+  return zones.length > 0;
+};
+
+/**
+ * Comprueba si un docente está acreditado específicamente en una zona ATECA determinada.
+ */
+export const isTeacherAccreditedInZone = (userOrEmail: Usuario | string | undefined, zone: string): boolean => {
+  if (!userOrEmail || !zone) return false;
+  const zones = getUserAccreditedZones(userOrEmail);
+  const cleanZone = zone.trim().toLowerCase();
+  return zones.some(z => {
+    const lz = z.toLowerCase();
+    return lz === cleanZone || cleanZone.includes(lz) || lz.includes(cleanZone);
+  });
+};
+
+/**
+ * Guarda las zonas acreditadas de un docente y actualiza formacion_competencias.
+ */
+export const setUserAccreditedZones = (userId: string, zones: ZonaAteca[]): boolean => {
   const users = getUsuarios();
-  const lower = emailOrName.trim().toLowerCase();
-  const u = users.find(usr => 
-    usr.email.toLowerCase() === lower || 
-    usr.nombre.toLowerCase() === lower
-  );
-  return Boolean(u?.formacion_competencias);
+  const u = users.find(usr => usr.id_usuario === userId);
+  if (!u) return false;
+  const hasAny = zones.length > 0;
+  modifyUsuario(userId, { 
+    zonas_acreditadas: zones,
+    formacion_competencias: hasAny
+  });
+  return true;
 };
 
 /**
  * Conmuta el estado de acreditación de competencias básicas de un usuario (Admin y Coordinación)
+ * Si está acreditado en alguna zona, lo desactiva. Si no lo está, lo acredita en las 4 zonas.
  */
 export const toggleUserCompetencias = (userId: string): boolean => {
   const users = getUsuarios();
   const u = users.find(usr => usr.id_usuario === userId);
   if (!u) return false;
-  const nextVal = !u.formacion_competencias;
-  modifyUsuario(userId, { formacion_competencias: nextVal });
+  const currentZones = getUserAccreditedZones(u);
+  const nextVal = currentZones.length === 0;
+  const nextZones: ZonaAteca[] = nextVal 
+    ? ['Multimedia', 'Vídeo y audio', 'Impresión 3D', 'Realidad virtual y simuladores']
+    : [];
+  modifyUsuario(userId, { 
+    formacion_competencias: nextVal,
+    zonas_acreditadas: nextZones
+  });
   return nextVal;
 };
 

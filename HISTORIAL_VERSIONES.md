@@ -3,6 +3,36 @@
 
 Este documento recopila de forma cronológica, concisa y estructurada todos los upgrades, updates y mejoras implementadas en la rama principal (`main`) del proyecto, asociadas a sus respectivas *Releases* en GitHub.
 
+## [v1.4.7] - 2026-09-27
+### 🏷️ Departamento "Comercio y Marketing" y Acreditación Granular ATECA por Zonas Tecnológicas
+* **Objetivo**: Actualizar la denominación oficial del departamento didáctico a **Comercio y Marketing** (Prioridad P1 · Formación Profesional) y desmenuzar el sistema de acreditación de competencias ATECA en las **4 zonas tecnológicas** del aula:
+  1. **Multimedia** (Croma / Edición / Pizarra interactiva)
+  2. **Vídeo y audio** (Estudio de grabación y podcast)
+  3. **Impresión 3D** (Escáner e impresora PLA)
+  4. **Realidad virtual y simuladores** (Meta Quest y GUE)
+  Tanto al dar de alta a un docente, editarlo o consultar su acreditación, se gestiona y graba individualmente por zonas.
+* **Mejoras clave**:
+  * **Renombrado Oficial del Departamento a "Comercio y Marketing"**:
+    * Actualizado en `DEFAULT_OFFICIAL_DEPARTMENTS` de `src/types.ts` (`id: 'comercio'`, `name: 'Comercio y Marketing'`, `isFP: true`).
+    * Detección mejorada en `isFpDepartment` para contemplar tanto "COMERCIO" como "MARKETING".
+  * **Acreditación Desmenuzada por Zonas Tecnológicas (`ZonaAteca`)**:
+    * Nuevos tipos y constantes: `ZonaAteca`, `ZonaInfo`, `ZONAS_ATECA` y `ZONAS_ATECA_DETALLE` con desglose exacto de herramientas.
+    * Cada usuario dispone de `zonas_acreditadas?: ZonaAteca[]`, manteniendo `formacion_competencias` (retrocompatibilidad).
+    * Funciones auxiliares en `storage.ts`: `getUserAccreditedZones`, `isTeacherAccreditedInZone`, `setUserAccreditedZones`, `isTeacherAccredited`.
+  * **Modal Rápido de Gestión de Acreditación por Zonas**:
+    * Al pulsar sobre la insignia o botón de acreditación en las tablas de Administración y Coordinación, se abre un modal interactivo que permite marcar/desmarcar individualmente las 4 zonas tecnológicas con un clic, con accesos directos "Acreditar en todas (4/4)" y "Desmarcar todas (0/4)".
+  * **Formularios de Alta y Edición de Docentes Adaptados**:
+    * En el Panel de Administración y el Panel de Coordinación, los formularios de creación y el modal de edición de usuarios integran los selectores de las 4 zonas con descripciones detalladas de su equipamiento.
+  * **Indicadores Visuales en Tablas, Formulario de Reserva y Mis Reservas**:
+    * Tablas de usuarios: Insignias `4/4 Acreditado`, `X/4 Parcial` (con chips de zonas activas: `MM`, `Audio`, `3D`, `VR`) o `0/4 Sin Acreditar`.
+    * En el formulario de reserva (`BookingForm.tsx`): Al seleccionar la Zona ATECA Principal, se muestra en tiempo real si el docente solicitante está acreditado específicamente en dicha zona tecnológica.
+    * En la vista de Mis Reservas (`MyBookingsView.tsx`): El distintivo superior refleja el número de zonas acreditadas (`X/4`) y el detalle al pasar el cursor.
+  * **Sincronización en las 3 Capas (v1.4.7)**:
+    * Actualización a `1.4.7` en `package.json`, `types.ts` y pie de página.
+    * Generación de respaldo local en archivo ZIP `Reservas-Aula-ATECA-v.1.4.7.zip`.
+    * Compilación con Vite (`npm run build`) y despliegue a producción Hostinger (`https://ateca.fpapps.es`).
+    * Sincronización en repositorio GitHub (`main`, `backup/v1.4.7` y tag `v1.4.7`).
+
 ---
 
 ## [v1.4.6] - 2026-09-27

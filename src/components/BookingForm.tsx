@@ -12,7 +12,7 @@ import {
 } from '../types';
 import { 
   getReservas, getBloqueos, addReserva, updateReserva, 
-  isNonWorkingDay, checkTimeOverlap, formatDateToYMD, getConfig, isFpBooking, isTeacherAccredited 
+  isNonWorkingDay, checkTimeOverlap, formatDateToYMD, getConfig, isFpBooking, isTeacherAccredited, isTeacherAccreditedInZone 
 } from '../lib/storage';
 import { notifySolicitudRecibida, notifyNuevaSolicitudCoordinacion, notifyReservaAprobada } from '../lib/emailService';
 
@@ -499,7 +499,18 @@ export default function BookingForm({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm pt-2">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Zona ATECA Principal *</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1 flex items-center justify-between">
+                <span>Zona ATECA Principal *</span>
+                {isTeacherAccreditedInZone(email || currentUser.email, zonaPrincipal) ? (
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 flex items-center gap-1" title="Docente acreditado en esta zona tecnológica">
+                    <GraduationCap className="w-3 h-3 text-amber-600" /> Acreditado
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.2 rounded border border-slate-200" title="Docente sin acreditar en esta zona tecnológica">
+                    Sin acreditar
+                  </span>
+                )}
+              </label>
               <select
                 value={zonaPrincipal}
                 onChange={(e) => setZonaPrincipal(e.target.value)}
