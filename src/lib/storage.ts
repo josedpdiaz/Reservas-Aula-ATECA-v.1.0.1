@@ -840,14 +840,71 @@ export const updateReserva = (reserva: Reserva): { success: boolean; message?: s
   return { success: true };
 };
 
-// Permanently remove reservation (leaves slot free for other teachers)
+// Permanently remove reservation and its associated evidence valuation/report (leaves slot free and cleans reports)
 export const deleteReserva = (id_reserva: string): boolean => {
   markReservaAsDeleted(id_reserva);
   const arr = getReservas();
   const filtered = arr.filter(r => r.id_reserva !== id_reserva);
   setReservas(filtered);
   deleteItemFromServer('reserva', id_reserva);
+
+  // Purgar también cualquier informe / valoración didáctica vinculada a la reserva eliminada
+  const allVals = getValoraciones();
+  const val = allVals.find(v => v.id_reserva === id_reserva);
+  if (val) {
+    const remainingVals = allVals.filter(v => v.id_reserva !== id_reserva);
+    setValoraciones(remainingVals);
+    deleteItemFromServer('valoracion', val.id_valoracion);
+  }
+
   return true;
+};
+
+// Eliminar solo la valoración / memoria de una reserva dejando limpio el informe
+export const deleteValoracionByReserva = (id_reserva: string): boolean => {
+  const allVals = getValoraciones();
+  const val = allVals.find(v => v.id_reserva === id_reserva);
+  if (!val) return false;
+  const remainingVals = allVals.filter(v => v.id_reserva !== id_reserva);
+  setValoraciones(remainingVals);
+  deleteItemFromServer('valoracion', val.id_valoracion);
+  return true;
+};
+
+/**
+ * Retorna el listado ordenado de coordinadores y administradores del centro habilitados para firmar informes.
+ * Garantiza que José Domingo Pacheco Díaz esté presente como opción principal y permite elegir a los coordinadores (Agustín, Federico, etc.).
+ */
+export const getAtecaCoordinators = (): { id_usuario: string; nombre: string; email: string; rol: string }[] => {
+  const users = getUsuarios();
+  const coords: { id_usuario: string; nombre: string; email: string; rol: string }[] = users
+    .filter(u => (u.rol === 'COORDINADOR' || u.rol === 'ADMIN' || u.id_usuario === 'u-1') && u.activo !== false)
+    .map(u => ({
+      id_usuario: u.id_usuario,
+      nombre: u.nombre,
+      email: u.email,
+      rol: u.rol
+    }));
+
+  // Asegurar que José Domingo Pacheco Díaz esté presente con su nombre completo
+  const adminIndex = coords.findIndex(c => c.email.toLowerCase() === 'jpacdia@gobiernodecanarias.org' || c.id_usuario === 'u-1');
+  if (adminIndex >= 0) {
+    coords[adminIndex].nombre = 'José Domingo Pacheco Díaz';
+  } else {
+    coords.unshift({
+      id_usuario: 'u-1',
+      nombre: 'José Domingo Pacheco Díaz',
+      email: 'jpacdia@gobiernodecanarias.org',
+      rol: 'ADMIN'
+    });
+  }
+
+  // Ordenar colocando primero al Administrador / Coordinador principal y luego a los coordinadores alfabéticamente
+  return coords.sort((a, b) => {
+    if (a.email.toLowerCase() === 'jpacdia@gobiernodecanarias.org') return -1;
+    if (b.email.toLowerCase() === 'jpacdia@gobiernodecanarias.org') return 1;
+    return a.nombre.localeCompare(b.nombre, 'es');
+  });
 };
 
 // Cancel reservation keeping historical trace

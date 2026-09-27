@@ -861,6 +861,7 @@ export default function App() {
                 <ReportPDF
                   booking={selectedBooking}
                   onCancel={() => setCurrentAction('view')}
+                  onRefresh={handleUpdate}
                 />
               ) : currentAction === 'view-booking-detail' && selectedBooking ? (
                 /* DETAILED PREVIEW CARD FOR SECTIONS */
@@ -1027,20 +1028,6 @@ export default function App() {
                         >
                           <Clock className="w-3.5 h-3.5 text-amber-700" /> Reactivar a Pendiente
                         </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`¿Deseas eliminar definitivamente la reserva de ${selectedBooking.profesor} (${selectedBooking.fecha_actividad})? Esta acción borrará la ficha por completo de la base de datos.`)) {
-                              deleteReserva(selectedBooking.id_reserva);
-                              triggerToast('Reserva eliminada permanentemente del sistema.');
-                              setCurrentAction('view');
-                              handleUpdate();
-                            }
-                          }}
-                          className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
-                          title="Eliminar de forma permanente de la base de datos"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Eliminar Definitivamente
-                        </button>
                       </>
                     )}
 
@@ -1079,6 +1066,29 @@ export default function App() {
                           <CalendarX className="w-3.5 h-3.5" /> Liberar Aula
                         </button>
                       )
+                    )}
+
+                    {/* ELIMINAR DATOS (DISPONIBLE PARA EL DUEÑO O ADMIN/COORDINADOR - BORRA RESERVA E INFORME) */}
+                    {(selectedBooking.email === user.email || user.rol === 'ADMIN' || user.rol === 'COORDINADOR') && (
+                      <button
+                        onClick={() => {
+                          const hasValuation = getValoraciones().some(v => v.id_reserva === selectedBooking.id_reserva);
+                          const confirmMsg = hasValuation
+                            ? `¿Deseas eliminar definitivamente la reserva de ${selectedBooking.profesor} (${selectedBooking.fecha_actividad}) y borrar también su informe de evidencia generado? Esta acción limpiará y eliminará todos sus registros.`
+                            : `¿Deseas eliminar definitivamente la reserva de ${selectedBooking.profesor} (${selectedBooking.fecha_actividad})? Esta acción borrará la ficha por completo de la base de datos.`;
+                          if (window.confirm(confirmMsg)) {
+                            deleteReserva(selectedBooking.id_reserva);
+                            triggerToast('Reserva e informe asociado eliminados permanentemente.');
+                            setSelectedBooking(null);
+                            setCurrentAction('view');
+                            handleUpdate();
+                          }
+                        }}
+                        className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                        title="Eliminar de forma permanente la reserva y su informe de la base de datos"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Eliminar Datos
+                      </button>
                     )}
                     {selectedBooking.estado === 'REALIZADA' && (
                       <button

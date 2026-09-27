@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Star, Check, AlertTriangle, Sparkles, ArrowLeft } from 'lucide-react';
-import { Reserva, Valoracion } from '../types';
-import { saveValoracion } from '../lib/storage';
+import React, { useState, useMemo } from 'react';
+import { Star, Check, AlertTriangle, Sparkles, ArrowLeft, Clock, UserCheck, FileText } from 'lucide-react';
+import { Reserva, Valoracion, detectConsecutiveSessionsCount } from '../types';
+import { saveValoracion, getAtecaCoordinators } from '../lib/storage';
 
 interface ValuationFormProps {
   reserva: Reserva;
@@ -16,6 +16,15 @@ interface ValuationFormProps {
 }
 
 export default function ValuationForm({ reserva, existingValuation, onSuccess, onCancel }: ValuationFormProps) {
+  // Detected sessions from booking hours (1, 2 o 3 sesiones de 55m)
+  const detectedSessions = detectConsecutiveSessionsCount(reserva.hora_inicio, reserva.hora_fin);
+  const [numPeriodos, setNumPeriodos] = useState<number>(existingValuation?.num_periodos || detectedSessions);
+
+  // Available coordinators for signing the report
+  const availableCoordinators = useMemo(() => getAtecaCoordinators(), []);
+  const defaultCoordId = existingValuation?.coordinador_firmante_id || availableCoordinators[0]?.id_usuario || 'u-1';
+  const [selectedCoordinadorId, setSelectedCoordinadorId] = useState<string>(defaultCoordId);
+
   // Form fields
   const [realizadaComoPrevista, setRealizadaComoPrevista] = useState(existingValuation ? existingValuation.realizada_como_prevista : true);
   const [aspectosPositivos, setAspectosPositivos] = useState(existingValuation ? existingValuation.aspectos_positivos : '');
@@ -38,6 +47,8 @@ export default function ValuationForm({ reserva, existingValuation, onSuccess, o
       return;
     }
 
+    const chosenCoord = availableCoordinators.find(c => c.id_usuario === selectedCoordinadorId) || availableCoordinators[0];
+
     saveValoracion({
       id_reserva: reserva.id_reserva,
       realizada_como_prevista: realizadaComoPrevista,
@@ -48,6 +59,10 @@ export default function ValuationForm({ reserva, existingValuation, onSuccess, o
       valoracion_general: valoracionGeneral,
       actividad_innovacion: actividadInnovacion,
       observaciones_finales: observacionesFinales,
+      num_periodos: numPeriodos,
+      coordinador_firmante_id: chosenCoord?.id_usuario,
+      coordinador_firmante_nombre: chosenCoord?.nombre,
+      coordinador_firmante_email: chosenCoord?.email,
     });
 
     onSuccess('¡Valoración didáctica registrada correctamente! El estado de la reserva ha cambiado a REALIZADA.');
@@ -75,19 +90,91 @@ export default function ValuationForm({ reserva, existingValuation, onSuccess, o
 
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         {/* Info of the activity */}
-        <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div>
             <p className="text-slate-400 font-semibold uppercase tracking-wider mb-1">Docente y actividad</p>
-            <p className="font-bold text-slate-700 text-sm">{reserva.profesor}</p>
+            <p className="font-bold text-slate-800 text-sm">{reserva.profesor}</p>
             <p className="text-slate-500 mt-0.5">{reserva.modulo_materia_area} — {reserva.grupo} ({reserva.nivel})</p>
           </div>
           <div>
-            <p className="text-slate-400 font-semibold uppercase tracking-wider mb-1">Zona ATECA Utilizada</p>
-            <p className="font-bold text-slate-700 text-sm flex items-center gap-1.5">
+            <p className="text-slate-400 font-semibold uppercase tracking-wider mb-1">Zona ATECA y Horario</p>
+            <p className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-slate-800"></span>
               {reserva.zona_principal}
             </p>
-            <p className="text-slate-500 mt-0.5">Fecha: {reserva.fecha_actividad} (Horario: {reserva.hora_inicio} - {reserva.hora_fin})</p>
+            <p className="text-slate-500 mt-0.5">
+              Fecha: <strong>{reserva.fecha_actividad.split('-').reverse().join('/')}</strong> (De {reserva.hora_inicio} a {reserva.hora_fin})
+            </p>
+          </div>
+        </div>
+
+        {/* Parámetros del Informe: Periodos y Firma de Coordinación */}
+        <div className="bg-gradient-to-br from-indigo-50/70 via-slate-50 to-amber-50/50 border border-indigo-200/70 rounded-xl p-4 space-y-4 text-xs shadow-2xs">
+          <div className="flex items-center gap-2 text-indigo-950 font-bold border-b border-indigo-100 pb-2">
+            <FileText className="w-4 h-4 text-indigo-600" />
+            <span>Configuración de Evidencias e Identificación de Firmas para el Informe Oficial</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Selector de Periodos */}
+            <div className="space-y-1.5">
+              <label className="block font-bold text-slate-700 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                  Periodos Lectivos Consecutivos *
+                </span>
+                <span className="text-[10px] text-indigo-700 font-bold bg-indigo-100/80 px-1.5 py-0.2 rounded">
+                  {numPeriodos * 55} minutos
+                </span>
+              </label>
+              <p className="text-[11px] text-slate-500">
+                Indica si la actividad abarcó una sola sesión o dos/tres sesiones consecutivas:
+              </p>
+              <div className="grid grid-cols-3 gap-1.5 pt-1">
+                {[1, 2, 3].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setNumPeriodos(n)}
+                    className={`py-2 px-2 text-center rounded-lg border font-bold text-xs transition-all cursor-pointer ${
+                      numPeriodos === n
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{n === 1 ? '1 Periodo' : `${n} Periodos`}</span>
+                    <span className="block text-[10px] font-normal opacity-80">
+                      {n === 1 ? '55 min' : n === 2 ? '110 min' : '165 min'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selector de Coordinador Firmante */}
+            <div className="space-y-1.5">
+              <label className="block font-bold text-slate-700 flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
+                Coordinador/a ATECA que Firma el Informe *
+              </label>
+              <p className="text-[11px] text-slate-500">
+                Selecciona al coordinador o administrador que suscribirá este informe:
+              </p>
+              <select
+                value={selectedCoordinadorId}
+                onChange={(e) => setSelectedCoordinadorId(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none focus:border-indigo-400 cursor-pointer shadow-2xs mt-1"
+              >
+                {availableCoordinators.map((c) => (
+                  <option key={c.id_usuario} value={c.id_usuario}>
+                    {c.nombre} ({c.rol === 'ADMIN' ? 'Administrador / Coordinador' : 'Coordinador ATECA'})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-400 italic">
+                * En el informe siempre firmará el docente solicitante ({reserva.profesor}) como profesor usuario y el coordinador seleccionado.
+              </p>
+            </div>
           </div>
         </div>
 

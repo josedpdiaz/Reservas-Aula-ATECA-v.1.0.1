@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = '1.4.7';
+export const APP_VERSION = '1.4.8';
 
 export interface NotificationPreferences {
   reserva_estado: boolean;          // Avisar si la reserva es aprobada o rechazada
@@ -331,6 +331,10 @@ export interface Valoracion {
   valoracion_general: number; // 1-5 estrellas
   actividad_innovacion: boolean;
   observaciones_finales: string;
+  num_periodos?: number; // 1, 2 o 3 periodos lectivos consecutivos (55m cada uno)
+  coordinador_firmante_id?: string; // ID del coordinador que firma el informe
+  coordinador_firmante_nombre?: string; // Nombre completo del coordinador firmante
+  coordinador_firmante_email?: string; // Email del coordinador firmante
 }
 
 export interface Bloqueo {

@@ -3,6 +3,31 @@
 
 Este documento recopila de forma cronológica, concisa y estructurada todos los upgrades, updates y mejoras implementadas en la rama principal (`main`) del proyecto, asociadas a sus respectivas *Releases* en GitHub.
 
+## [v1.4.8] - 2026-09-27
+### 🗑️ Eliminación Definitiva de Acciones Pasadas con Limpieza de Informes, Periodos Consecutivos y Firma Seleccionable de Coordinación
+* **Objetivo**: Permitir la eliminación definitiva y limpia de reservas ya efectuadas (acciones pasadas) eliminando también por completo su valoración e informe de evidencia técnica generado; registrar e indicar de forma explícita en los informes el número de periodos lectivos consecutivos (1 periodo / 55 min, 2 periodos / 110 min o 3 periodos / 165 min hasta 3 turnos); y habilitar la selección del Coordinador firmante oficial entre el equipo de coordinación registrado (por defecto D. José Domingo Pacheco Díaz, administrador/coordinador), manteniendo siempre al docente solicitante como profesor responsable firmante.
+* **Mejoras clave**:
+  * **Botón «Eliminar Datos» en Detalle de Reserva**:
+    * En la vista de detalle de la solicitud/reserva (`App.tsx`), junto a los botones de volver al calendario, editar datos y liberar aula, se incorpora el botón **«Eliminar Datos»** (`Trash2`).
+    * Al pulsarlo, si la reserva cuenta con informe/valoración didáctica generada (ej. reservas en estado `REALIZADA`), solicita confirmación clara informando que se borrarán permanentemente tanto la reserva como la memoria de valoración asociada para dejar limpio el historial.
+    * Realiza el purgado local (`deleteReserva` en `storage.ts`) y la sincronización con el servidor (`delete_item` en `api.php`), que elimina en cascada las valoraciones vinculadas por `id_reserva`.
+  * **Botón «Eliminar Informe» en la Vista de Informe (`ReportPDF.tsx`)**:
+    * En la barra superior de acciones del generador de informe oficial se añade el botón **«Eliminar Informe»**, permitiendo si se desea limpiar y eliminar exclusivamente la valoración didáctica manteniendo la reserva en el calendario.
+  * **Indicación Explícita de Periodos Lectivos Consecutivos en el Informe**:
+    * En la Sección 1 (*Datos Generales de la Reserva*): En «Fecha y Periodos Lectivos» se especifica con claridad si corresponde a `1 periodo lectivo (55 min)`, `2 periodos lectivos consecutivos (110 min · hasta 2 turnos)` o `3 periodos lectivos consecutivos (165 min · hasta 3 turnos)`.
+    * En la Sección 7 (*Desarrollo y Evidencias de Ejecución*): Distintivo destacado de duración con el desglose de minutos y periodos.
+    * En el formulario de valoración didáctica (`ValuationForm.tsx`): Selector previo para verificar o ajustar el número de periodos ejecutados con preselección inteligente según la duración de la franja.
+  * **Elección Dinámica del Coordinador Firmante**:
+    * En el formulario de valoración (`ValuationForm.tsx`) y en la cabecera del informe (`ReportPDF.tsx`), se añade un selector de **Coordinador Firmante** que obtiene la lista activa de coordinadores y administradores (`getAtecaCoordinators()`), con D. José Domingo Pacheco Díaz seleccionado por defecto y posibilidad de elegir a otros coordinadores del centro (ej. D. Agustín David Lorenzo Hernández, D. Federico Javier Sanchez Villanueva).
+    * El pie de firmas del documento oficial refleja fielmente el nombre, cargo institucional y correo electrónico del coordinador seleccionado, así como la firma del profesor responsable.
+  * **Sincronización en las 3 Capas (v1.4.8)**:
+    * Actualización a `1.4.8` en `package.json`, `types.ts` y pie de página de la aplicación.
+    * Generación de respaldo local en archivo ZIP `Reservas-Aula-ATECA-v.1.4.8.zip`.
+    * Compilación de producción con Vite (`npm run build`) y despliegue a producción en Hostinger (`https://ateca.fpapps.es`).
+    * Sincronización en repositorio GitHub (`main`, `backup/v1.4.8` y tag `v1.4.8`).
+
+---
+
 ## [v1.4.7] - 2026-09-27
 ### 🏷️ Departamento "Comercio y Marketing" y Acreditación Granular ATECA por Zonas Tecnológicas
 * **Objetivo**: Actualizar la denominación oficial del departamento didáctico a **Comercio y Marketing** (Prioridad P1 · Formación Profesional) y desmenuzar el sistema de acreditación de competencias ATECA en las **4 zonas tecnológicas** del aula:

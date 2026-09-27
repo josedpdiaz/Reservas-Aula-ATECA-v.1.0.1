@@ -403,6 +403,18 @@ switch ($action) {
             $store['reservas'] = array_values(array_filter($store['reservas'], function($r) use ($id) {
                 return ($r['id_reserva'] ?? '') !== $id;
             }));
+            // Purgar también cualquier informe / valoración asociada a la reserva
+            if (isset($store['valoraciones']) && is_array($store['valoraciones'])) {
+                $store['valoraciones'] = array_values(array_filter($store['valoraciones'], function($v) use ($id) {
+                    return ($v['id_reserva'] ?? '') !== $id;
+                }));
+            }
+        } elseif ($itemType === 'valoracion') {
+            if (isset($store['valoraciones']) && is_array($store['valoraciones'])) {
+                $store['valoraciones'] = array_values(array_filter($store['valoraciones'], function($v) use ($id) {
+                    return (($v['id_valoracion'] ?? '') !== $id) && (($v['id_reserva'] ?? '') !== $id);
+                }));
+            }
         } elseif ($itemType === 'bloqueo') {
             $store['bloqueos'] = array_values(array_filter($store['bloqueos'], function($b) use ($id) {
                 return (($b['id_bloqueo'] ?? $b['id'] ?? '')) !== $id;

@@ -1,19 +1,15 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useMemo } from 'react';
-import { Printer, ArrowLeft, ShieldAlert, FileText } from 'lucide-react';
-import { Reserva } from '../types';
-import { getValoraciones, getConfig } from '../lib/storage';
+import React, { useState, useMemo } from 'react';
+import { Printer, ArrowLeft, ShieldAlert, FileText, Trash2, UserCheck } from 'lucide-react';
+import { Reserva, detectConsecutiveSessionsCount } from '../types';
+import { getValoraciones, getConfig, getAtecaCoordinators, deleteValoracionByReserva } from '../lib/storage';
 
 interface ReportPDFProps {
   booking: Reserva;
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
-export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
+export default function ReportPDF({ booking, onCancel, onRefresh }: ReportPDFProps) {
   const config = getConfig();
   const valoraciones = getValoraciones();
   
@@ -22,26 +18,80 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
     return valoraciones.find(v => v.id_reserva === booking.id_reserva);
   }, [booking, valoraciones]);
 
+  // Detected or configured consecutive periods
+  const numPeriodos = valuation?.num_periodos || detectConsecutiveSessionsCount(booking.hora_inicio, booking.hora_fin);
+
+  // Available coordinators for signing the report
+  const availableCoordinators = useMemo(() => getAtecaCoordinators(), []);
+  const defaultCoord = availableCoordinators.find(
+    c => c.id_usuario === valuation?.coordinador_firmante_id ||
+         c.email.toLowerCase() === (valuation?.coordinador_firmante_email || '').toLowerCase() ||
+         c.nombre === valuation?.coordinador_firmante_nombre
+  ) || availableCoordinators[0];
+
+  const [selectedCoordId, setSelectedCoordId] = useState<string>(defaultCoord?.id_usuario || 'u-1');
+  const activeCoord = availableCoordinators.find(c => c.id_usuario === selectedCoordId) || defaultCoord;
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDeleteReport = () => {
+    if (!valuation) return;
+    if (window.confirm(`¿Deseas eliminar definitivamente este informe y su valoración didáctica de ${booking.profesor}? La reserva se conservará en el calendario pero el informe quedará limpio y borrado.`)) {
+      deleteValoracionByReserva(booking.id_reserva);
+      if (onRefresh) onRefresh();
+      onCancel();
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Top action bar buttons (hidden when printing) */}
-      <div className="bg-slate-900 text-white rounded-xl p-4 flex justify-between items-center no-print shadow-sm">
+      <div className="bg-slate-900 text-white rounded-xl p-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 no-print shadow-sm">
         <div className="flex items-center space-x-3 text-xs md:text-sm">
-          <FileText className="w-5 h-5 text-emerald-400" />
+          <FileText className="w-5 h-5 text-emerald-400 shrink-0" />
           <div>
             <p className="font-bold">Generador de Informes de Evidencia</p>
             <p className="text-[11px] text-slate-300">Formatos oficiales de innovación Aula ATECA Canarias</p>
           </div>
         </div>
-        <div className="flex gap-2">
+
+        {/* Dynamic Coordinator Selector on the fly & Actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs">
+            <UserCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="text-[10px] text-slate-400 font-bold uppercase hidden sm:inline">Firmante:</span>
+            <select
+              value={selectedCoordId}
+              onChange={(e) => setSelectedCoordId(e.target.value)}
+              className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer"
+              title="Cambiar el coordinador firmante en este informe"
+            >
+              {availableCoordinators.map(c => (
+                <option key={c.id_usuario} value={c.id_usuario} className="bg-slate-900 text-white">
+                  {c.nombre} ({c.rol === 'ADMIN' ? 'Admin' : 'Coord.'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {valuation && (
+            <button
+              type="button"
+              onClick={handleDeleteReport}
+              id="btn_delete_report"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+              title="Eliminar esta memoria y dejar limpio el informe de la reserva"
+            >
+              <Trash2 className="h-3.5 w-3.5 text-rose-400" /> Eliminar Informe
+            </button>
+          )}
+
           <button
             onClick={onCancel}
             id="btn_back_report"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-xs font-semibold cursor-pointer text-white"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-xs font-semibold cursor-pointer text-white transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Volver al Calendario
           </button>
@@ -104,9 +154,9 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
                 <span className="font-bold text-slate-800">{config.nombre_aula || "Aula ATECA"}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Coordinador del Aula / Administrador</span>
-                <span className="font-bold text-slate-800">{config.nombre_coordinador || "José P. Díaz"}</span>
-                <span className="text-slate-500 block text-[10px]">Coordinador</span>
+                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Coordinador del Aula / Firmante</span>
+                <span className="font-bold text-slate-800">{activeCoord?.nombre || config.nombre_coordinador || "José Domingo Pacheco Díaz"}</span>
+                <span className="text-slate-500 block text-[10px]">{activeCoord?.rol === 'ADMIN' ? 'Administrador / Coordinador ATECA' : 'Coordinador Aula ATECA'}</span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Profesor Responsable</span>
@@ -114,8 +164,13 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
                 <span className="text-slate-500 block text-[10px]">{booking.email}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Fecha y Franja</span>
+                <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Fecha y Periodos Lectivos</span>
                 <span className="font-bold text-slate-800">{booking.fecha_actividad.split('-').reverse().join('/')} ({booking.hora_inicio} - {booking.hora_fin})</span>
+                <span className="text-emerald-700 font-bold block text-[10px] mt-0.5">
+                  {numPeriodos === 1 
+                    ? '1 periodo lectivo (55 min)' 
+                    : `${numPeriodos} periodos lectivos consecutivos (${numPeriodos * 55} min · hasta ${numPeriodos} turnos)`}
+                </span>
               </div>
               <div>
                 <span className="text-slate-400 font-bold block mb-0.5 uppercase tracking-wide text-[9px]">Grupo de Alumnado</span>
@@ -187,9 +242,14 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
 
           {/* PAGE BREAK PREPARATION FOR PRINTING VALUATIONS IF COMPLETED */}
           <div className={`${valuation ? 'page-break mt-12 pt-10' : ''}`}>
-            <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-800 pb-1 mb-4">
-              7. Desarrollo y Evidencias de Ejecución (Valoración posterior)
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-slate-800 pb-1 mb-4 gap-2">
+              <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-900">
+                7. Desarrollo y Evidencias de Ejecución (Valoración posterior)
+              </h3>
+              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                Duración: {numPeriodos === 1 ? '1 periodo lectivo (55 min)' : `${numPeriodos} periodos consecutivos (${numPeriodos * 55} min · hasta ${numPeriodos} turnos)`}
+              </span>
+            </div>
 
             {valuation ? (
               <div className="space-y-6">
@@ -274,16 +334,16 @@ export default function ReportPDF({ booking, onCancel }: ReportPDFProps) {
           <div>
             <p className="font-bold text-slate-400 uppercase tracking-widest text-[8px] mb-8">Firma del Coordinador del Aula / Administrador</p>
             <div className="w-32 mx-auto h-0.5 bg-slate-300 mb-2" />
-            <p className="font-extrabold text-slate-900 text-xs">{config.nombre_coordinador || "José P. Díaz"}</p>
-            <p className="text-slate-600 font-semibold text-[10px] mt-0.5">Coordinador</p>
-            <p className="text-slate-400 text-[9px] mt-0.5">{config.email_coordinador || "jpacdia@gobiernodecanarias.org"}</p>
+            <p className="font-extrabold text-slate-900 text-xs">{activeCoord?.nombre || config.nombre_coordinador || "José Domingo Pacheco Díaz"}</p>
+            <p className="text-slate-600 font-semibold text-[10px] mt-0.5">{activeCoord?.rol === 'ADMIN' ? 'Administrador / Coordinador Aula ATECA' : 'Coordinador Aula ATECA'}</p>
+            <p className="text-slate-400 text-[9px] mt-0.5">{activeCoord?.email || config.email_coordinador || "jpacdia@gobiernodecanarias.org"}</p>
           </div>
           <div>
             <p className="font-bold text-slate-400 uppercase tracking-widest text-[8px] mb-8">Firma del Profesor/a Responsable</p>
             <div className="w-32 mx-auto h-0.5 bg-slate-300 mb-2" />
             <p className="font-extrabold text-slate-900 text-xs">{booking.profesor}</p>
             <p className="text-slate-600 font-semibold text-[10px] mt-0.5">{booking.email}</p>
-            <p className="text-slate-500 text-[10px] mt-0.5">Dña. {booking.profesor}</p>
+            <p className="text-slate-500 text-[10px] mt-0.5">Profesor/a Responsable</p>
           </div>
         </div>
 
