@@ -546,7 +546,7 @@ export default function App() {
                   <span>Autenticación Oficial del Centro</span>
                 </div>
                 <p className="text-[11px] text-indigo-800 leading-relaxed">
-                  Para acceder y gestionar reservas en el Aula ATECA, introduce tu cuenta oficial del Gobierno de Canarias <strong>@gobiernodecanarias.org</strong>. El código de acceso de 6 dígitos se enviará automáticamente a tu cuenta de correo.
+                  Para acceder y gestionar reservas en el Aula ATECA, introduce tu cuenta oficial del Gobierno de Canarias <strong>@gobiernodecanarias.org</strong>. Un código de seis dígitos se enviará automáticamente a tu correo. Utilízalo para acceder.
                 </p>
               </div>
 
@@ -562,7 +562,7 @@ export default function App() {
                 <form onSubmit={handleRequestCode} className="space-y-4">
                   <div className="text-left">
                     <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1 flex items-center gap-1.5 leading-none">
-                      <Mail className="w-3.5 h-3.5 text-indigo-600" /> Cuenta oficial docente (@gobiernodecanarias.org)
+                      <Mail className="w-3.5 h-3.5 text-indigo-600" /> Cuenta institucional (@gobiernodecanarias.org)
                     </label>
                     <input
                       type="email"

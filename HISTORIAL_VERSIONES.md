@@ -3,6 +3,19 @@
 
 Este documento recopila de forma cronológica, concisa y estructurada todos los upgrades, updates y mejoras implementadas en la rama principal (`main`) del proyecto, asociadas a sus respectivas *Releases* en GitHub.
 
+## [v1.5.0] - 2026-09-27
+### 🏷️ Actualización de Textos de Acceso: Cuenta Institucional y Cartela Informativa
+* **Objetivo**: Ajustar con precisión los textos de la pantalla de bienvenida y acceso:
+  * En la cartela azul superior: *«Para acceder y gestionar reservas en el Aula ATECA, introduce tu cuenta oficial del Gobierno de Canarias **@gobiernodecanarias.org**. Un código de seis dígitos se enviará automáticamente a tu correo. Utilízalo para acceder.»*
+  * En el campo de introducción de email: *«Cuenta institucional (@gobiernodecanarias.org)»*.
+* **Sincronización en las 3 Capas (v1.5.0)**:
+  * Versión `1.5.0` en `types.ts`, `package.json` y pie de página.
+  * Respaldo ZIP local en `Reservas-Aula-ATECA-v.1.5.0.zip`.
+  * Commit y tag `v1.5.0` en GitHub (`main` y `backup/v1.5.0`).
+  * Despliegue en producción Hostinger (`https://ateca.fpapps.es`).
+
+---
+
 ## [v1.4.9] - 2026-09-27
 ### 🔒 Limpieza y Simplificación de la Pantalla de Acceso Oficial
 * **Objetivo**: Limpiar la pantalla de inicio de sesión de indicaciones de redirección o buzones secundarios, manteniendo de forma sobria la exigencia de la cuenta oficial docente `@gobiernodecanarias.org` y comunicando simplemente que el código de 6 dígitos se enviará automáticamente a su cuenta de correo:
