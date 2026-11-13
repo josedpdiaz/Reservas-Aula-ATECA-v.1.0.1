@@ -45,13 +45,16 @@ export default function App() {
   // Initialize App Databases inside localStorage and hydrate from central Hostinger server
   useEffect(() => {
     initializeStorage();
-    checkAndTriggerValuationReminders();
-    checkAndTriggerWeeklyReminders();
-    checkAndTriggerStandbyReservas();
+    // IMPORTANTE: NO llamar checkAndTriggerValuationReminders() aquí de forma síncrona.
+    // Los recordatorios se ejecutan SOLO después de sincronizar con el servidor (runSyncAndReminders),
+    // para garantizar que las valoraciones ya guardadas en el servidor se reflejan en localStorage
+    // antes de decidir si se envía un recordatorio. Evita falsos positivos.
     forceUpdate();
 
     const runSyncAndReminders = async () => {
+      // 1. Sincronizar con servidor primero (actualiza localStorage con datos del servidor)
       const updated = await syncWithServer();
+      // 2. Solo DESPUÉS de sincronizar, comprobar si faltan valoraciones
       const remindersTriggered = await checkAndTriggerValuationReminders();
       const weeklyTriggered = await checkAndTriggerWeeklyReminders();
       const standbyTriggered = await checkAndTriggerStandbyReservas();

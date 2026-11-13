@@ -1068,6 +1068,20 @@ export const hasBookingConcluded = (fecha_actividad: string, hora_fin: string): 
 
 const SENT_VALUATION_REMINDERS_KEY = 'ateca_sent_valuation_reminders';
 
+/**
+ * Genera una clave de tracking que combina el ID de reserva con el número de semana ISO del año.
+ * Esto asegura que el recordatorio se envíe como máximo UNA VEZ por semana por reserva.
+ * Si la valoración ya existe, el guard hasVal lo detiene independientemente de esta clave.
+ */
+const getValuationReminderKey = (id_reserva: string): string => {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil(
+    ((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
+  );
+  return `${id_reserva}:${now.getFullYear()}w${weekNumber}`;
+};
+
 export const getSentValuationReminderIds = (): Set<string> => {
   try {
     const raw = localStorage.getItem(SENT_VALUATION_REMINDERS_KEY);
@@ -1079,18 +1093,22 @@ export const getSentValuationReminderIds = (): Set<string> => {
 
 export const markValuationReminderSent = (id_reserva: string) => {
   const set = getSentValuationReminderIds();
-  set.add(id_reserva);
-  const arr = Array.from(set).slice(-200);
+  const key = getValuationReminderKey(id_reserva);
+  set.add(key);
+  // Mantener solo las últimas 400 entradas (claves semana:reserva) para no crecer indefinidamente
+  const arr = Array.from(set).slice(-400);
   localStorage.setItem(SENT_VALUATION_REMINDERS_KEY, JSON.stringify(arr));
 };
 
 /**
  * Revisa reservas que han concluido según horario oficial y no tienen valoración.
  * Actualiza el estado a REALIZADA si estaba APROBADA y envía recordatorio por correo al docente.
+ * IMPORTANTE: Esta función debe llamarse SIEMPRE después de syncWithServer() para garantizar
+ * que las valoraciones del servidor estén disponibles en localStorage antes de decidir si se envía.
  */
 export const checkAndTriggerValuationReminders = async (): Promise<boolean> => {
   const reservas = getReservas();
-  const valoraciones = getValoraciones();
+  const valoraciones = getValoraciones(); // Lee de localStorage (ya sincronizado con servidor)
   const users = getUsuarios();
   const sentReminders = getSentValuationReminderIds();
 
@@ -1099,6 +1117,7 @@ export const checkAndTriggerValuationReminders = async (): Promise<boolean> => {
   for (const r of reservas) {
     if (r.estado !== 'APROBADA' && r.estado !== 'REALIZADA') continue;
 
+    // Guard principal: si ya existe una valoración para esta reserva, no enviar recordatorio
     const hasVal = valoraciones.some(v => v.id_reserva === r.id_reserva);
     if (hasVal) continue;
 
@@ -1112,7 +1131,10 @@ export const checkAndTriggerValuationReminders = async (): Promise<boolean> => {
         modified = true;
       }
 
-      if (!sentReminders.has(r.id_reserva)) {
+      // Guard secundario: clave semanal (id_reserva:año_wSemana)
+      // Solo envía UNA VEZ por semana por reserva. Si la semana avanza y aún no hay valoración, vuelve a avisar.
+      const reminderKey = getValuationReminderKey(r.id_reserva);
+      if (!sentReminders.has(reminderKey)) {
         markValuationReminderSent(r.id_reserva);
         const teacher = users.find(u => u.email.toLowerCase() === r.email.toLowerCase()) || {
           id_usuario: 'docente',

@@ -702,3 +702,10 @@ Este documento recopila de forma cronológica, concisa y estructurada todos los 
 * **Mejoras clave**:
   * Código base exportado desde Google AI Studio con React 18, Vite, TypeScript y Tailwind CSS.
   * Estructura básica de base de datos local presembrada en `localStorage` con simulación de sincronización a Google Sheets.
+
+## v1.5.1 — 2026-11-13
+### 🐛 Corrección crítica: recordatorio de valoración
+- **Bug corregido**: El sistema enviaba recordatorios de valoración aunque el informe ya hubiera sido cumplimentado.
+- **Causa raíz**: checkAndTriggerValuationReminders() se ejecutaba síncronamente *antes* de syncWithServer(), por lo que leía valoraciones desactualizadas de localStorage (el informe ya estaba en el servidor pero aún no se había sincronizado localmente).
+- **Fix 1 (App.tsx)**: Eliminada la llamada prematura síncrona a los recordatorios al arrancar. Ahora solo se ejecutan *después* de wait syncWithServer(), garantizando que los datos locales estén actualizados.
+- **Fix 2 (storage.ts)**: El sistema de tracking de recordatorios enviados cambia de permanente (id_reserva) a **semanal** (id_reserva:año_wSemana). Esto permite que si una valoración sigue sin cumplimentarse, se recuerde semanalmente, pero nunca más de una vez por semana. El guard principal hasVal sigue siendo la primera línea de defensa.
